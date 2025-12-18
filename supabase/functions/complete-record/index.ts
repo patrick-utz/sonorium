@@ -5,6 +5,184 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// MusicBrainz User-Agent (required by their API)
+const MB_USER_AGENT = 'VinylCollector/1.0 (contact@vinylcollector.app)';
+
+// Search MusicBrainz by barcode
+async function searchByBarcode(barcode: string): Promise<{ mbid: string; artist: string; album: string; year: number; label: string } | null> {
+  try {
+    console.log('Searching MusicBrainz by barcode:', barcode);
+    const url = `https://musicbrainz.org/ws/2/release/?query=barcode:${barcode}&fmt=json`;
+    
+    const response = await fetch(url, {
+      headers: { 'User-Agent': MB_USER_AGENT }
+    });
+    
+    if (!response.ok) {
+      console.log('MusicBrainz barcode search failed:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    const release = data.releases?.[0];
+    
+    if (release) {
+      console.log('Found release:', release.title, 'by', release['artist-credit']?.[0]?.name);
+      return {
+        mbid: release.id,
+        artist: release['artist-credit']?.[0]?.name || '',
+        album: release.title || '',
+        year: release.date ? parseInt(release.date.substring(0, 4)) : 0,
+        label: release['label-info']?.[0]?.label?.name || ''
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('MusicBrainz barcode search error:', error);
+    return null;
+  }
+}
+
+// Search MusicBrainz by artist and album
+async function searchByArtistAlbum(artist: string, album: string): Promise<string | null> {
+  try {
+    console.log('Searching MusicBrainz by artist/album:', artist, album);
+    const query = encodeURIComponent(`release:"${album}" AND artist:"${artist}"`);
+    const url = `https://musicbrainz.org/ws/2/release/?query=${query}&fmt=json&limit=1`;
+    
+    const response = await fetch(url, {
+      headers: { 'User-Agent': MB_USER_AGENT }
+    });
+    
+    if (!response.ok) {
+      console.log('MusicBrainz artist/album search failed:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    const release = data.releases?.[0];
+    
+    if (release) {
+      console.log('Found release MBID:', release.id);
+      return release.id;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('MusicBrainz artist/album search error:', error);
+    return null;
+  }
+}
+
+// Get cover art from Cover Art Archive
+async function getCoverArt(mbid: string): Promise<string | null> {
+  try {
+    console.log('Fetching cover art for MBID:', mbid);
+    
+    // First, check if cover art exists
+    const infoUrl = `https://coverartarchive.org/release/${mbid}`;
+    const infoResponse = await fetch(infoUrl, {
+      headers: { 'User-Agent': MB_USER_AGENT }
+    });
+    
+    if (!infoResponse.ok) {
+      console.log('No cover art found in Cover Art Archive');
+      return null;
+    }
+    
+    const info = await infoResponse.json();
+    const frontImage = info.images?.find((img: any) => img.front) || info.images?.[0];
+    
+    if (!frontImage) {
+      return null;
+    }
+    
+    // Use the 500px thumbnail for reasonable file size
+    const imageUrl = frontImage.thumbnails?.['500'] || frontImage.thumbnails?.large || frontImage.image;
+    
+    if (!imageUrl) {
+      return null;
+    }
+    
+    console.log('Downloading cover image from:', imageUrl);
+    
+    // Download and convert to base64
+    const imageResponse = await fetch(imageUrl, {
+      headers: { 'User-Agent': MB_USER_AGENT }
+    });
+    
+    if (!imageResponse.ok) {
+      console.log('Failed to download cover image:', imageResponse.status);
+      return null;
+    }
+    
+    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    
+    console.log('Cover art converted to base64 successfully');
+    return `data:${contentType};base64,${base64}`;
+    
+  } catch (error) {
+    console.error('Cover Art Archive error:', error);
+    return null;
+  }
+}
+
+// Search for artist image on Wikipedia/Wikimedia
+async function getArtistImage(artist: string): Promise<string | null> {
+  try {
+    console.log('Searching for artist image:', artist);
+    
+    // Search Wikipedia for artist
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(artist)}&prop=pageimages&format=json&pithumbsize=500&origin=*`;
+    
+    const response = await fetch(searchUrl, {
+      headers: { 'User-Agent': MB_USER_AGENT }
+    });
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const data = await response.json();
+    const pages = data.query?.pages;
+    
+    if (!pages) return null;
+    
+    const page = Object.values(pages)[0] as any;
+    const thumbnailUrl = page?.thumbnail?.source;
+    
+    if (!thumbnailUrl) {
+      console.log('No artist image found on Wikipedia');
+      return null;
+    }
+    
+    console.log('Found artist image:', thumbnailUrl);
+    
+    // Download and convert to base64
+    const imageResponse = await fetch(thumbnailUrl, {
+      headers: { 'User-Agent': MB_USER_AGENT }
+    });
+    
+    if (!imageResponse.ok) {
+      return null;
+    }
+    
+    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    
+    console.log('Artist image converted to base64');
+    return `data:${contentType};base64,${base64}`;
+    
+  } catch (error) {
+    console.error('Artist image search error:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,14 +196,52 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build context from provided fields
+    let foundCoverArt: string | null = null;
+    let mbData: { mbid: string; artist: string; album: string; year: number; label: string } | null = null;
+
+    // Step 1: Try to find release and cover art via MusicBrainz
+    if (barcode) {
+      // Rate limiting: wait a bit between requests
+      mbData = await searchByBarcode(barcode);
+      
+      if (mbData?.mbid) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // MusicBrainz rate limit
+        foundCoverArt = await getCoverArt(mbData.mbid);
+      }
+    }
+    
+    // Step 2: If no barcode match, try artist + album search
+    if (!foundCoverArt && artist && album) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const mbid = await searchByArtistAlbum(artist, album);
+      
+      if (mbid) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        foundCoverArt = await getCoverArt(mbid);
+      }
+    }
+    
+    // Step 3: Fallback to artist image if no cover found
+    if (!foundCoverArt && (artist || mbData?.artist)) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      foundCoverArt = await getArtistImage(artist || mbData?.artist || '');
+    }
+
+    // Build context from provided fields (use MusicBrainz data if found)
     const knownInfo: string[] = [];
     if (barcode) knownInfo.push(`EAN/Barcode: ${barcode}`);
-    if (artist) knownInfo.push(`Artist: ${artist}`);
-    if (album) knownInfo.push(`Album: ${album}`);
-    if (year) knownInfo.push(`Year: ${year}`);
+    if (mbData) {
+      knownInfo.push(`Artist (from MusicBrainz): ${mbData.artist}`);
+      knownInfo.push(`Album (from MusicBrainz): ${mbData.album}`);
+      if (mbData.year) knownInfo.push(`Year (from MusicBrainz): ${mbData.year}`);
+      if (mbData.label) knownInfo.push(`Label (from MusicBrainz): ${mbData.label}`);
+    } else {
+      if (artist) knownInfo.push(`Artist: ${artist}`);
+      if (album) knownInfo.push(`Album: ${album}`);
+      if (year) knownInfo.push(`Year: ${year}`);
+      if (label) knownInfo.push(`Label: ${label}`);
+    }
     if (genre && genre.length > 0) knownInfo.push(`Genres: ${genre.join(', ')}`);
-    if (label) knownInfo.push(`Label: ${label}`);
 
     const contextInfo = knownInfo.length > 0 
       ? `Known information:\n${knownInfo.join('\n')}`
@@ -33,7 +249,7 @@ serve(async (req) => {
 
     // Different prompt for barcode lookup
     const barcodeInstruction = barcode 
-      ? `\n\nWICHTIG: Der Nutzer hat den Barcode/EAN "${barcode}" gescannt. Identifiziere das Album anhand dieses EAN-Codes. EAN-Codes sind eindeutige Produktidentifikatoren für CDs und Vinyl-Schallplatten. Suche in deinem Wissen nach dem Album mit diesem EAN.`
+      ? `\n\nWICHTIG: Der Nutzer hat den Barcode/EAN "${barcode}" gescannt. ${mbData ? `MusicBrainz hat bereits identifiziert: "${mbData.album}" von "${mbData.artist}" (${mbData.year}).` : 'MusicBrainz konnte diesen Barcode nicht finden. Versuche das Album anhand dieses EAN-Codes zu identifizieren.'}`
       : '';
 
     const systemPrompt = `Du bist ein Musik-Experte, Audiophiler und Historiker mit tiefem Wissen über Jazz, Klassik, Rock und alle Genres. 
@@ -56,7 +272,6 @@ Liefere ein JSON-Objekt mit folgender Struktur:
   "pressing": "string - Pressland/Jahr",
   "tags": ["stimmung", "instrumente", "themen"],
   "personalNotes": "string - interessante Fakten über dieses Album",
-  "coverArtUrl": "string - echte URL zum Album-Cover von Wikipedia, MusicBrainz oder Discogs",
   
   "audiophileAssessment": "AUSFÜHRLICHE audiophile Beurteilung (mindestens 150 Wörter): Beschreibe die Aufnahmequalität, Räumlichkeit, Transparenz, Dynamik, Basswiedergabe, Höhenauflösung. Erwähne spezifische Toningenieure, Studios, Aufnahmetechnik. Nenne die besten Pressungen (Original, Reissues wie MoFi, Acoustic Sounds, Analogue Productions). Beschreibe die Klangbühne und Instrumententrennung. Nutze audiophile Fachbegriffe.",
   
@@ -196,29 +411,18 @@ Sei ein echter Experte. Liefere fundierte, detaillierte Analysen wie ein profess
       }
     }
 
-    // If we have a cover URL from AI, try to fetch and convert to base64
-    if (completedData.coverArtUrl && !completedData.coverArtUrl.startsWith('data:')) {
-      try {
-        console.log('Fetching cover image from:', completedData.coverArtUrl);
-        const imageResponse = await fetch(completedData.coverArtUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; VinylCollector/1.0)',
-            'Accept': 'image/*'
-          }
-        });
-        
-        if (imageResponse.ok) {
-          const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-          const arrayBuffer = await imageResponse.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-          completedData.coverArtBase64 = `data:${contentType};base64,${base64}`;
-          console.log('Cover image converted to base64 successfully');
-        } else {
-          console.log('Failed to fetch cover image:', imageResponse.status);
-        }
-      } catch (imgError) {
-        console.error('Error fetching cover image:', imgError);
-      }
+    // Use MusicBrainz data if available
+    if (mbData) {
+      if (!completedData.artist) completedData.artist = mbData.artist;
+      if (!completedData.album) completedData.album = mbData.album;
+      if (!completedData.year && mbData.year) completedData.year = mbData.year;
+      if (!completedData.label && mbData.label) completedData.label = mbData.label;
+    }
+
+    // Add the cover art we found
+    if (foundCoverArt) {
+      completedData.coverArtBase64 = foundCoverArt;
+      console.log('Added cover art from MusicBrainz/Wikipedia');
     }
 
     return new Response(
