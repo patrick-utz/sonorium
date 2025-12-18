@@ -17,6 +17,9 @@ import {
   CheckCircle,
   AlertCircle,
   MinusCircle,
+  Brain,
+  Music,
+  Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -302,6 +305,61 @@ export default function RecordDetail() {
                 <span className="text-sm">
                   {new Date(record.dateAdded).toLocaleDateString("de-CH")}
                 </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* AI Audiophile Assessment */}
+        {record.audiophileAssessment && (
+          <Card className="bg-gradient-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <Brain className="w-5 h-5 text-primary" />
+                Audiophile Beurteilung
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                {record.audiophileAssessment}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* AI Artistic Assessment */}
+        {record.artisticAssessment && (
+          <Card className="bg-gradient-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                Künstlerische Beurteilung
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                {record.artisticAssessment}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tags */}
+        {record.tags && record.tags.length > 0 && (
+          <Card className="bg-gradient-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <Music className="w-5 h-5 text-primary" />
+                Stichworte
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {record.tags.map((tag) => (
+                  <Badge key={tag} variant="outline" className="text-sm">
+                    {tag}
+                  </Badge>
+                ))}
               </div>
             </CardContent>
           </Card>
