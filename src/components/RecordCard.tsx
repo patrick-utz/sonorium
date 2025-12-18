@@ -4,7 +4,7 @@ import { StarRating } from "./StarRating";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Camera } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface RecordCardProps {
@@ -16,16 +16,13 @@ interface RecordCardProps {
 
 export function RecordCard({ record, onClick, onCoverUpdate, className }: RecordCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Bitte wähle eine Bilddatei");
       return;
     }
-
     const reader = new FileReader();
     reader.onload = (event) => {
       const result = event.target?.result as string;
@@ -33,8 +30,32 @@ export function RecordCard({ record, onClick, onCoverUpdate, className }: Record
       toast.success("Cover aktualisiert");
     };
     reader.readAsDataURL(file);
-    
-    // Reset input
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onCoverUpdate) setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    if (!onCoverUpdate) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
     e.target.value = "";
   };
 
@@ -50,9 +71,13 @@ export function RecordCard({ record, onClick, onCoverUpdate, className }: Record
       whileHover={{ y: -8, scale: 1.02 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
       onClick={onClick}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       className={cn(
         "group relative cursor-pointer rounded-xl overflow-hidden",
         "bg-card shadow-card hover:shadow-hover transition-shadow duration-300",
+        isDragOver && "ring-2 ring-primary ring-offset-2",
         className
       )}
     >
