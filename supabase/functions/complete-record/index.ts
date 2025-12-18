@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { artist, album, year, genre, label, coverArt } = await req.json();
+    const { artist, album, year, genre, label, coverArt, barcode } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -20,6 +20,7 @@ serve(async (req) => {
 
     // Build context from provided fields
     const knownInfo: string[] = [];
+    if (barcode) knownInfo.push(`EAN/Barcode: ${barcode}`);
     if (artist) knownInfo.push(`Artist: ${artist}`);
     if (album) knownInfo.push(`Album: ${album}`);
     if (year) knownInfo.push(`Year: ${year}`);
@@ -30,12 +31,17 @@ serve(async (req) => {
       ? `Known information:\n${knownInfo.join('\n')}`
       : 'No information provided yet.';
 
+    // Different prompt for barcode lookup
+    const barcodeInstruction = barcode 
+      ? `\n\nWICHTIG: Der Nutzer hat den Barcode/EAN "${barcode}" gescannt. Identifiziere das Album anhand dieses EAN-Codes. EAN-Codes sind eindeutige Produktidentifikatoren für CDs und Vinyl-Schallplatten. Suche in deinem Wissen nach dem Album mit diesem EAN.`
+      : '';
+
     const systemPrompt = `Du bist ein Musik-Experte, Audiophiler und Historiker mit tiefem Wissen über Jazz, Klassik, Rock und alle Genres. 
 Du kennst die Geschichte von Aufnahmetechnik, Pressungen, Labels und Mastering-Ingenieuren.
 
 Deine Aufgabe ist es, Album-Informationen zu vervollständigen und AUSFÜHRLICHE Bewertungen zu liefern.
 
-WICHTIG: Schreibe ALLES auf Deutsch. Sei ausführlich und detailliert wie ein Musik-Magazin.
+WICHTIG: Schreibe ALLES auf Deutsch. Sei ausführlich und detailliert wie ein Musik-Magazin.${barcodeInstruction}
 
 Liefere ein JSON-Objekt mit folgender Struktur:
 

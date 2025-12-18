@@ -17,7 +17,8 @@ import {
 import { StarRating } from "@/components/StarRating";
 import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
-import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star } from "lucide-react";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,11 +58,13 @@ export default function AddRecord() {
   );
 
   const [showCamera, setShowCamera] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
   const [isCoverDragActive, setIsCoverDragActive] = useState(false);
   const [genreInput, setGenreInput] = useState("");
   const [showGenreSuggestions, setShowGenreSuggestions] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isBarcodeLoading, setIsBarcodeLoading] = useState(false);
 
   const setCoverFromFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -150,6 +153,73 @@ export default function AddRecord() {
     }
   };
 
+  const handleBarcodeScan = async (barcode: string) => {
+    setIsBarcodeLoading(true);
+    toast({
+      title: "Barcode erkannt",
+      description: `EAN: ${barcode} - Suche Album-Informationen...`,
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('complete-record', {
+        body: {
+          barcode: barcode,
+          artist: formData.artist,
+          album: formData.album,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.data) {
+        const aiData = data.data;
+        
+        setFormData((prev) => ({
+          ...prev,
+          artist: aiData.artist || prev.artist,
+          album: aiData.album || prev.album,
+          year: aiData.year || prev.year,
+          genre: aiData.genre?.length ? aiData.genre : prev.genre,
+          label: aiData.label || prev.label,
+          catalogNumber: aiData.catalogNumber || prev.catalogNumber,
+          formatDetails: aiData.formatDetails || prev.formatDetails,
+          pressing: aiData.pressing || prev.pressing,
+          tags: aiData.tags?.length ? aiData.tags : prev.tags,
+          personalNotes: aiData.personalNotes || prev.personalNotes,
+          coverArt: aiData.coverArtBase64 || aiData.coverArtUrl || prev.coverArt,
+          audiophileAssessment: aiData.audiophileAssessment || prev.audiophileAssessment,
+          artisticAssessment: aiData.artisticAssessment || prev.artisticAssessment,
+          recordingQuality: aiData.recordingQuality || prev.recordingQuality,
+          masteringQuality: aiData.masteringQuality || prev.masteringQuality,
+          artisticRating: aiData.artisticRating || prev.artisticRating,
+          recommendations: aiData.recommendations || prev.recommendations,
+        }));
+
+        toast({
+          title: "Album gefunden",
+          description: `${aiData.artist} - ${aiData.album}`,
+        });
+      } else if (data?.error) {
+        throw new Error(data.error);
+      } else {
+        toast({
+          title: "Kein Album gefunden",
+          description: "Für diesen Barcode wurde kein Album gefunden.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Barcode lookup error:', error);
+      toast({
+        title: "Fehler",
+        description: error instanceof Error ? error.message : "Album-Suche fehlgeschlagen",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBarcodeLoading(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -221,6 +291,12 @@ export default function AddRecord() {
             onClose={() => setShowCamera(false)}
           />
         )}
+        {showBarcodeScanner && (
+          <BarcodeScanner
+            onScan={handleBarcodeScan}
+            onClose={() => setShowBarcodeScanner(false)}
+          />
+        )}
       </AnimatePresence>
 
       <motion.div
@@ -250,19 +326,35 @@ export default function AddRecord() {
                 : "Füge einen neuen Tonträger zu deiner Sammlung hinzu"}
             </p>
           </div>
-          <Button
-            type="button"
-            onClick={handleAiComplete}
-            disabled={isAiLoading}
-            className="gap-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white"
-          >
-            {isAiLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
-            {isAiLoading ? "KI analysiert..." : "KI-Vervollständigung"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowBarcodeScanner(true)}
+              disabled={isBarcodeLoading}
+              className="gap-2"
+            >
+              {isBarcodeLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ScanBarcode className="w-4 h-4" />
+              )}
+              {isBarcodeLoading ? "Suche..." : "Barcode"}
+            </Button>
+            <Button
+              type="button"
+              onClick={handleAiComplete}
+              disabled={isAiLoading}
+              className="gap-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white"
+            >
+              {isAiLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {isAiLoading ? "KI analysiert..." : "KI-Vervollständigung"}
+            </Button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
