@@ -93,7 +93,7 @@ export default function AddRecord() {
           pressing: prev.pressing || aiData.pressing || prev.pressing,
           tags: prev.tags?.length ? prev.tags : (aiData.tags || prev.tags),
           personalNotes: prev.personalNotes || aiData.personalNotes || prev.personalNotes,
-          coverArt: prev.coverArt || aiData.coverArtUrl || prev.coverArt,
+          coverArt: prev.coverArt || aiData.coverArtBase64 || aiData.coverArtUrl || prev.coverArt,
           // KI-Bewertungen - always update these from AI
           audiophileAssessment: aiData.audiophileAssessment || prev.audiophileAssessment,
           artisticAssessment: aiData.artisticAssessment || prev.artisticAssessment,

@@ -153,6 +153,31 @@ Sei ein echter Experte. Liefere fundierte, detaillierte Analysen wie ein profess
       }
     }
 
+    // If we have a cover URL from AI, try to fetch and convert to base64
+    if (completedData.coverArtUrl && !completedData.coverArtUrl.startsWith('data:')) {
+      try {
+        console.log('Fetching cover image from:', completedData.coverArtUrl);
+        const imageResponse = await fetch(completedData.coverArtUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; VinylCollector/1.0)',
+            'Accept': 'image/*'
+          }
+        });
+        
+        if (imageResponse.ok) {
+          const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+          const arrayBuffer = await imageResponse.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          completedData.coverArtBase64 = `data:${contentType};base64,${base64}`;
+          console.log('Cover image converted to base64 successfully');
+        } else {
+          console.log('Failed to fetch cover image:', imageResponse.status);
+        }
+      } catch (imgError) {
+        console.error('Error fetching cover image:', imgError);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, data: completedData }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
