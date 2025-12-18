@@ -50,8 +50,9 @@ export interface Record {
   vinylRecommendation?: VinylRecommendation;
   recommendationReason?: string;
   
-  // Notizen
+  // Notizen & Tags
   personalNotes?: string;
+  tags?: string[]; // Stichworte für Stimmung, Instrumente, etc.
   
   // Empfehlungen
   recommendations?: RecordRecommendation[];
