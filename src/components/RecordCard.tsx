@@ -2,6 +2,7 @@ import { Record } from "@/types/record";
 import { FormatBadge } from "./FormatBadge";
 import { StarRating } from "./StarRating";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/imageUtils";
 import { motion } from "framer-motion";
 import { Camera } from "lucide-react";
 import { useRef, useState } from "react";
@@ -18,16 +19,21 @@ export function RecordCard({ record, onClick, onCoverUpdate, className }: Record
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const processFile = (file: File) => {
+  const processFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Bitte wähle eine Bilddatei");
       return;
     }
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const result = event.target?.result as string;
-      onCoverUpdate?.(result);
-      toast.success("Cover aktualisiert");
+      try {
+        const compressed = await compressImage(result);
+        onCoverUpdate?.(compressed);
+        toast.success("Cover aktualisiert");
+      } catch {
+        toast.error("Fehler beim Komprimieren");
+      }
     };
     reader.readAsDataURL(file);
   };

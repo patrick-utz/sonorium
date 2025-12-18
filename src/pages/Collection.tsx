@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { compressImage } from "@/lib/imageUtils";
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
 import { Input } from "@/components/ui/input";
@@ -263,10 +264,15 @@ function ListItem({ record, onClick, onCoverUpdate }: { record: Record; onClick:
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const result = event.target?.result as string;
-      onCoverUpdate(result);
-      toast.success("Cover aktualisiert");
+      try {
+        const compressed = await compressImage(result);
+        onCoverUpdate(compressed);
+        toast.success("Cover aktualisiert");
+      } catch {
+        toast.error("Fehler beim Komprimieren");
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = "";
