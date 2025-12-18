@@ -18,7 +18,7 @@ import { StarRating } from "@/components/StarRating";
 import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
-import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode } from "lucide-react";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,6 +65,7 @@ export default function AddRecord() {
   const [showGenreSuggestions, setShowGenreSuggestions] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isBarcodeLoading, setIsBarcodeLoading] = useState(false);
+  const [manualEan, setManualEan] = useState("");
 
   const setCoverFromFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -326,21 +327,52 @@ export default function AddRecord() {
                 : "Füge einen neuen Tonträger zu deiner Sammlung hinzu"}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowBarcodeScanner(true)}
-              disabled={isBarcodeLoading}
-              className="gap-2"
-            >
-              {isBarcodeLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <ScanBarcode className="w-4 h-4" />
-              )}
-              {isBarcodeLoading ? "Suche..." : "Barcode"}
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowBarcodeScanner(true)}
+                disabled={isBarcodeLoading}
+                className="gap-2"
+              >
+                {isBarcodeLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ScanBarcode className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">{isBarcodeLoading ? "Suche..." : "Scan"}</span>
+              </Button>
+              <div className="flex">
+                <Input
+                  placeholder="EAN eingeben..."
+                  value={manualEan}
+                  onChange={(e) => setManualEan(e.target.value.replace(/\D/g, ''))}
+                  className="w-32 sm:w-36 rounded-r-none bg-card border-border/50"
+                  maxLength={13}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (manualEan.length >= 8) {
+                      handleBarcodeScan(manualEan);
+                      setManualEan("");
+                    } else {
+                      toast({
+                        title: "Ungültige EAN",
+                        description: "Bitte gib mindestens 8 Ziffern ein.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  disabled={isBarcodeLoading || manualEan.length < 8}
+                  className="rounded-l-none border-l-0 px-2"
+                >
+                  <Search className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
             <Button
               type="button"
               onClick={handleAiComplete}
