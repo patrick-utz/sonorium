@@ -14,11 +14,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { StarRating } from "@/components/StarRating";
 import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
-import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search } from "lucide-react";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,6 +73,8 @@ export default function AddRecord() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isBarcodeLoading, setIsBarcodeLoading] = useState(false);
   const [manualEan, setManualEan] = useState("");
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [pendingBarcodeData, setPendingBarcodeData] = useState<Partial<Record> | null>(null);
 
   const setCoverFromFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -175,31 +184,27 @@ export default function AddRecord() {
       if (data?.success && data?.data) {
         const aiData = data.data;
         
-        setFormData((prev) => ({
-          ...prev,
-          artist: aiData.artist || prev.artist,
-          album: aiData.album || prev.album,
-          year: aiData.year || prev.year,
-          genre: aiData.genre?.length ? aiData.genre : prev.genre,
-          label: aiData.label || prev.label,
-          catalogNumber: aiData.catalogNumber || prev.catalogNumber,
-          formatDetails: aiData.formatDetails || prev.formatDetails,
-          pressing: aiData.pressing || prev.pressing,
-          tags: aiData.tags?.length ? aiData.tags : prev.tags,
-          personalNotes: aiData.personalNotes || prev.personalNotes,
-          coverArt: aiData.coverArtBase64 || aiData.coverArtUrl || prev.coverArt,
-          audiophileAssessment: aiData.audiophileAssessment || prev.audiophileAssessment,
-          artisticAssessment: aiData.artisticAssessment || prev.artisticAssessment,
-          recordingQuality: aiData.recordingQuality || prev.recordingQuality,
-          masteringQuality: aiData.masteringQuality || prev.masteringQuality,
-          artisticRating: aiData.artisticRating || prev.artisticRating,
-          recommendations: aiData.recommendations || prev.recommendations,
-        }));
-
-        toast({
-          title: "Album gefunden",
-          description: `${aiData.artist} - ${aiData.album}`,
+        // Store the data and show status selection dialog
+        setPendingBarcodeData({
+          artist: aiData.artist,
+          album: aiData.album,
+          year: aiData.year,
+          genre: aiData.genre,
+          label: aiData.label,
+          catalogNumber: aiData.catalogNumber,
+          formatDetails: aiData.formatDetails,
+          pressing: aiData.pressing,
+          tags: aiData.tags,
+          personalNotes: aiData.personalNotes,
+          coverArt: aiData.coverArtBase64 || aiData.coverArtUrl,
+          audiophileAssessment: aiData.audiophileAssessment,
+          artisticAssessment: aiData.artisticAssessment,
+          recordingQuality: aiData.recordingQuality,
+          masteringQuality: aiData.masteringQuality,
+          artisticRating: aiData.artisticRating,
+          recommendations: aiData.recommendations,
         });
+        setShowStatusDialog(true);
       } else if (data?.error) {
         throw new Error(data.error);
       } else {
@@ -219,6 +224,39 @@ export default function AddRecord() {
     } finally {
       setIsBarcodeLoading(false);
     }
+  };
+
+  const handleStatusSelection = (status: RecordStatus) => {
+    if (pendingBarcodeData) {
+      setFormData((prev) => ({
+        ...prev,
+        artist: pendingBarcodeData.artist || prev.artist,
+        album: pendingBarcodeData.album || prev.album,
+        year: pendingBarcodeData.year || prev.year,
+        genre: pendingBarcodeData.genre?.length ? pendingBarcodeData.genre : prev.genre,
+        label: pendingBarcodeData.label || prev.label,
+        catalogNumber: pendingBarcodeData.catalogNumber || prev.catalogNumber,
+        formatDetails: pendingBarcodeData.formatDetails || prev.formatDetails,
+        pressing: pendingBarcodeData.pressing || prev.pressing,
+        tags: pendingBarcodeData.tags?.length ? pendingBarcodeData.tags : prev.tags,
+        personalNotes: pendingBarcodeData.personalNotes || prev.personalNotes,
+        coverArt: pendingBarcodeData.coverArt || prev.coverArt,
+        audiophileAssessment: pendingBarcodeData.audiophileAssessment || prev.audiophileAssessment,
+        artisticAssessment: pendingBarcodeData.artisticAssessment || prev.artisticAssessment,
+        recordingQuality: pendingBarcodeData.recordingQuality || prev.recordingQuality,
+        masteringQuality: pendingBarcodeData.masteringQuality || prev.masteringQuality,
+        artisticRating: pendingBarcodeData.artisticRating || prev.artisticRating,
+        recommendations: pendingBarcodeData.recommendations || prev.recommendations,
+        status: status,
+      }));
+
+      toast({
+        title: "Album gefunden",
+        description: `${pendingBarcodeData.artist} - ${pendingBarcodeData.album} (${status === 'owned' ? 'Sammlung' : 'Wunschliste'})`,
+      });
+    }
+    setPendingBarcodeData(null);
+    setShowStatusDialog(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -299,6 +337,38 @@ export default function AddRecord() {
           />
         )}
       </AnimatePresence>
+
+      {/* Status Selection Dialog after Barcode Scan */}
+      <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              {pendingBarcodeData?.artist} - {pendingBarcodeData?.album}
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Wohin soll dieser Tonträger hinzugefügt werden?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button
+              onClick={() => handleStatusSelection("owned")}
+              className="gap-2 h-14 text-lg"
+              variant="default"
+            >
+              <Library className="w-5 h-5" />
+              Zur Sammlung hinzufügen
+            </Button>
+            <Button
+              onClick={() => handleStatusSelection("wishlist")}
+              className="gap-2 h-14 text-lg"
+              variant="outline"
+            >
+              <Heart className="w-5 h-5" />
+              Auf die Wunschliste
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <motion.div
         initial={{ opacity: 0 }}

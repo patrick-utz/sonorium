@@ -4,18 +4,30 @@ import { StarRating } from "./StarRating";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
 import { motion } from "framer-motion";
-import { Camera } from "lucide-react";
+import { Camera, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface RecordCardProps {
   record: Record;
   onClick?: () => void;
   onCoverUpdate?: (coverArt: string) => void;
+  onDelete?: () => void;
   className?: string;
 }
 
-export function RecordCard({ record, onClick, onCoverUpdate, className }: RecordCardProps) {
+export function RecordCard({ record, onClick, onCoverUpdate, onDelete, className }: RecordCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -124,6 +136,35 @@ export function RecordCard({ record, onClick, onCoverUpdate, className }: Record
           >
             <Camera className="w-4 h-4 text-foreground" />
           </button>
+        )}
+
+        {/* Delete Button */}
+        {onDelete && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="absolute bottom-3 left-3 p-2 rounded-full bg-destructive/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-destructive hover:scale-110"
+                title="Löschen"
+              >
+                <Trash2 className="w-4 h-4 text-destructive-foreground" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tonträger löschen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Möchtest du "{record.album}" von {record.artist} wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Löschen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
         
         {/* Format Badge */}

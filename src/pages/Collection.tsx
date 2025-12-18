@@ -22,7 +22,7 @@ type SortOption = "artist" | "album" | "year" | "dateAdded" | "rating";
 type ViewMode = "grid" | "list";
 
 export default function Collection() {
-  const { getOwnedRecords, updateRecord } = useRecords();
+  const { getOwnedRecords, updateRecord, deleteRecord } = useRecords();
   const navigate = useNavigate();
   const records = getOwnedRecords();
   const [searchQuery, setSearchQuery] = useState("");
@@ -226,6 +226,7 @@ export default function Collection() {
                 record={record}
                 onClick={() => navigate(`/sammlung/${record.id}`)}
                 onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
+                onDelete={() => deleteRecord(record.id)}
               />
             ))}
           </motion.div>
