@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
-import { Record, RecordFormat, RecordStatus } from "@/types/record";
+import { Record, RecordFormat, RecordStatus, AlternativeRelease } from "@/types/record";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,7 @@ import { StarRating } from "@/components/StarRating";
 import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { AlternativeReleases } from "@/components/AlternativeReleases";
 import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -75,6 +76,8 @@ export default function AddRecord() {
   const [manualCode, setManualCode] = useState("");
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [pendingBarcodeData, setPendingBarcodeData] = useState<Partial<Record> | null>(null);
+  const [alternativeReleases, setAlternativeReleases] = useState<AlternativeRelease[]>([]);
+  const [selectedAlternative, setSelectedAlternative] = useState<AlternativeRelease | null>(null);
 
   const setCoverFromFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -209,6 +212,10 @@ export default function AddRecord() {
           artisticRating: aiData.artisticRating,
           recommendations: aiData.recommendations,
         });
+        
+        // Store alternative releases
+        setAlternativeReleases(aiData.alternativeReleases || []);
+        setSelectedAlternative(null);
         setShowStatusDialog(true);
       } else if (data?.error) {
         throw new Error(data.error);
@@ -344,16 +351,44 @@ export default function AddRecord() {
       </AnimatePresence>
 
       {/* Status Selection Dialog after Barcode Scan */}
-      <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={showStatusDialog} onOpenChange={(open) => {
+        setShowStatusDialog(open);
+        if (!open) {
+          setAlternativeReleases([]);
+          setSelectedAlternative(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-center">
               {pendingBarcodeData?.artist} - {pendingBarcodeData?.album}
             </DialogTitle>
             <DialogDescription className="text-center">
-              Wohin soll dieser Tonträger hinzugefügt werden?
+              {alternativeReleases.length > 0 
+                ? "Wähle eine Pressung und füge den Tonträger hinzu"
+                : "Wohin soll dieser Tonträger hinzugefügt werden?"}
             </DialogDescription>
           </DialogHeader>
+          
+          {/* Alternative Releases Section */}
+          {alternativeReleases.length > 0 && (
+            <AlternativeReleases
+              releases={alternativeReleases}
+              onSelect={(release) => {
+                setSelectedAlternative(release);
+                // Update pending data with selected release info
+                setPendingBarcodeData(prev => ({
+                  ...prev,
+                  year: release.year || prev?.year,
+                  label: release.label || prev?.label,
+                  catalogNumber: release.catalogNumber || prev?.catalogNumber,
+                  pressing: `${release.country || ''} ${release.year || ''} ${release.format || ''}`.trim() || prev?.pressing,
+                }));
+              }}
+              selectedMbid={selectedAlternative?.mbid}
+            />
+          )}
+          
           <div className="flex flex-col gap-3 mt-4">
             <Button
               onClick={() => handleStatusSelection("owned")}

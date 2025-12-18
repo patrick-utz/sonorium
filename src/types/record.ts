@@ -2,6 +2,20 @@ export type RecordFormat = "vinyl" | "cd";
 export type RecordStatus = "owned" | "wishlist" | "checked-not-bought";
 export type VinylRecommendation = "must-have" | "nice-to-have" | "stream-instead";
 
+export interface AlternativeRelease {
+  mbid: string;
+  title: string;
+  artist: string;
+  year?: number;
+  label?: string;
+  catalogNumber?: string;
+  country?: string;
+  format?: string;
+  qualityType?: "original" | "remaster" | "reissue" | "audiophile" | "unknown";
+  qualityRating?: number; // 1-5
+  qualityNotes?: string;
+}
+
 export interface RecordRecommendation {
   artist: string;
   album: string;
