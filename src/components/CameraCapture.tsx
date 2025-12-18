@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, X, RotateCcw, Check, SwitchCamera } from "lucide-react";
+import { Camera, X, RotateCcw, Check, SwitchCamera, Upload } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface CameraCaptureProps {
@@ -11,11 +11,13 @@ interface CameraCaptureProps {
 export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(true);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [mode, setMode] = useState<"camera" | "upload">("camera");
 
   const stopCamera = useCallback(() => {
     if (stream) {
@@ -24,8 +26,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     }
   }, [stream]);
 
-  const startCamera = useCallback(async (mode: "environment" | "user" = facingMode) => {
-    // Stop any existing stream first
+  const startCamera = useCallback(async (cameraMode: "environment" | "user" = facingMode) => {
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
     }
@@ -34,10 +35,9 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     setError(null);
     
     try {
-      // First try with the preferred facing mode
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: mode },
+          facingMode: { ideal: cameraMode },
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
@@ -45,22 +45,21 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       });
       
       setStream(mediaStream);
-      setFacingMode(mode);
+      setFacingMode(cameraMode);
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        // Ensure video plays
         try {
           await videoRef.current.play();
         } catch (playErr) {
-          console.log("Video play error (usually auto-handled):", playErr);
+          console.log("Video play error:", playErr);
         }
       }
+      setIsStarting(false);
     } catch (err) {
       console.error("Camera error:", err);
       
-      // If environment camera fails, try user camera
-      if (mode === "environment") {
+      if (cameraMode === "environment") {
         try {
           const fallbackStream = await navigator.mediaDevices.getUserMedia({
             video: {
@@ -90,12 +89,9 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       }
       
       setError(
-        "Kamera-Zugriff nicht möglich. Bitte prüfe:\n" +
-        "• Browser-Berechtigung für Kamera erteilen\n" +
-        "• HTTPS-Verbindung verwenden\n" +
-        "• Andere Apps schliessen, die die Kamera nutzen"
+        "Kamera nicht verfügbar. Nutze stattdessen den Datei-Upload."
       );
-    } finally {
+      setMode("upload");
       setIsStarting(false);
     }
   }, [stream, facingMode]);
@@ -121,10 +117,25 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     }
   }, [stopCamera]);
 
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setCapturedImage(result);
+        stopCamera();
+      };
+      reader.readAsDataURL(file);
+    }
+  }, [stopCamera]);
+
   const retake = useCallback(() => {
     setCapturedImage(null);
-    startCamera();
-  }, [startCamera]);
+    if (mode === "camera") {
+      startCamera();
+    }
+  }, [startCamera, mode]);
 
   const confirmCapture = useCallback(() => {
     if (capturedImage) {
@@ -138,11 +149,23 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     onClose();
   }, [stopCamera, onClose]);
 
-  // Start camera on mount
-  useEffect(() => {
+  const switchToUpload = useCallback(() => {
+    stopCamera();
+    setMode("upload");
+    setError(null);
+    setIsStarting(false);
+  }, [stopCamera]);
+
+  const switchToCamera = useCallback(() => {
+    setMode("camera");
     startCamera();
+  }, [startCamera]);
+
+  useEffect(() => {
+    if (mode === "camera") {
+      startCamera();
+    }
     
-    // Cleanup on unmount
     return () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
@@ -159,28 +182,86 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border/50 bg-background">
-        <h2 className="font-display text-lg font-semibold">Foto aufnehmen</h2>
+        <h2 className="font-display text-lg font-semibold">
+          {mode === "camera" ? "Foto aufnehmen" : "Bild auswählen"}
+        </h2>
         <Button variant="ghost" size="icon" onClick={handleClose}>
           <X className="w-5 h-5" />
         </Button>
       </div>
 
-      {/* Camera View */}
+      {/* Mode Toggle */}
+      {!capturedImage && (
+        <div className="flex justify-center gap-2 p-3 border-b border-border/50">
+          <Button
+            variant={mode === "camera" ? "default" : "outline"}
+            size="sm"
+            onClick={switchToCamera}
+            className="gap-2"
+          >
+            <Camera className="w-4 h-4" />
+            Kamera
+          </Button>
+          <Button
+            variant={mode === "upload" ? "default" : "outline"}
+            size="sm"
+            onClick={switchToUpload}
+            className="gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Datei
+          </Button>
+        </div>
+      )}
+
+      {/* Content Area */}
       <div className="flex-1 flex items-center justify-center p-4 bg-black/90">
-        {error ? (
-          <div className="text-center space-y-4 p-6 bg-card rounded-lg max-w-sm">
-            <p className="text-destructive whitespace-pre-line text-sm">{error}</p>
-            <Button onClick={() => startCamera()} variant="outline">
-              Erneut versuchen
-            </Button>
-          </div>
-        ) : capturedImage ? (
+        {capturedImage ? (
           <div className="relative max-w-full max-h-full">
             <img
               src={capturedImage}
               alt="Aufgenommenes Foto"
               className="max-w-full max-h-[60vh] rounded-lg shadow-elegant"
             />
+          </div>
+        ) : mode === "upload" ? (
+          <div className="text-center space-y-6 p-8 bg-card rounded-lg max-w-sm">
+            <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+              <Upload className="w-10 h-10 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Bild hochladen</h3>
+              <p className="text-sm text-muted-foreground">
+                Wähle ein Bild von deinem Gerät
+              </p>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <Button 
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Datei auswählen
+            </Button>
+          </div>
+        ) : error ? (
+          <div className="text-center space-y-4 p-6 bg-card rounded-lg max-w-sm">
+            <p className="text-destructive whitespace-pre-line text-sm">{error}</p>
+            <div className="flex gap-2">
+              <Button onClick={() => startCamera()} variant="outline" className="flex-1">
+                Erneut versuchen
+              </Button>
+              <Button onClick={switchToUpload} className="flex-1 gap-2">
+                <Upload className="w-4 h-4" />
+                Datei wählen
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="relative w-full max-w-lg aspect-[4/3] bg-muted rounded-lg overflow-hidden">
@@ -198,7 +279,6 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
                 className="w-full h-full object-cover"
               />
             )}
-            {/* Capture guide overlay */}
             {!isStarting && stream && (
               <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute inset-8 border-2 border-primary/50 rounded-lg" />
@@ -231,9 +311,8 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
               Verwenden
             </Button>
           </div>
-        ) : (
+        ) : mode === "camera" && !error ? (
           <div className="flex justify-center items-center gap-6">
-            {/* Switch camera button */}
             <Button
               onClick={switchCamera}
               variant="outline"
@@ -244,7 +323,6 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
               <SwitchCamera className="w-5 h-5" />
             </Button>
             
-            {/* Capture button */}
             <Button
               onClick={capturePhoto}
               size="lg"
@@ -254,10 +332,9 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
               <Camera className="w-6 h-6" />
             </Button>
             
-            {/* Spacer for centering */}
             <div className="w-12 h-12" />
           </div>
-        )}
+        ) : null}
       </div>
     </motion.div>
   );
