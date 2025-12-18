@@ -15,7 +15,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isStarting, setIsStarting] = useState(true);
+  const [isStarting, setIsStarting] = useState(false);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [mode, setMode] = useState<"camera" | "upload">("camera");
 
@@ -162,16 +162,10 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   }, [startCamera]);
 
   useEffect(() => {
-    if (mode === "camera") {
-      startCamera();
-    }
-    
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+      stopCamera();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stopCamera]);
 
   return (
     <motion.div
@@ -239,6 +233,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              capture
               onChange={handleFileSelect}
               className="hidden"
             />
@@ -265,7 +260,23 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           </div>
         ) : (
           <div className="relative w-full max-w-lg aspect-[4/3] bg-muted rounded-lg overflow-hidden">
-            {isStarting ? (
+            {!stream ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Tippe auf „Kamera starten“. Wenn das im Vorschau-Fenster nicht klappt, nutze „Datei wählen“ (öffnet auf dem Handy auch die Kamera).
+                </p>
+                <div className="flex w-full gap-2">
+                  <Button onClick={() => startCamera()} className="flex-1 gap-2">
+                    <Camera className="w-4 h-4" />
+                    Kamera starten
+                  </Button>
+                  <Button onClick={switchToUpload} variant="outline" className="flex-1 gap-2">
+                    <Upload className="w-4 h-4" />
+                    Datei wählen
+                  </Button>
+                </div>
+              </div>
+            ) : isStarting ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                 <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
                 <p className="text-sm text-muted-foreground">Kamera wird gestartet...</p>
