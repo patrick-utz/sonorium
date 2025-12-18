@@ -1,0 +1,4 @@
+project_id = "ftkggxvirmbxgscflxcz"
+
+[functions.complete-record]
+verify_jwt = false

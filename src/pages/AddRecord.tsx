@@ -17,9 +17,10 @@ import {
 import { StarRating } from "@/components/StarRating";
 import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
-import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc } from "lucide-react";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const GENRE_SUGGESTIONS = [
   "Jazz", "Rock", "Pop", "Klassik", "Electronic", "Hip-Hop", "R&B", "Soul",
@@ -58,6 +59,61 @@ export default function AddRecord() {
   const [showCamera, setShowCamera] = useState(false);
   const [genreInput, setGenreInput] = useState("");
   const [showGenreSuggestions, setShowGenreSuggestions] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  const handleAiComplete = async () => {
+    setIsAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('complete-record', {
+        body: {
+          artist: formData.artist,
+          album: formData.album,
+          year: formData.year,
+          genre: formData.genre,
+          label: formData.label,
+          coverArt: formData.coverArt
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.data) {
+        const aiData = data.data;
+        
+        // Only update fields that are empty or not set
+        setFormData((prev) => ({
+          ...prev,
+          artist: prev.artist || aiData.artist || prev.artist,
+          album: prev.album || aiData.album || prev.album,
+          year: prev.year || aiData.year || prev.year,
+          genre: prev.genre?.length ? prev.genre : (aiData.genre || prev.genre),
+          label: prev.label || aiData.label || prev.label,
+          catalogNumber: prev.catalogNumber || aiData.catalogNumber || prev.catalogNumber,
+          formatDetails: prev.formatDetails || aiData.formatDetails || prev.formatDetails,
+          pressing: prev.pressing || aiData.pressing || prev.pressing,
+          tags: prev.tags?.length ? prev.tags : (aiData.tags || prev.tags),
+          personalNotes: prev.personalNotes || aiData.personalNotes || prev.personalNotes,
+          coverArt: prev.coverArt || aiData.coverArtUrl || prev.coverArt,
+        }));
+
+        toast({
+          title: "KI-Vervollständigung",
+          description: `Daten wurden ergänzt (Konfidenz: ${aiData.confidence || 'mittel'})`,
+        });
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('AI completion error:', error);
+      toast({
+        title: "Fehler",
+        description: error instanceof Error ? error.message : "KI-Vervollständigung fehlgeschlagen",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,15 +204,30 @@ export default function AddRecord() {
         </Button>
 
         {/* Header */}
-        <div>
-          <h1 className="font-display text-3xl md:text-4xl font-bold gradient-text">
-            {isEditing ? "Tonträger bearbeiten" : "Neuer Tonträger"}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {isEditing
-              ? "Aktualisiere die Informationen"
-              : "Füge einen neuen Tonträger zu deiner Sammlung hinzu"}
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="font-display text-3xl md:text-4xl font-bold gradient-text">
+              {isEditing ? "Tonträger bearbeiten" : "Neuer Tonträger"}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {isEditing
+                ? "Aktualisiere die Informationen"
+                : "Füge einen neuen Tonträger zu deiner Sammlung hinzu"}
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={handleAiComplete}
+            disabled={isAiLoading}
+            className="gap-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white"
+          >
+            {isAiLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            {isAiLoading ? "KI analysiert..." : "KI-Vervollständigung"}
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
