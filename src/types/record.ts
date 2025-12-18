@@ -40,6 +40,10 @@ export interface Record {
   artisticRating?: number; // 1-5
   criticScore?: number; // 0-100
   
+  // KI-Bewertungen
+  audiophileAssessment?: string; // Audiophile Beurteilung
+  artisticAssessment?: string; // Künstlerische Beurteilung
+  
   // Status
   status: RecordStatus;
   dateAdded: string;

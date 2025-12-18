@@ -30,8 +30,8 @@ serve(async (req) => {
       ? `Known information:\n${knownInfo.join('\n')}`
       : 'No information provided yet.';
 
-    const systemPrompt = `You are a music expert assistant helping to complete record/album information. 
-You have extensive knowledge about music history, record labels, album releases, and music genres.
+    const systemPrompt = `You are a music expert assistant and audiophile helping to complete record/album information. 
+You have extensive knowledge about music history, record labels, album releases, music genres, recording techniques, and sound quality.
 
 Your task is to fill in missing information about a music album. Be accurate and use real data.
 If you're not confident about specific details, indicate that with a confidence field.
@@ -50,11 +50,16 @@ Return a JSON object with the following structure (only include fields you can f
   "pressing": "string - pressing country/year",
   "tags": ["mood", "instruments", "themes"],
   "personalNotes": "string - interesting facts about this album",
-  "coverArtUrl": "string - URL to album cover if available",
+  "coverArtUrl": "string - ALWAYS provide a real, working URL to the album cover from a reliable source like Wikipedia, MusicBrainz, or Discogs",
+  "audiophileAssessment": "string - detailed audiophile assessment in German: recording quality, mastering quality, dynamic range, recommended pressing, sound stage, bass response, high frequency clarity. 2-4 sentences.",
+  "artisticAssessment": "string - detailed artistic assessment in German: musical innovation, cultural significance, songwriting quality, performance quality, influence on music history. 2-4 sentences.",
+  "recordingQuality": number 1-5 - technical recording quality,
+  "masteringQuality": number 1-5 - mastering quality,
+  "artisticRating": number 1-5 - artistic merit,
   "confidence": "high|medium|low"
 }
 
-Be concise and factual. Include interesting facts in personalNotes.`;
+Be concise and factual. Write assessments in German. Include interesting facts in personalNotes.`;
 
     const userPrompt = coverArt && coverArt.startsWith('data:')
       ? `Please analyze this album cover image and complete the record information.\n\n${contextInfo}`
