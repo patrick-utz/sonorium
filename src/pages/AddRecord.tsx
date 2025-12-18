@@ -17,7 +17,7 @@ import {
 import { StarRating } from "@/components/StarRating";
 import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
-import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,6 +94,12 @@ export default function AddRecord() {
           tags: prev.tags?.length ? prev.tags : (aiData.tags || prev.tags),
           personalNotes: prev.personalNotes || aiData.personalNotes || prev.personalNotes,
           coverArt: prev.coverArt || aiData.coverArtUrl || prev.coverArt,
+          // KI-Bewertungen - always update these from AI
+          audiophileAssessment: aiData.audiophileAssessment || prev.audiophileAssessment,
+          artisticAssessment: aiData.artisticAssessment || prev.artisticAssessment,
+          recordingQuality: aiData.recordingQuality || prev.recordingQuality,
+          masteringQuality: aiData.masteringQuality || prev.masteringQuality,
+          artisticRating: aiData.artisticRating || prev.artisticRating,
         }));
 
         toast({
@@ -528,6 +534,55 @@ export default function AddRecord() {
               </div>
             </CardContent>
           </Card>
+
+          {/* KI-Bewertungen */}
+          {(formData.audiophileAssessment || formData.artisticAssessment) && (
+            <Card className="bg-gradient-card border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="font-display text-lg flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  KI-Bewertungen
+                </CardTitle>
+                <CardDescription>
+                  Automatisch generierte Bewertungen basierend auf Expertenwissen
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {formData.audiophileAssessment && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Headphones className="w-4 h-4 text-primary" />
+                      Audiophile Beurteilung
+                      {formData.recordingQuality && (
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          Aufnahme: {formData.recordingQuality}/5 | Mastering: {formData.masteringQuality}/5
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
+                      {formData.audiophileAssessment}
+                    </p>
+                  </div>
+                )}
+                {formData.artisticAssessment && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Palette className="w-4 h-4 text-primary" />
+                      Künstlerische Beurteilung
+                      {formData.artisticRating && (
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          Bewertung: {formData.artisticRating}/5
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
+                      {formData.artisticAssessment}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Tags / Keywords */}
           <Card className="bg-gradient-card border-border/50">
