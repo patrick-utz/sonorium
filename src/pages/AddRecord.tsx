@@ -17,7 +17,7 @@ import {
 import { StarRating } from "@/components/StarRating";
 import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
-import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette } from "lucide-react";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,6 +100,7 @@ export default function AddRecord() {
           recordingQuality: aiData.recordingQuality || prev.recordingQuality,
           masteringQuality: aiData.masteringQuality || prev.masteringQuality,
           artisticRating: aiData.artisticRating || prev.artisticRating,
+          recommendations: aiData.recommendations || prev.recommendations,
         }));
 
         toast({
@@ -544,42 +545,107 @@ export default function AddRecord() {
                   KI-Bewertungen
                 </CardTitle>
                 <CardDescription>
-                  Automatisch generierte Bewertungen basierend auf Expertenwissen
+                  Ausführliche Bewertungen basierend auf Expertenwissen
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 {formData.audiophileAssessment && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <Headphones className="w-4 h-4 text-primary" />
-                      Audiophile Beurteilung
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-medium text-foreground">
+                        <Headphones className="w-5 h-5 text-primary" />
+                        Audiophile Beurteilung
+                      </div>
                       {formData.recordingQuality && (
-                        <span className="ml-auto text-xs text-muted-foreground">
-                          Aufnahme: {formData.recordingQuality}/5 | Mastering: {formData.masteringQuality}/5
-                        </span>
+                        <div className="flex items-center gap-3 text-sm">
+                          <span className="flex items-center gap-1">
+                            Aufnahme: 
+                            <span className="flex">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className={`w-3 h-3 ${i < (formData.recordingQuality || 0) ? 'fill-primary text-primary' : 'text-muted-foreground'}`} />
+                              ))}
+                            </span>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            Mastering: 
+                            <span className="flex">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className={`w-3 h-3 ${i < (formData.masteringQuality || 0) ? 'fill-primary text-primary' : 'text-muted-foreground'}`} />
+                              ))}
+                            </span>
+                          </span>
+                        </div>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
+                    <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4 whitespace-pre-wrap leading-relaxed">
                       {formData.audiophileAssessment}
-                    </p>
+                    </div>
                   </div>
                 )}
                 {formData.artisticAssessment && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <Palette className="w-4 h-4 text-primary" />
-                      Künstlerische Beurteilung
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-medium text-foreground">
+                        <Palette className="w-5 h-5 text-primary" />
+                        Künstlerische Beurteilung
+                      </div>
                       {formData.artisticRating && (
-                        <span className="ml-auto text-xs text-muted-foreground">
-                          Bewertung: {formData.artisticRating}/5
-                        </span>
+                        <div className="flex items-center gap-1 text-sm">
+                          Bewertung: 
+                          <span className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className={`w-3 h-3 ${i < (formData.artisticRating || 0) ? 'fill-primary text-primary' : 'text-muted-foreground'}`} />
+                            ))}
+                          </span>
+                        </div>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
+                    <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4 whitespace-pre-wrap leading-relaxed">
                       {formData.artisticAssessment}
-                    </p>
+                    </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* KI-Empfehlungen */}
+          {formData.recommendations && formData.recommendations.length > 0 && (
+            <Card className="bg-gradient-card border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="font-display text-lg flex items-center gap-2">
+                  <Music className="w-5 h-5 text-primary" />
+                  Ähnliche Alben
+                </CardTitle>
+                <CardDescription>
+                  Empfehlungen basierend auf klanglicher und künstlerischer Ähnlichkeit
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {formData.recommendations.map((rec, index) => (
+                    <div key={index} className="bg-muted/50 rounded-lg p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-medium text-foreground">{rec.artist}</span>
+                          <span className="text-muted-foreground"> – </span>
+                          <span className="text-foreground">{rec.album}</span>
+                          {rec.year && <span className="text-muted-foreground text-sm ml-2">({rec.year})</span>}
+                        </div>
+                        {rec.qualityScore && (
+                          <span className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className={`w-3 h-3 ${i < rec.qualityScore! ? 'fill-primary text-primary' : 'text-muted-foreground'}`} />
+                            ))}
+                          </span>
+                        )}
+                      </div>
+                      {rec.reason && (
+                        <p className="text-sm text-muted-foreground">{rec.reason}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           )}
