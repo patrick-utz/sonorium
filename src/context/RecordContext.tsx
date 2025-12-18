@@ -24,7 +24,11 @@ export function RecordProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    localStorage.setItem("vinylvault-records", JSON.stringify(records));
+    try {
+      localStorage.setItem("vinylvault-records", JSON.stringify(records));
+    } catch (e) {
+      console.warn("localStorage quota exceeded, data not saved:", e);
+    }
   }, [records]);
 
   const addRecord = (record: Omit<Record, "id" | "dateAdded">) => {
