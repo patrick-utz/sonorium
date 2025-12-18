@@ -183,13 +183,31 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, className
       </div>
       
       {/* Card Footer */}
-      <div className="p-4">
+      <div className="p-4 space-y-2">
         <h3 className="font-display font-semibold text-foreground truncate">
           {record.album}
         </h3>
-        <p className="text-muted-foreground text-sm truncate mt-1">
+        <p className="text-muted-foreground text-sm truncate">
           {record.artist}
         </p>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{record.year}</span>
+          {record.label && (
+            <>
+              <span>•</span>
+              <span className="truncate">{record.label}</span>
+            </>
+          )}
+        </div>
+        <div className="flex items-center justify-between pt-1">
+          <StarRating rating={record.myRating} size="sm" />
+          {record.recordingQuality && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <span className="text-primary">♪</span>
+              {record.recordingQuality}/5
+            </span>
+          )}
+        </div>
       </div>
     </motion.div>
   );
