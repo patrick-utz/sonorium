@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
 import { Record, RecordFormat, RecordStatus } from "@/types/record";
@@ -57,9 +57,37 @@ export default function AddRecord() {
   );
 
   const [showCamera, setShowCamera] = useState(false);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+  const [isCoverDragActive, setIsCoverDragActive] = useState(false);
   const [genreInput, setGenreInput] = useState("");
   const [showGenreSuggestions, setShowGenreSuggestions] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
+
+  const setCoverFromFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Ungültige Datei",
+        description: "Bitte wähle ein Bild (JPG/PNG/WebP).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setFormData((prev) => ({ ...prev, coverArt: result }));
+      toast({ title: "Cover gesetzt", description: "Bild wurde übernommen." });
+    };
+    reader.onerror = () => {
+      toast({
+        title: "Fehler",
+        description: "Bild konnte nicht gelesen werden.",
+        variant: "destructive",
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleAiComplete = async () => {
     setIsAiLoading(true);
@@ -251,7 +279,24 @@ export default function AddRecord() {
             </CardHeader>
             <CardContent>
               <div className="flex gap-4 items-start">
-                <div className="w-32 h-32 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                <div
+                  className={`w-32 h-32 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative cursor-pointer ${
+                    isCoverDragActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
+                  }`}
+                  onClick={() => coverFileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsCoverDragActive(true);
+                  }}
+                  onDragLeave={() => setIsCoverDragActive(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsCoverDragActive(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) setCoverFromFile(file);
+                  }}
+                  aria-label="Cover-Bild hochladen"
+                >
                   {formData.coverArt ? (
                     <img
                       src={formData.coverArt}
@@ -263,8 +308,27 @@ export default function AddRecord() {
                       <ImagePlus className="w-8 h-8" />
                     </div>
                   )}
+
+                  {isCoverDragActive && (
+                    <div className="absolute inset-0 bg-background/80 flex items-center justify-center text-sm font-medium text-foreground">
+                      Bild ablegen
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 space-y-3">
+                  <input
+                    ref={coverFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setCoverFromFile(file);
+                      e.currentTarget.value = "";
+                    }}
+                    className="hidden"
+                  />
+
                   <Button
                     type="button"
                     variant="outline"
@@ -272,8 +336,19 @@ export default function AddRecord() {
                     className="w-full gap-2 border-primary/50 text-primary hover:bg-primary/10"
                   >
                     <Camera className="w-4 h-4" />
-                    Foto aufnehmen
+                    Live-Kamera
                   </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => coverFileInputRef.current?.click()}
+                    className="w-full gap-2"
+                  >
+                    <ImagePlus className="w-4 h-4" />
+                    Datei / Kamera auswählen
+                  </Button>
+
                   <div className="relative">
                     <Input
                       placeholder="Oder Cover-URL eingeben..."
