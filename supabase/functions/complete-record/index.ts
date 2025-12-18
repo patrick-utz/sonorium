@@ -8,6 +8,44 @@ const corsHeaders = {
 // MusicBrainz User-Agent (required by their API)
 const MB_USER_AGENT = 'VinylCollector/1.0 (contact@vinylcollector.app)';
 
+// Search MusicBrainz by catalog number (e.g., "LITA 197")
+async function searchByCatalogNumber(catalogNumber: string): Promise<{ mbid: string; artist: string; album: string; year: number; label: string; catalogNumber: string } | null> {
+  try {
+    console.log('Searching MusicBrainz by catalog number:', catalogNumber);
+    const query = encodeURIComponent(`catno:${catalogNumber}`);
+    const url = `https://musicbrainz.org/ws/2/release/?query=${query}&fmt=json&limit=5`;
+    
+    const response = await fetch(url, {
+      headers: { 'User-Agent': MB_USER_AGENT }
+    });
+    
+    if (!response.ok) {
+      console.log('MusicBrainz catalog number search failed:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    const release = data.releases?.[0];
+    
+    if (release) {
+      console.log('Found release by catalog number:', release.title, 'by', release['artist-credit']?.[0]?.name);
+      return {
+        mbid: release.id,
+        artist: release['artist-credit']?.[0]?.name || '',
+        album: release.title || '',
+        year: release.date ? parseInt(release.date.substring(0, 4)) : 0,
+        label: release['label-info']?.[0]?.label?.name || '',
+        catalogNumber: release['label-info']?.[0]?.['catalog-number'] || catalogNumber
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('MusicBrainz catalog number search error:', error);
+    return null;
+  }
+}
+
 // Search MusicBrainz by barcode
 async function searchByBarcode(barcode: string): Promise<{ mbid: string; artist: string; album: string; year: number; label: string } | null> {
   try {
@@ -189,7 +227,7 @@ serve(async (req) => {
   }
 
   try {
-    const { artist, album, year, genre, label, coverArt, barcode } = await req.json();
+    const { artist, album, year, genre, label, coverArt, barcode, catalogNumber } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -197,12 +235,21 @@ serve(async (req) => {
     }
 
     let foundCoverArt: string | null = null;
-    let mbData: { mbid: string; artist: string; album: string; year: number; label: string } | null = null;
+    let mbData: { mbid: string; artist: string; album: string; year: number; label: string; catalogNumber?: string } | null = null;
 
-    // Step 1: Try to find release and cover art via MusicBrainz
-    if (barcode) {
-      // Rate limiting: wait a bit between requests
-      mbData = await searchByBarcode(barcode);
+    // Step 1: Try catalog number first (most reliable for vinyl)
+    if (catalogNumber || barcode) {
+      const searchTerm = catalogNumber || barcode;
+      console.log('Searching by catalog/barcode:', searchTerm);
+      
+      // Try catalog number search first
+      mbData = await searchByCatalogNumber(searchTerm);
+      
+      // If catalog number didn't work, try barcode search
+      if (!mbData && barcode) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        mbData = await searchByBarcode(barcode);
+      }
       
       if (mbData?.mbid) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // MusicBrainz rate limit
@@ -229,12 +276,14 @@ serve(async (req) => {
 
     // Build context from provided fields (use MusicBrainz data if found)
     const knownInfo: string[] = [];
+    if (catalogNumber) knownInfo.push(`Katalognummer: ${catalogNumber}`);
     if (barcode) knownInfo.push(`EAN/Barcode: ${barcode}`);
     if (mbData) {
       knownInfo.push(`Artist (from MusicBrainz): ${mbData.artist}`);
       knownInfo.push(`Album (from MusicBrainz): ${mbData.album}`);
       if (mbData.year) knownInfo.push(`Year (from MusicBrainz): ${mbData.year}`);
       if (mbData.label) knownInfo.push(`Label (from MusicBrainz): ${mbData.label}`);
+      if (mbData.catalogNumber) knownInfo.push(`Catalog# (from MusicBrainz): ${mbData.catalogNumber}`);
     } else {
       if (artist) knownInfo.push(`Artist: ${artist}`);
       if (album) knownInfo.push(`Album: ${album}`);
@@ -247,17 +296,19 @@ serve(async (req) => {
       ? `Known information:\n${knownInfo.join('\n')}`
       : 'No information provided yet.';
 
-    // Different prompt for barcode lookup
-    const barcodeInstruction = barcode 
-      ? `\n\nWICHTIG: Der Nutzer hat den Barcode/EAN "${barcode}" gescannt. ${mbData ? `MusicBrainz hat bereits identifiziert: "${mbData.album}" von "${mbData.artist}" (${mbData.year}).` : 'MusicBrainz konnte diesen Barcode nicht finden. Versuche das Album anhand dieses EAN-Codes zu identifizieren.'}`
+    // Different prompt for catalog number/barcode lookup
+    const searchIdentifier = catalogNumber || barcode;
+    const searchInstruction = searchIdentifier 
+      ? `\n\nWICHTIG: Der Nutzer hat "${searchIdentifier}" eingegeben (${catalogNumber ? 'Katalognummer' : 'Barcode'}). ${mbData ? `MusicBrainz hat identifiziert: "${mbData.album}" von "${mbData.artist}" (${mbData.year}, Label: ${mbData.label}).` : 'MusicBrainz konnte keine Übereinstimmung finden. Versuche das Album anhand dieser Nummer zu identifizieren.'}`
       : '';
 
     const systemPrompt = `Du bist ein Musik-Experte, Audiophiler und Historiker mit tiefem Wissen über Jazz, Klassik, Rock und alle Genres. 
 Du kennst die Geschichte von Aufnahmetechnik, Pressungen, Labels und Mastering-Ingenieuren.
+Du kennst auch Katalognummern von Plattenlabels (z.B. "LITA 197" für Light in the Attic Records).
 
 Deine Aufgabe ist es, Album-Informationen zu vervollständigen und AUSFÜHRLICHE Bewertungen zu liefern.
 
-WICHTIG: Schreibe ALLES auf Deutsch. Sei ausführlich und detailliert wie ein Musik-Magazin.${barcodeInstruction}
+WICHTIG: Schreibe ALLES auf Deutsch. Sei ausführlich und detailliert wie ein Musik-Magazin.${searchInstruction}
 
 Liefere ein JSON-Objekt mit folgender Struktur:
 
