@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
 import { Input } from "@/components/ui/input";
@@ -10,20 +10,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Record, RecordFormat } from "@/types/record";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type SortOption = "artist" | "album" | "year" | "dateAdded" | "rating";
 type ViewMode = "grid" | "list";
 
 export default function Collection() {
-  const { getOwnedRecords } = useRecords();
+  const { getOwnedRecords, updateRecord } = useRecords();
   const navigate = useNavigate();
   const records = getOwnedRecords();
-
   const [searchQuery, setSearchQuery] = useState("");
   const [formatFilter, setFormatFilter] = useState<RecordFormat | "all">("all");
   const [genreFilter, setGenreFilter] = useState<string>("all");
@@ -224,6 +224,7 @@ export default function Collection() {
                 key={record.id}
                 record={record}
                 onClick={() => navigate(`/sammlung/${record.id}`)}
+                onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
               />
             ))}
           </motion.div>
@@ -239,6 +240,7 @@ export default function Collection() {
                 key={record.id}
                 record={record}
                 onClick={() => navigate(`/sammlung/${record.id}`)}
+                onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
               />
             ))}
           </motion.div>
@@ -248,15 +250,48 @@ export default function Collection() {
   );
 }
 
-function ListItem({ record, onClick }: { record: Record; onClick: () => void }) {
+function ListItem({ record, onClick, onCoverUpdate }: { record: Record; onClick: () => void; onCoverUpdate: (coverArt: string) => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Bitte wähle eine Bilddatei");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      onCoverUpdate(result);
+      toast.success("Cover aktualisiert");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleUploadClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fileInputRef.current?.click();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       onClick={onClick}
-      className="flex items-center gap-4 p-3 rounded-lg bg-card border border-border/50 cursor-pointer hover:shadow-card transition-all"
+      className="group flex items-center gap-4 p-3 rounded-lg bg-card border border-border/50 cursor-pointer hover:shadow-card transition-all"
     >
-      <div className="w-14 h-14 rounded-md overflow-hidden flex-shrink-0">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      <div className="relative w-14 h-14 rounded-md overflow-hidden flex-shrink-0">
         {record.coverArt ? (
           <img
             src={record.coverArt}
@@ -268,6 +303,13 @@ function ListItem({ record, onClick }: { record: Record; onClick: () => void }) 
             <div className="w-8 h-8 vinyl-disc" />
           </div>
         )}
+        <button
+          onClick={handleUploadClick}
+          className="absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Cover hochladen"
+        >
+          <Camera className="w-5 h-5 text-foreground" />
+        </button>
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold text-foreground truncate">{record.album}</h3>
