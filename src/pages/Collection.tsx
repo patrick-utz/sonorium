@@ -32,10 +32,12 @@ export default function Collection() {
   // Filter and sort records
   const filteredRecords = records
     .filter((record) => {
+      const query = searchQuery.toLowerCase();
       const matchesSearch =
-        record.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        record.album.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        record.genre.some((g) => g.toLowerCase().includes(searchQuery.toLowerCase()));
+        record.artist.toLowerCase().includes(query) ||
+        record.album.toLowerCase().includes(query) ||
+        record.genre.some((g) => g.toLowerCase().includes(query)) ||
+        record.tags?.some((t) => t.toLowerCase().includes(query));
       const matchesFormat = formatFilter === "all" || record.format === formatFilter;
       return matchesSearch && matchesFormat;
     })
@@ -73,7 +75,7 @@ export default function Collection() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Suchen nach Künstler, Album, Genre..."
+              placeholder="Suchen nach Künstler, Album, Genre, Stichwort..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 bg-card border-border/50"

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
-import { Record, RecordFormat, RecordStatus, VinylRecommendation } from "@/types/record";
+import { Record, RecordFormat, RecordStatus } from "@/types/record";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,9 +15,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StarRating } from "@/components/StarRating";
-import { ArrowLeft, Save, Upload, Disc3, Disc, Camera } from "lucide-react";
-import { motion } from "framer-motion";
+import { TagInput } from "@/components/TagInput";
+import { CameraCapture } from "@/components/CameraCapture";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+
+const GENRE_SUGGESTIONS = [
+  "Jazz", "Rock", "Pop", "Klassik", "Electronic", "Hip-Hop", "R&B", "Soul",
+  "Blues", "Folk", "Country", "Reggae", "Metal", "Punk", "Indie", "Alternative",
+  "Funk", "Disco", "House", "Techno", "Ambient", "World Music", "Latin"
+];
 
 export default function AddRecord() {
   const { id } = useParams<{ id: string }>();
@@ -43,10 +51,13 @@ export default function AddRecord() {
       myRating: 3,
       status: "owned",
       personalNotes: "",
+      tags: [],
     }
   );
 
-  const [genreInput, setGenreInput] = useState(existingRecord?.genre.join(", ") || "");
+  const [showCamera, setShowCamera] = useState(false);
+  const [genreInput, setGenreInput] = useState("");
+  const [showGenreSuggestions, setShowGenreSuggestions] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,14 +71,8 @@ export default function AddRecord() {
       return;
     }
 
-    const genres = genreInput
-      .split(",")
-      .map((g) => g.trim())
-      .filter(Boolean);
-
     const recordData = {
       ...formData,
-      genre: genres,
     } as Omit<Record, "id" | "dateAdded">;
 
     if (isEditing && existingRecord) {
@@ -87,296 +92,419 @@ export default function AddRecord() {
     }
   };
 
+  const handleCameraCapture = (imageData: string) => {
+    setFormData((prev) => ({ ...prev, coverArt: imageData }));
+  };
+
+  const addGenre = (genre: string) => {
+    const trimmedGenre = genre.trim();
+    if (trimmedGenre && !formData.genre?.includes(trimmedGenre)) {
+      setFormData((prev) => ({
+        ...prev,
+        genre: [...(prev.genre || []), trimmedGenre],
+      }));
+    }
+    setGenreInput("");
+    setShowGenreSuggestions(false);
+  };
+
+  const removeGenre = (genreToRemove: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      genre: prev.genre?.filter((g) => g !== genreToRemove) || [],
+    }));
+  };
+
+  const filteredGenreSuggestions = GENRE_SUGGESTIONS.filter(
+    (g) =>
+      g.toLowerCase().includes(genreInput.toLowerCase()) &&
+      !formData.genre?.includes(g)
+  );
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="max-w-2xl mx-auto space-y-6"
-    >
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        onClick={() => navigate(-1)}
-        className="gap-2 text-muted-foreground hover:text-foreground"
+    <>
+      <AnimatePresence>
+        {showCamera && (
+          <CameraCapture
+            onCapture={handleCameraCapture}
+            onClose={() => setShowCamera(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="max-w-2xl mx-auto space-y-6"
       >
-        <ArrowLeft className="w-4 h-4" />
-        Zurück
-      </Button>
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Zurück
+        </Button>
 
-      {/* Header */}
-      <div>
-        <h1 className="font-display text-3xl md:text-4xl font-bold gradient-text">
-          {isEditing ? "Tonträger bearbeiten" : "Neuer Tonträger"}
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          {isEditing
-            ? "Aktualisiere die Informationen"
-            : "Füge einen neuen Tonträger zu deiner Sammlung hinzu"}
-        </p>
-      </div>
+        {/* Header */}
+        <div>
+          <h1 className="font-display text-3xl md:text-4xl font-bold gradient-text">
+            {isEditing ? "Tonträger bearbeiten" : "Neuer Tonträger"}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {isEditing
+              ? "Aktualisiere die Informationen"
+              : "Füge einen neuen Tonträger zu deiner Sammlung hinzu"}
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Cover Art Upload */}
-        <Card className="bg-gradient-card border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-lg flex items-center gap-2">
-              <Camera className="w-5 h-5 text-primary" />
-              Cover-Bild
-            </CardTitle>
-            <CardDescription>
-              Lade ein Foto des Covers oder Labels hoch
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4 items-start">
-              <div className="w-32 h-32 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                {formData.coverArt ? (
-                  <img
-                    src={formData.coverArt}
-                    alt="Cover"
-                    className="w-full h-full object-cover"
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Cover Art Upload */}
+          <Card className="bg-gradient-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <Camera className="w-5 h-5 text-primary" />
+                Cover-Bild
+              </CardTitle>
+              <CardDescription>
+                Fotografiere das Cover direkt oder gib eine URL ein
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4 items-start">
+                <div className="w-32 h-32 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                  {formData.coverArt ? (
+                    <img
+                      src={formData.coverArt}
+                      alt="Cover"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      <ImagePlus className="w-8 h-8" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowCamera(true)}
+                    className="w-full gap-2 border-primary/50 text-primary hover:bg-primary/10"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Foto aufnehmen
+                  </Button>
+                  <div className="relative">
+                    <Input
+                      placeholder="Oder Cover-URL eingeben..."
+                      value={formData.coverArt?.startsWith("data:") ? "" : formData.coverArt || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, coverArt: e.target.value }))
+                      }
+                      className="bg-card border-border/50"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Basic Info */}
+          <Card className="bg-gradient-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-lg">Grundinformationen</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="artist">Künstler *</Label>
+                  <Input
+                    id="artist"
+                    placeholder="z.B. Miles Davis"
+                    value={formData.artist || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, artist: e.target.value }))
+                    }
+                    className="bg-card border-border/50"
                   />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    <Upload className="w-8 h-8" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="album">Album *</Label>
+                  <Input
+                    id="album"
+                    placeholder="z.B. Kind of Blue"
+                    value={formData.album || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, album: e.target.value }))
+                    }
+                    className="bg-card border-border/50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="year">Jahr</Label>
+                  <Input
+                    id="year"
+                    type="number"
+                    min={1900}
+                    max={new Date().getFullYear()}
+                    value={formData.year || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, year: parseInt(e.target.value) }))
+                    }
+                    className="bg-card border-border/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="label">Label</Label>
+                  <Input
+                    id="label"
+                    placeholder="z.B. Columbia"
+                    value={formData.label || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, label: e.target.value }))
+                    }
+                    className="bg-card border-border/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="catalogNumber">Katalognummer</Label>
+                  <Input
+                    id="catalogNumber"
+                    placeholder="z.B. CL 1355"
+                    value={formData.catalogNumber || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, catalogNumber: e.target.value }))
+                    }
+                    className="bg-card border-border/50"
+                  />
+                </div>
+              </div>
+
+              {/* Genre Selection */}
+              <div className="space-y-2">
+                <Label>Genres</Label>
+                {formData.genre && formData.genre.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {formData.genre.map((genre) => (
+                      <span
+                        key={genre}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
+                      >
+                        {genre}
+                        <button
+                          type="button"
+                          onClick={() => removeGenre(genre)}
+                          className="hover:bg-primary/20 rounded-full p-0.5"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="relative">
+                  <Input
+                    placeholder="Genre hinzufügen..."
+                    value={genreInput}
+                    onChange={(e) => {
+                      setGenreInput(e.target.value);
+                      setShowGenreSuggestions(true);
+                    }}
+                    onFocus={() => setShowGenreSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowGenreSuggestions(false), 200)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && genreInput.trim()) {
+                        e.preventDefault();
+                        addGenre(genreInput);
+                      }
+                    }}
+                    className="bg-card border-border/50"
+                  />
+                  {showGenreSuggestions && filteredGenreSuggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-auto">
+                      {filteredGenreSuggestions.slice(0, 8).map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                          onClick={() => addGenre(suggestion)}
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {formData.genre?.length === 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <span className="text-xs text-muted-foreground mr-1">Vorschläge:</span>
+                    {GENRE_SUGGESTIONS.slice(0, 6).map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() => addGenre(suggestion)}
+                        className="text-xs px-2 py-0.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
-              <div className="flex-1 space-y-2">
-                <Input
-                  placeholder="Cover-URL eingeben..."
-                  value={formData.coverArt || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, coverArt: e.target.value }))
-                  }
-                  className="bg-card border-border/50"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Füge eine URL zu einem Bild ein oder lade später ein Foto hoch
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Basic Info */}
-        <Card className="bg-gradient-card border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-lg">Grundinformationen</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="artist">Künstler *</Label>
-                <Input
-                  id="artist"
-                  placeholder="z.B. Miles Davis"
-                  value={formData.artist || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, artist: e.target.value }))
-                  }
-                  className="bg-card border-border/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="album">Album *</Label>
-                <Input
-                  id="album"
-                  placeholder="z.B. Kind of Blue"
-                  value={formData.album || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, album: e.target.value }))
-                  }
-                  className="bg-card border-border/50"
-                />
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="year">Jahr</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  min={1900}
-                  max={new Date().getFullYear()}
-                  value={formData.year || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, year: parseInt(e.target.value) }))
-                  }
-                  className="bg-card border-border/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="label">Label</Label>
-                <Input
-                  id="label"
-                  placeholder="z.B. Columbia"
-                  value={formData.label || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, label: e.target.value }))
-                  }
-                  className="bg-card border-border/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="catalogNumber">Katalognummer</Label>
-                <Input
-                  id="catalogNumber"
-                  placeholder="z.B. CL 1355"
-                  value={formData.catalogNumber || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, catalogNumber: e.target.value }))
-                  }
-                  className="bg-card border-border/50"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="genre">Genres</Label>
-              <Input
-                id="genre"
-                placeholder="z.B. Jazz, Modal Jazz"
-                value={genreInput}
-                onChange={(e) => setGenreInput(e.target.value)}
-                className="bg-card border-border/50"
-              />
-              <p className="text-xs text-muted-foreground">
-                Mehrere Genres mit Komma trennen
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Format & Status */}
-        <Card className="bg-gradient-card border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-lg">Format & Status</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Format</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={formData.format === "vinyl" ? "default" : "outline"}
-                    onClick={() => setFormData((prev) => ({ ...prev, format: "vinyl" }))}
-                    className="flex-1 gap-2"
+          {/* Format & Status */}
+          <Card className="bg-gradient-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-lg">Format & Status</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Format</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={formData.format === "vinyl" ? "default" : "outline"}
+                      onClick={() => setFormData((prev) => ({ ...prev, format: "vinyl" }))}
+                      className="flex-1 gap-2"
+                    >
+                      <Disc3 className="w-4 h-4" />
+                      Vinyl
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={formData.format === "cd" ? "default" : "outline"}
+                      onClick={() => setFormData((prev) => ({ ...prev, format: "cd" }))}
+                      className="flex-1 gap-2"
+                    >
+                      <Disc className="w-4 h-4" />
+                      CD
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(v) =>
+                      setFormData((prev) => ({ ...prev, status: v as RecordStatus }))
+                    }
                   >
-                    <Disc3 className="w-4 h-4" />
-                    Vinyl
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={formData.format === "cd" ? "default" : "outline"}
-                    onClick={() => setFormData((prev) => ({ ...prev, format: "cd" }))}
-                    className="flex-1 gap-2"
-                  >
-                    <Disc className="w-4 h-4" />
-                    CD
-                  </Button>
+                    <SelectTrigger className="bg-card border-border/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="owned">In Sammlung</SelectItem>
+                      <SelectItem value="wishlist">Wunschliste</SelectItem>
+                      <SelectItem value="checked-not-bought">Geprüft</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(v) =>
-                    setFormData((prev) => ({ ...prev, status: v as RecordStatus }))
-                  }
-                >
-                  <SelectTrigger className="bg-card border-border/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="owned">In Sammlung</SelectItem>
-                    <SelectItem value="wishlist">Wunschliste</SelectItem>
-                    <SelectItem value="checked-not-bought">Geprüft</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="formatDetails">Format-Details</Label>
-                <Input
-                  id="formatDetails"
-                  placeholder="z.B. 180g, 2LP, Gatefold"
-                  value={formData.formatDetails || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, formatDetails: e.target.value }))
-                  }
-                  className="bg-card border-border/50"
-                />
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="formatDetails">Format-Details</Label>
+                  <Input
+                    id="formatDetails"
+                    placeholder="z.B. 180g, 2LP, Gatefold"
+                    value={formData.formatDetails || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, formatDetails: e.target.value }))
+                    }
+                    className="bg-card border-border/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pressing">Pressung</Label>
+                  <Input
+                    id="pressing"
+                    placeholder="z.B. EU 2015"
+                    value={formData.pressing || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, pressing: e.target.value }))
+                    }
+                    className="bg-card border-border/50"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="pressing">Pressung</Label>
-                <Input
-                  id="pressing"
-                  placeholder="z.B. EU 2015"
-                  value={formData.pressing || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, pressing: e.target.value }))
-                  }
-                  className="bg-card border-border/50"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Rating */}
-        <Card className="bg-gradient-card border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-lg">Deine Bewertung</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <StarRating
-                rating={formData.myRating || 0}
-                size="lg"
-                interactive
-                onChange={(rating) => setFormData((prev) => ({ ...prev, myRating: rating }))}
+          {/* Rating */}
+          <Card className="bg-gradient-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-lg">Deine Bewertung</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <StarRating
+                  rating={formData.myRating || 0}
+                  size="lg"
+                  interactive
+                  onChange={(rating) => setFormData((prev) => ({ ...prev, myRating: rating }))}
+                />
+                <span className="text-lg font-semibold text-foreground">
+                  {formData.myRating} / 5
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tags / Keywords */}
+          <Card className="bg-gradient-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-lg">Stichworte</CardTitle>
+              <CardDescription>
+                Füge Stichworte für Stimmung, Instrumente, Anlässe hinzu
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TagInput
+                tags={formData.tags || []}
+                onChange={(tags) => setFormData((prev) => ({ ...prev, tags }))}
+                placeholder="Stichwort hinzufügen (z.B. entspannt, Klavier, Sommer)..."
               />
-              <span className="text-lg font-semibold text-foreground">
-                {formData.myRating} / 5
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Notes */}
-        <Card className="bg-gradient-card border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-lg">Persönliche Notizen</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Deine Gedanken zu diesem Tonträger..."
-              value={formData.personalNotes || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, personalNotes: e.target.value }))
-              }
-              className="bg-card border-border/50 min-h-[100px]"
-            />
-          </CardContent>
-        </Card>
+          {/* Notes */}
+          <Card className="bg-gradient-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-lg">Persönliche Notizen</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="Deine Gedanken zu diesem Tonträger..."
+                value={formData.personalNotes || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, personalNotes: e.target.value }))
+                }
+                className="bg-card border-border/50 min-h-[100px]"
+              />
+            </CardContent>
+          </Card>
 
-        {/* Submit */}
-        <div className="flex gap-3">
-          <Button
-            type="submit"
-            size="lg"
-            className="flex-1 gap-2 bg-gradient-vinyl hover:opacity-90 text-primary-foreground"
-          >
-            <Save className="w-4 h-4" />
-            {isEditing ? "Änderungen speichern" : "Zur Sammlung hinzufügen"}
-          </Button>
-        </div>
-      </form>
-    </motion.div>
+          {/* Submit */}
+          <div className="flex gap-3">
+            <Button
+              type="submit"
+              size="lg"
+              className="flex-1 gap-2 bg-gradient-vinyl hover:opacity-90 text-primary-foreground"
+            >
+              <Save className="w-4 h-4" />
+              {isEditing ? "Änderungen speichern" : "Zur Sammlung hinzufügen"}
+            </Button>
+          </div>
+        </form>
+      </motion.div>
+    </>
   );
 }
