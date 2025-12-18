@@ -1,96 +1,145 @@
+@import "@fontsource/playfair-display/400.css";
+@import "@fontsource/playfair-display/500.css";
+@import "@fontsource/playfair-display/600.css";
+@import "@fontsource/playfair-display/700.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* VinylVault Design System - Warm, Analog, Retro */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Warm cream/ivory backgrounds */
+    --background: 40 33% 96%;
+    --foreground: 25 30% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Card surfaces - slightly warmer */
+    --card: 40 40% 98%;
+    --card-foreground: 25 30% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Popover */
+    --popover: 40 40% 98%;
+    --popover-foreground: 25 30% 12%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Rich Cognac/Amber */
+    --primary: 25 70% 35%;
+    --primary-foreground: 40 33% 96%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Warm Sand */
+    --secondary: 35 25% 88%;
+    --secondary-foreground: 25 30% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted - Soft Taupe */
+    --muted: 30 15% 90%;
+    --muted-foreground: 25 15% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Deep Amber Gold */
+    --accent: 35 80% 45%;
+    --accent-foreground: 40 33% 96%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive */
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 40 33% 96%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Borders - Warm subtle */
+    --border: 30 20% 85%;
+    --input: 30 20% 85%;
+    --ring: 25 70% 35%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Custom VinylVault tokens */
+    --vinyl-black: 0 0% 8%;
+    --vinyl-groove: 0 0% 15%;
+    --vinyl-label: 25 70% 35%;
+    --vinyl-gold: 43 80% 55%;
+    --vinyl-cream: 40 33% 96%;
+    --vinyl-cognac: 20 60% 30%;
+    --vinyl-amber: 35 75% 50%;
+    --vinyl-warm-gray: 25 10% 60%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Gradients */
+    --gradient-vinyl: linear-gradient(135deg, hsl(25 70% 35%), hsl(35 80% 45%));
+    --gradient-gold: linear-gradient(135deg, hsl(43 80% 55%), hsl(35 75% 50%));
+    --gradient-warm: linear-gradient(180deg, hsl(40 33% 96%), hsl(35 25% 92%));
+    --gradient-card: linear-gradient(145deg, hsl(40 40% 98%), hsl(35 30% 95%));
 
-    --sidebar-primary: 240 5.9% 10%;
+    /* Shadows */
+    --shadow-vinyl: 0 4px 20px -4px hsl(25 70% 35% / 0.15);
+    --shadow-card: 0 2px 12px -2px hsl(25 30% 20% / 0.08);
+    --shadow-cover: 0 8px 30px -8px hsl(25 30% 20% / 0.2);
+    --shadow-hover: 0 12px 40px -12px hsl(25 30% 20% / 0.25);
 
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar */
+    --sidebar-background: 30 25% 12%;
+    --sidebar-foreground: 40 30% 90%;
+    --sidebar-primary: 35 80% 50%;
+    --sidebar-primary-foreground: 30 25% 12%;
+    --sidebar-accent: 30 20% 18%;
+    --sidebar-accent-foreground: 40 30% 90%;
+    --sidebar-border: 30 15% 20%;
+    --sidebar-ring: 35 80% 50%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Deep warm dark backgrounds */
+    --background: 25 25% 8%;
+    --foreground: 40 25% 92%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 25 20% 12%;
+    --card-foreground: 40 25% 92%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 25 20% 12%;
+    --popover-foreground: 40 25% 92%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Primary - Warm Amber in dark mode */
+    --primary: 35 75% 55%;
+    --primary-foreground: 25 25% 8%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Secondary */
+    --secondary: 25 15% 18%;
+    --secondary-foreground: 40 25% 85%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* Muted */
+    --muted: 25 15% 18%;
+    --muted-foreground: 30 15% 55%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    /* Accent */
+    --accent: 35 80% 50%;
+    --accent-foreground: 25 25% 8%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 40 25% 92%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 25 15% 18%;
+    --input: 25 15% 18%;
+    --ring: 35 75% 55%;
+
+    /* Dark mode custom tokens */
+    --vinyl-black: 0 0% 5%;
+    --vinyl-groove: 0 0% 12%;
+    --vinyl-label: 35 75% 55%;
+    --vinyl-gold: 43 75% 50%;
+
+    --gradient-vinyl: linear-gradient(135deg, hsl(35 75% 55%), hsl(43 75% 50%));
+    --gradient-card: linear-gradient(145deg, hsl(25 20% 12%), hsl(25 15% 10%));
+
+    --shadow-vinyl: 0 4px 20px -4px hsl(0 0% 0% / 0.4);
+    --shadow-card: 0 2px 12px -2px hsl(0 0% 0% / 0.3);
+    --shadow-cover: 0 8px 30px -8px hsl(0 0% 0% / 0.5);
+
+    --sidebar-background: 25 20% 6%;
+    --sidebar-foreground: 40 25% 90%;
+    --sidebar-primary: 35 75% 55%;
+    --sidebar-primary-foreground: 25 20% 6%;
+    --sidebar-accent: 25 15% 12%;
+    --sidebar-accent-foreground: 40 25% 90%;
+    --sidebar-border: 25 15% 15%;
   }
 }
 
@@ -100,6 +149,135 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Playfair Display", Georgia, serif;
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  /* Vinyl record visual effect */
+  .vinyl-disc {
+    @apply relative rounded-full;
+    background: radial-gradient(
+      circle at center,
+      hsl(var(--vinyl-label)) 0%,
+      hsl(var(--vinyl-label)) 35%,
+      hsl(var(--vinyl-groove)) 35%,
+      hsl(var(--vinyl-black)) 36%,
+      hsl(var(--vinyl-groove)) 37%,
+      hsl(var(--vinyl-black)) 100%
+    );
+    box-shadow: 
+      inset 0 0 30px hsl(0 0% 0% / 0.3),
+      0 4px 20px hsl(0 0% 0% / 0.3);
+  }
+
+  .vinyl-disc::before {
+    content: "";
+    @apply absolute inset-0 rounded-full;
+    background: repeating-radial-gradient(
+      circle at center,
+      transparent 0px,
+      transparent 2px,
+      hsl(0 0% 100% / 0.03) 2px,
+      hsl(0 0% 100% / 0.03) 3px
+    );
+  }
+
+  /* Cover card hover effect */
+  .cover-card {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .cover-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--shadow-hover);
+  }
+
+  /* Warm gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-vinyl);
+  }
+
+  /* Texture overlay for retro feel */
+  .texture-overlay {
+    @apply relative;
+  }
+
+  .texture-overlay::after {
+    content: "";
+    @apply absolute inset-0 pointer-events-none opacity-[0.03];
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+
+  /* Status badges */
+  .status-owned {
+    @apply bg-primary/10 text-primary border-primary/20;
+  }
+
+  .status-wishlist {
+    @apply bg-accent/10 text-accent border-accent/20;
+  }
+
+  .status-checked {
+    @apply bg-muted text-muted-foreground border-border;
+  }
+
+  /* Format badges */
+  .format-vinyl {
+    @apply bg-vinyl-cognac/10 text-primary;
+  }
+
+  .format-cd {
+    @apply bg-secondary text-secondary-foreground;
+  }
+
+  /* Star rating */
+  .star-filled {
+    @apply text-vinyl-gold fill-vinyl-gold;
+  }
+
+  .star-empty {
+    @apply text-muted-foreground/30;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "Playfair Display", Georgia, serif;
+  }
+
+  .font-body {
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  /* Scrollbar styling */
+  .scrollbar-warm {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.3) transparent;
+  }
+
+  .scrollbar-warm::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-warm::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-warm::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.3);
+    border-radius: 4px;
+  }
+
+  .scrollbar-warm::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.5);
   }
 }
