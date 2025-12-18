@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, Music } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Record, RecordFormat } from "@/types/record";
@@ -27,12 +27,18 @@ export default function Collection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [formatFilter, setFormatFilter] = useState<RecordFormat | "all">("all");
   const [genreFilter, setGenreFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   // Extract all unique genres from records
   const allGenres = Array.from(
     new Set(records.flatMap((record) => record.genre))
+  ).sort();
+
+  // Extract all unique tags from records
+  const allTags = Array.from(
+    new Set(records.flatMap((record) => record.tags || []))
   ).sort();
 
   // Filter and sort records
@@ -46,7 +52,8 @@ export default function Collection() {
         record.tags?.some((t) => t.toLowerCase().includes(query));
       const matchesFormat = formatFilter === "all" || record.format === formatFilter;
       const matchesGenre = genreFilter === "all" || record.genre.includes(genreFilter);
-      return matchesSearch && matchesFormat && matchesGenre;
+      const matchesTag = tagFilter === "all" || record.tags?.includes(tagFilter);
+      return matchesSearch && matchesFormat && matchesGenre && matchesTag;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -118,6 +125,26 @@ export default function Collection() {
                   {allGenres.map((genre) => (
                     <SelectItem key={genre} value={genre}>
                       {genre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {allTags.length > 0 && (
+              <Select
+                value={tagFilter}
+                onValueChange={setTagFilter}
+              >
+                <SelectTrigger className="w-[140px] bg-card border-border/50">
+                  <Tag className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <SelectValue placeholder="Stichwort" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover max-h-[300px]">
+                  <SelectItem value="all">Alle Stichworte</SelectItem>
+                  {allTags.map((tag) => (
+                    <SelectItem key={tag} value={tag}>
+                      {tag}
                     </SelectItem>
                   ))}
                 </SelectContent>
