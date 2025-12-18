@@ -104,35 +104,72 @@ Sei ein echter Experte. Liefere fundierte, detaillierte Analysen wie ein profess
 
     console.log('Calling Lovable AI for record completion...');
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages,
-        response_format: { type: "json_object" }
-      }),
-    });
+    // Retry logic for transient errors (503, 502, etc.)
+    const maxRetries = 3;
+    let response: Response | null = null;
+    let lastError: string = '';
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`AI request attempt ${attempt}/${maxRetries}`);
+        
+        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages,
+            response_format: { type: "json_object" }
+          }),
+        });
+
+        if (response.ok) {
+          break; // Success, exit retry loop
+        }
+
+        // Handle specific error codes
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted. Please add more credits." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Retry on 502, 503, 504 (gateway errors)
+        if ([502, 503, 504].includes(response.status) && attempt < maxRetries) {
+          lastError = `Gateway error: ${response.status}`;
+          console.log(`Retrying due to ${response.status}... waiting ${attempt * 2}s`);
+          await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+          continue;
+        }
+
+        const errorText = await response.text();
+        console.error("AI gateway error:", response.status, errorText);
+        throw new Error(`AI gateway error: ${response.status}`);
+
+      } catch (fetchError) {
+        lastError = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
+        console.error(`Attempt ${attempt} failed:`, lastError);
+        
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+        } else {
+          throw new Error(`AI gateway failed after ${maxRetries} attempts: ${lastError}`);
+        }
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add more credits." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`AI gateway failed: ${lastError}`);
     }
 
     const data = await response.json();
