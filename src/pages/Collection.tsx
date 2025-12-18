@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Record, RecordFormat } from "@/types/record";
@@ -26,8 +26,14 @@ export default function Collection() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [formatFilter, setFormatFilter] = useState<RecordFormat | "all">("all");
+  const [genreFilter, setGenreFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+
+  // Extract all unique genres from records
+  const allGenres = Array.from(
+    new Set(records.flatMap((record) => record.genre))
+  ).sort();
 
   // Filter and sort records
   const filteredRecords = records
@@ -39,7 +45,8 @@ export default function Collection() {
         record.genre.some((g) => g.toLowerCase().includes(query)) ||
         record.tags?.some((t) => t.toLowerCase().includes(query));
       const matchesFormat = formatFilter === "all" || record.format === formatFilter;
-      return matchesSearch && matchesFormat;
+      const matchesGenre = genreFilter === "all" || record.genre.includes(genreFilter);
+      return matchesSearch && matchesFormat && matchesGenre;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -82,27 +89,47 @@ export default function Collection() {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Select
               value={formatFilter}
               onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
             >
-              <SelectTrigger className="w-[120px] bg-card border-border/50">
+              <SelectTrigger className="w-[110px] bg-card border-border/50">
                 <SelectValue placeholder="Format" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle</SelectItem>
+              <SelectContent className="bg-popover">
+                <SelectItem value="all">Alle Formate</SelectItem>
                 <SelectItem value="vinyl">Vinyl</SelectItem>
                 <SelectItem value="cd">CD</SelectItem>
               </SelectContent>
             </Select>
+
+            {allGenres.length > 0 && (
+              <Select
+                value={genreFilter}
+                onValueChange={setGenreFilter}
+              >
+                <SelectTrigger className="w-[140px] bg-card border-border/50">
+                  <Music className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <SelectValue placeholder="Genre" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover max-h-[300px]">
+                  <SelectItem value="all">Alle Genres</SelectItem>
+                  {allGenres.map((genre) => (
+                    <SelectItem key={genre} value={genre}>
+                      {genre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
               <SelectTrigger className="w-[140px] bg-card border-border/50">
                 <SlidersHorizontal className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Sortieren" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-popover">
                 <SelectItem value="dateAdded">Zuletzt hinzugefügt</SelectItem>
                 <SelectItem value="artist">Künstler</SelectItem>
                 <SelectItem value="album">Album</SelectItem>
