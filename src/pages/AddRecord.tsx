@@ -72,7 +72,7 @@ export default function AddRecord() {
   const [showGenreSuggestions, setShowGenreSuggestions] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isBarcodeLoading, setIsBarcodeLoading] = useState(false);
-  const [manualEan, setManualEan] = useState("");
+  const [manualCode, setManualCode] = useState("");
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [pendingBarcodeData, setPendingBarcodeData] = useState<Partial<Record> | null>(null);
 
@@ -163,17 +163,22 @@ export default function AddRecord() {
     }
   };
 
-  const handleBarcodeScan = async (barcode: string) => {
+  const handleBarcodeScan = async (code: string) => {
     setIsBarcodeLoading(true);
+    
+    // Check if it looks like a barcode (only numbers) or a catalog number
+    const isBarcode = /^\d+$/.test(code);
+    
     toast({
-      title: "Barcode erkannt",
-      description: `EAN: ${barcode} - Suche Album-Informationen...`,
+      title: isBarcode ? "Barcode erkannt" : "Katalognummer erkannt",
+      description: `${code} - Suche Album-Informationen...`,
     });
 
     try {
       const { data, error } = await supabase.functions.invoke('complete-record', {
         body: {
-          barcode: barcode,
+          barcode: isBarcode ? code : undefined,
+          catalogNumber: isBarcode ? undefined : code,
           artist: formData.artist,
           album: formData.album,
         }
@@ -415,28 +420,28 @@ export default function AddRecord() {
               </Button>
               <div className="flex">
                 <Input
-                  placeholder="EAN eingeben..."
-                  value={manualEan}
-                  onChange={(e) => setManualEan(e.target.value.replace(/\D/g, ''))}
-                  className="w-32 sm:w-36 rounded-r-none bg-card border-border/50"
-                  maxLength={13}
+                  placeholder="EAN oder Katalog-Nr..."
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value)}
+                  className="w-36 sm:w-44 rounded-r-none bg-card border-border/50"
+                  maxLength={20}
                 />
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    if (manualEan.length >= 8) {
-                      handleBarcodeScan(manualEan);
-                      setManualEan("");
+                    if (manualCode.length >= 3) {
+                      handleBarcodeScan(manualCode);
+                      setManualCode("");
                     } else {
                       toast({
-                        title: "Ungültige EAN",
-                        description: "Bitte gib mindestens 8 Ziffern ein.",
+                        title: "Ungültige Eingabe",
+                        description: "Bitte gib mindestens 3 Zeichen ein.",
                         variant: "destructive",
                       });
                     }
                   }}
-                  disabled={isBarcodeLoading || manualEan.length < 8}
+                  disabled={isBarcodeLoading || manualCode.length < 3}
                   className="rounded-l-none border-l-0 px-2"
                 >
                   <Search className="w-4 h-4" />
