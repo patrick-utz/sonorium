@@ -113,6 +113,151 @@ async function searchByArtistAlbum(artist: string, album: string): Promise<strin
   }
 }
 
+interface AlternativeRelease {
+  mbid: string;
+  title: string;
+  artist: string;
+  year?: number;
+  label?: string;
+  catalogNumber?: string;
+  country?: string;
+  format?: string;
+  qualityType?: "original" | "remaster" | "reissue" | "audiophile" | "unknown";
+  qualityRating?: number;
+  qualityNotes?: string;
+}
+
+// Get release group ID from a release
+async function getReleaseGroupId(mbid: string): Promise<string | null> {
+  try {
+    console.log('Getting release group for MBID:', mbid);
+    const url = `https://musicbrainz.org/ws/2/release/${mbid}?inc=release-groups&fmt=json`;
+    
+    const response = await fetch(url, {
+      headers: { 'User-Agent': MB_USER_AGENT }
+    });
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    return data['release-group']?.id || null;
+  } catch (error) {
+    console.error('Error getting release group:', error);
+    return null;
+  }
+}
+
+// Determine quality type from release info
+function determineQualityType(release: any): { type: "original" | "remaster" | "reissue" | "audiophile" | "unknown"; rating: number; notes: string } {
+  const disambiguation = (release.disambiguation || '').toLowerCase();
+  const labelName = (release['label-info']?.[0]?.label?.name || '').toLowerCase();
+  const title = (release.title || '').toLowerCase();
+  const format = release.media?.[0]?.format || '';
+  
+  // Check for audiophile labels
+  const audiophileLabels = ['mobile fidelity', 'mofi', 'analogue productions', 'acoustic sounds', 'impex', 'music matters', 'blue note tone poet', 'speakers corner', 'original recordings group', 'dcc compact classics'];
+  const isAudiophile = audiophileLabels.some(l => labelName.includes(l) || disambiguation.includes(l));
+  
+  if (isAudiophile) {
+    return { 
+      type: 'audiophile', 
+      rating: 5, 
+      notes: `Audiophile Pressung von ${release['label-info']?.[0]?.label?.name || 'Speziallabel'}. Höchste Klangqualität erwartet.`
+    };
+  }
+  
+  // Check for remaster
+  if (disambiguation.includes('remaster') || title.includes('remaster')) {
+    return { 
+      type: 'remaster', 
+      rating: 4, 
+      notes: 'Remastered Version mit verbesserter Klangqualität.'
+    };
+  }
+  
+  // Check for original pressing
+  const releaseYear = release.date ? parseInt(release.date.substring(0, 4)) : null;
+  const releaseGroupYear = release['release-group']?.['first-release-date'] ? 
+    parseInt(release['release-group']['first-release-date'].substring(0, 4)) : null;
+  
+  if (releaseYear && releaseGroupYear && Math.abs(releaseYear - releaseGroupYear) <= 1) {
+    return { 
+      type: 'original', 
+      rating: 5, 
+      notes: `Originalpressung von ${releaseYear}. Oft die beste Klangqualität (Masterbänder).`
+    };
+  }
+  
+  // Check for reissue
+  if (disambiguation.includes('reissue') || disambiguation.includes('re-issue')) {
+    return { 
+      type: 'reissue', 
+      rating: 3, 
+      notes: 'Wiederveröffentlichung. Klangqualität variiert je nach Quelle.'
+    };
+  }
+  
+  // Default to unknown
+  return { 
+    type: 'unknown', 
+    rating: 3, 
+    notes: 'Keine spezifischen Qualitätsinformationen verfügbar.'
+  };
+}
+
+// Fetch alternative releases for a release group
+async function getAlternativeReleases(releaseGroupId: string, limit: number = 10): Promise<AlternativeRelease[]> {
+  try {
+    console.log('Fetching alternative releases for release group:', releaseGroupId);
+    const url = `https://musicbrainz.org/ws/2/release?release-group=${releaseGroupId}&inc=labels+media&fmt=json&limit=${limit}`;
+    
+    const response = await fetch(url, {
+      headers: { 'User-Agent': MB_USER_AGENT }
+    });
+    
+    if (!response.ok) {
+      console.log('Failed to fetch alternative releases:', response.status);
+      return [];
+    }
+    
+    const data = await response.json();
+    const releases = data.releases || [];
+    
+    const alternatives: AlternativeRelease[] = releases.map((release: any) => {
+      const quality = determineQualityType(release);
+      const formats = release.media?.map((m: any) => m.format).filter(Boolean).join(', ') || '';
+      
+      return {
+        mbid: release.id,
+        title: release.title,
+        artist: release['artist-credit']?.[0]?.name || '',
+        year: release.date ? parseInt(release.date.substring(0, 4)) : undefined,
+        label: release['label-info']?.[0]?.label?.name || undefined,
+        catalogNumber: release['label-info']?.[0]?.['catalog-number'] || undefined,
+        country: release.country || undefined,
+        format: formats || undefined,
+        qualityType: quality.type,
+        qualityRating: quality.rating,
+        qualityNotes: quality.notes
+      };
+    });
+    
+    // Sort by quality rating (highest first), then by year (oldest first for originals)
+    alternatives.sort((a, b) => {
+      if (b.qualityRating !== a.qualityRating) {
+        return (b.qualityRating || 0) - (a.qualityRating || 0);
+      }
+      return (a.year || 9999) - (b.year || 9999);
+    });
+    
+    console.log(`Found ${alternatives.length} alternative releases`);
+    return alternatives;
+  } catch (error) {
+    console.error('Error fetching alternative releases:', error);
+    return [];
+  }
+}
+
 // Get cover art from Cover Art Archive
 async function getCoverArt(mbid: string): Promise<string | null> {
   try {
@@ -236,6 +381,7 @@ serve(async (req) => {
 
     let foundCoverArt: string | null = null;
     let mbData: { mbid: string; artist: string; album: string; year: number; label: string; catalogNumber?: string } | null = null;
+    let alternativeReleases: AlternativeRelease[] = [];
 
     // Step 1: Try catalog number first (most reliable for vinyl)
     if (catalogNumber || barcode) {
@@ -254,6 +400,14 @@ serve(async (req) => {
       if (mbData?.mbid) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // MusicBrainz rate limit
         foundCoverArt = await getCoverArt(mbData.mbid);
+        
+        // Fetch alternative releases
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const releaseGroupId = await getReleaseGroupId(mbData.mbid);
+        if (releaseGroupId) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          alternativeReleases = await getAlternativeReleases(releaseGroupId, 15);
+        }
       }
     }
     
@@ -265,6 +419,16 @@ serve(async (req) => {
       if (mbid) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         foundCoverArt = await getCoverArt(mbid);
+        
+        // Fetch alternative releases if we haven't already
+        if (alternativeReleases.length === 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const releaseGroupId = await getReleaseGroupId(mbid);
+          if (releaseGroupId) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            alternativeReleases = await getAlternativeReleases(releaseGroupId, 15);
+          }
+        }
       }
     }
     
@@ -475,6 +639,10 @@ Sei ein echter Experte. Liefere fundierte, detaillierte Analysen wie ein profess
       completedData.coverArtBase64 = foundCoverArt;
       console.log('Added cover art from MusicBrainz/Wikipedia');
     }
+
+    // Add alternative releases
+    completedData.alternativeReleases = alternativeReleases;
+    console.log(`Returning ${alternativeReleases.length} alternative releases`);
 
     return new Response(
       JSON.stringify({ success: true, data: completedData }),
