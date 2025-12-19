@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
 export default function Wishlist() {
-  const { getWishlistRecords, updateRecord, deleteRecord } = useRecords();
+  const { getWishlistRecords, updateRecord, deleteRecord, toggleFavorite } = useRecords();
   const navigate = useNavigate();
   const records = getWishlistRecords();
 
@@ -90,6 +90,7 @@ export default function Wishlist() {
                   record={record}
                   onClick={() => navigate(`/sammlung/${record.id}`)}
                   onDelete={() => deleteRecord(record.id)}
+                  onToggleFavorite={() => toggleFavorite(record.id)}
                 />
                 <Button
                   size="sm"
