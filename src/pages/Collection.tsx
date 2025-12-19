@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { compressImage } from "@/lib/imageUtils";
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Record, RecordFormat } from "@/types/record";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -24,13 +24,44 @@ type ViewMode = "grid" | "list";
 export default function Collection() {
   const { getOwnedRecords, updateRecord, deleteRecord } = useRecords();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const records = getOwnedRecords();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [formatFilter, setFormatFilter] = useState<RecordFormat | "all">("all");
   const [genreFilter, setGenreFilter] = useState<string>("all");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+
+  // Read filters from URL params on mount
+  useEffect(() => {
+    const genreParam = searchParams.get("genre");
+    const tagParam = searchParams.get("tag");
+    if (genreParam) {
+      setGenreFilter(genreParam);
+    }
+    if (tagParam) {
+      setTagFilter(tagParam);
+    }
+  }, [searchParams]);
+
+  // Clear URL params when filters change manually
+  const handleGenreChange = (value: string) => {
+    setGenreFilter(value);
+    if (searchParams.has("genre")) {
+      searchParams.delete("genre");
+      setSearchParams(searchParams);
+    }
+  };
+
+  const handleTagChange = (value: string) => {
+    setTagFilter(value);
+    if (searchParams.has("tag")) {
+      searchParams.delete("tag");
+      setSearchParams(searchParams);
+    }
+  };
 
   // Extract all unique genres from records
   const allGenres = Array.from(
@@ -115,7 +146,7 @@ export default function Collection() {
             {allGenres.length > 0 && (
               <Select
                 value={genreFilter}
-                onValueChange={setGenreFilter}
+                onValueChange={handleGenreChange}
               >
                 <SelectTrigger className="w-[140px] bg-card border-border/50">
                   <Music className="w-4 h-4 mr-2 flex-shrink-0" />
@@ -135,7 +166,7 @@ export default function Collection() {
             {allTags.length > 0 && (
               <Select
                 value={tagFilter}
-                onValueChange={setTagFilter}
+                onValueChange={handleTagChange}
               >
                 <SelectTrigger className="w-[140px] bg-card border-border/50">
                   <Tag className="w-4 h-4 mr-2 flex-shrink-0" />
