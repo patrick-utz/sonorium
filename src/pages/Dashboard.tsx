@@ -1,16 +1,17 @@
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Disc3, Disc, Music, TrendingUp, Calendar, Star, Tag, Sparkles } from "lucide-react";
+import { Disc3, Disc, Music, TrendingUp, Calendar, Star, Tag, Sparkles, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function Dashboard() {
-  const { records, getOwnedRecords, getWishlistRecords } = useRecords();
+  const { records, getOwnedRecords, getWishlistRecords, getFavoriteRecords, toggleFavorite } = useRecords();
   const navigate = useNavigate();
 
   const ownedRecords = getOwnedRecords();
   const wishlistRecords = getWishlistRecords();
+  const favoriteRecords = getFavoriteRecords();
   const vinylCount = records.filter((r) => r.format === "vinyl").length;
   const cdCount = records.filter((r) => r.format === "cd").length;
 
@@ -250,6 +251,34 @@ export default function Dashboard() {
         </motion.div>
       )}
 
+      {/* Favorites */}
+      {favoriteRecords.length > 0 && (
+        <motion.div variants={itemVariants}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-medium flex items-center gap-2 text-foreground">
+              <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+              Deine Favoriten
+            </h2>
+            <button
+              onClick={() => navigate("/sammlung?favorites=true")}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Alle anzeigen →
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {favoriteRecords.slice(0, 4).map((record) => (
+              <RecordCard
+                key={record.id}
+                record={record}
+                onClick={() => navigate(`/sammlung/${record.id}`)}
+                onToggleFavorite={() => toggleFavorite(record.id)}
+              />
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {/* Recently Added */}
       {recentlyAdded.length > 0 && (
         <motion.div variants={itemVariants}>
@@ -271,6 +300,7 @@ export default function Dashboard() {
                 key={record.id}
                 record={record}
                 onClick={() => navigate(`/sammlung/${record.id}`)}
+                onToggleFavorite={() => toggleFavorite(record.id)}
               />
             ))}
           </div>
@@ -283,7 +313,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-medium flex items-center gap-2 text-foreground">
               <Star className="w-5 h-5 text-accent" />
-              Deine Favoriten
+              Top Bewertet
             </h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -292,6 +322,7 @@ export default function Dashboard() {
                 key={record.id}
                 record={record}
                 onClick={() => navigate(`/sammlung/${record.id}`)}
+                onToggleFavorite={() => toggleFavorite(record.id)}
               />
             ))}
           </div>
