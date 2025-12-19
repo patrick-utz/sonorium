@@ -3,15 +3,7 @@ import { compressImage } from "@/lib/imageUtils";
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Camera } from "lucide-react";
+import { Search, Grid3X3, List, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Record, RecordFormat } from "@/types/record";
@@ -27,20 +19,8 @@ export default function Collection() {
   const records = getOwnedRecords();
   const [searchQuery, setSearchQuery] = useState("");
   const [formatFilter, setFormatFilter] = useState<RecordFormat | "all">("all");
-  const [genreFilter, setGenreFilter] = useState<string>("all");
-  const [tagFilter, setTagFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-
-  // Extract all unique genres from records
-  const allGenres = Array.from(
-    new Set(records.flatMap((record) => record.genre))
-  ).sort();
-
-  // Extract all unique tags from records
-  const allTags = Array.from(
-    new Set(records.flatMap((record) => record.tags || []))
-  ).sort();
 
   // Filter and sort records
   const filteredRecords = records
@@ -52,9 +32,7 @@ export default function Collection() {
         record.genre.some((g) => g.toLowerCase().includes(query)) ||
         record.tags?.some((t) => t.toLowerCase().includes(query));
       const matchesFormat = formatFilter === "all" || record.format === formatFilter;
-      const matchesGenre = genreFilter === "all" || record.genre.includes(genreFilter);
-      const matchesTag = tagFilter === "all" || record.tags?.includes(tagFilter);
-      return matchesSearch && matchesFormat && matchesGenre && matchesTag;
+      return matchesSearch && matchesFormat;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -72,126 +50,89 @@ export default function Collection() {
       }
     });
 
+  const handleFormatFilter = (format: RecordFormat | "all") => {
+    setFormatFilter(format);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div>
-          <h1 className="font-display text-3xl md:text-4xl font-bold gradient-text">
-            Deine Sammlung
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {records.length} Tonträger in deiner Sammlung
-          </p>
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          Deine Sammlung
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          {records.length} Tonträger
+        </p>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <Input
+          placeholder="Suchen..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-12 h-12 bg-card border-border rounded-2xl text-foreground placeholder:text-muted-foreground"
+        />
+      </div>
+
+      {/* Format Filter Tabs */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hidden py-1">
+        <button 
+          className={cn("filter-tab whitespace-nowrap", formatFilter === "all" && "active")}
+          onClick={() => handleFormatFilter("all")}
+        >
+          Alle
+        </button>
+        <button 
+          className={cn("filter-tab whitespace-nowrap", formatFilter === "vinyl" && "active")}
+          onClick={() => handleFormatFilter("vinyl")}
+        >
+          Vinyl
+        </button>
+        <button 
+          className={cn("filter-tab whitespace-nowrap", formatFilter === "cd" && "active")}
+          onClick={() => handleFormatFilter("cd")}
+        >
+          CD
+        </button>
+      </div>
+
+      {/* View Toggle & Sort */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1 bg-card rounded-xl p-1">
+          <button
+            className={cn(
+              "p-2 rounded-lg transition-colors",
+              viewMode === "grid" ? "bg-secondary text-foreground" : "text-muted-foreground"
+            )}
+            onClick={() => setViewMode("grid")}
+          >
+            <Grid3X3 className="w-5 h-5" />
+          </button>
+          <button
+            className={cn(
+              "p-2 rounded-lg transition-colors",
+              viewMode === "list" ? "bg-secondary text-foreground" : "text-muted-foreground"
+            )}
+            onClick={() => setViewMode("list")}
+          >
+            <List className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Suchen nach Künstler, Album, Genre, Stichwort..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-card border-border/50"
-            />
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            <Select
-              value={formatFilter}
-              onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
-            >
-              <SelectTrigger className="w-[110px] bg-card border-border/50">
-                <SelectValue placeholder="Format" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="all">Alle Formate</SelectItem>
-                <SelectItem value="vinyl">Vinyl</SelectItem>
-                <SelectItem value="cd">CD</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {allGenres.length > 0 && (
-              <Select
-                value={genreFilter}
-                onValueChange={setGenreFilter}
-              >
-                <SelectTrigger className="w-[140px] bg-card border-border/50">
-                  <Music className="w-4 h-4 mr-2 flex-shrink-0" />
-                  <SelectValue placeholder="Genre" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover max-h-[300px]">
-                  <SelectItem value="all">Alle Genres</SelectItem>
-                  {allGenres.map((genre) => (
-                    <SelectItem key={genre} value={genre}>
-                      {genre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            {allTags.length > 0 && (
-              <Select
-                value={tagFilter}
-                onValueChange={setTagFilter}
-              >
-                <SelectTrigger className="w-[140px] bg-card border-border/50">
-                  <Tag className="w-4 h-4 mr-2 flex-shrink-0" />
-                  <SelectValue placeholder="Stichwort" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover max-h-[300px]">
-                  <SelectItem value="all">Alle Stichworte</SelectItem>
-                  {allTags.map((tag) => (
-                    <SelectItem key={tag} value={tag}>
-                      {tag}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-              <SelectTrigger className="w-[140px] bg-card border-border/50">
-                <SlidersHorizontal className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Sortieren" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="dateAdded">Zuletzt hinzugefügt</SelectItem>
-                <SelectItem value="artist">Künstler</SelectItem>
-                <SelectItem value="album">Album</SelectItem>
-                <SelectItem value="year">Jahr</SelectItem>
-                <SelectItem value="rating">Bewertung</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="hidden sm:flex border border-border/50 rounded-lg overflow-hidden">
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "rounded-none",
-                  viewMode === "grid" && "bg-primary text-primary-foreground"
-                )}
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid3X3 className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "rounded-none",
-                  viewMode === "list" && "bg-primary text-primary-foreground"
-                )}
-                onClick={() => setViewMode("list")}
-              >
-                <List className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          className="bg-card text-foreground text-sm px-3 py-2 rounded-xl border-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="dateAdded">Zuletzt hinzugefügt</option>
+          <option value="artist">Künstler</option>
+          <option value="album">Album</option>
+          <option value="year">Jahr</option>
+          <option value="rating">Bewertung</option>
+        </select>
       </div>
 
       {/* Records Grid/List */}
@@ -203,8 +144,10 @@ export default function Collection() {
             exit={{ opacity: 0 }}
             className="text-center py-16"
           >
-            <div className="w-24 h-24 mx-auto mb-4 vinyl-disc" />
-            <h3 className="font-display text-xl font-semibold text-foreground mb-2">
+            <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-card flex items-center justify-center">
+              <Search className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">
               Keine Tonträger gefunden
             </h3>
             <p className="text-muted-foreground">
@@ -218,7 +161,7 @@ export default function Collection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
+            className="grid grid-cols-2 gap-4"
           >
             {filteredRecords.map((record) => (
               <RecordCard
@@ -227,6 +170,7 @@ export default function Collection() {
                 onClick={() => navigate(`/sammlung/${record.id}`)}
                 onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
                 onDelete={() => deleteRecord(record.id)}
+                variant="compact"
               />
             ))}
           </motion.div>
@@ -284,12 +228,14 @@ function ListItem({ record, onClick, onCoverUpdate }: { record: Record; onClick:
     fileInputRef.current?.click();
   };
 
+  const ratingScore = record.myRating ? (record.myRating * 2).toFixed(1) : null;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       onClick={onClick}
-      className="group flex items-center gap-4 p-3 rounded-lg bg-card border border-border/50 cursor-pointer hover:shadow-card transition-all"
+      className="group flex items-center gap-4 p-3 rounded-2xl bg-card cursor-pointer hover:bg-secondary/50 transition-colors"
     >
       <input
         ref={fileInputRef}
@@ -298,7 +244,7 @@ function ListItem({ record, onClick, onCoverUpdate }: { record: Record; onClick:
         onChange={handleFileChange}
         className="hidden"
       />
-      <div className="relative w-14 h-14 rounded-md overflow-hidden flex-shrink-0">
+      <div className="relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
         {record.coverArt ? (
           <img
             src={record.coverArt}
@@ -306,8 +252,8 @@ function ListItem({ record, onClick, onCoverUpdate }: { record: Record; onClick:
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-vinyl flex items-center justify-center">
-            <div className="w-8 h-8 vinyl-disc" />
+          <div className="w-full h-full album-placeholder flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-muted" />
           </div>
         )}
         <button
@@ -322,8 +268,12 @@ function ListItem({ record, onClick, onCoverUpdate }: { record: Record; onClick:
         <h3 className="font-semibold text-foreground truncate">{record.album}</h3>
         <p className="text-sm text-muted-foreground truncate">{record.artist}</p>
       </div>
-      <div className="text-sm text-muted-foreground hidden sm:block">{record.year}</div>
-      <div className="text-sm text-muted-foreground hidden md:block capitalize">
+      {ratingScore && (
+        <div className="px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+          {ratingScore}
+        </div>
+      )}
+      <div className="text-xs text-muted-foreground uppercase">
         {record.format}
       </div>
     </motion.div>
