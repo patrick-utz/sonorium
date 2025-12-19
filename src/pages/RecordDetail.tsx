@@ -518,14 +518,28 @@ interface PurchaseInfoCardProps {
   updateRecord: (id: string, updates: Partial<{ purchaseDate?: string; purchasePrice?: number; purchaseLocation?: string }>) => void;
 }
 
+interface ReleaseVerification {
+  verified: boolean;
+  confidence: 'high' | 'medium' | 'low';
+  foundArtist: string;
+  foundTitle: string;
+  foundYear?: number;
+  foundLabel?: string;
+  foundCatno?: string;
+  matchReasons: string[];
+  warnings: string[];
+}
+
 interface MarketplaceData {
   releaseId: number;
   releaseUrl: string;
   lowestPrice?: number;
+  lowestTotalPrice?: number;
   medianPrice?: number;
   highestPrice?: number;
   numForSale: number;
   currency: string;
+  verification: ReleaseVerification;
 }
 
 function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
@@ -753,7 +767,10 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
             <p className="text-sm text-muted-foreground/60 text-center py-2">{marketplaceError}</p>
           ) : marketplaceData ? (
             <>
-              <div className="grid grid-cols-4 gap-3 text-center">
+              {/* Verification Status */}
+              <VerificationBadge verification={marketplaceData.verification} />
+              
+              <div className="grid grid-cols-3 gap-3 text-center mt-3">
                 <div className="flex flex-col items-center gap-1">
                   <span className="text-xs text-muted-foreground">Günstigster</span>
                   <span className="font-semibold text-green-500">
@@ -762,6 +779,15 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
                       : '–'
                     }
                   </span>
+                  {marketplaceData.lowestTotalPrice && (
+                    <span className="text-xs text-muted-foreground">
+                      inkl. Porto: ~CHF {marketplaceData.lowestTotalPrice.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Angebote</span>
+                  <span className="font-medium">{marketplaceData.numForSale}</span>
                 </div>
                 <div className="flex flex-col items-center gap-1">
                   <span className="text-xs text-muted-foreground">Median</span>
@@ -772,26 +798,14 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
                     }
                   </span>
                 </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs text-muted-foreground">Höchster</span>
-                  <span className="font-semibold text-red-400">
-                    {marketplaceData.highestPrice 
-                      ? `CHF ${marketplaceData.highestPrice.toFixed(2)}`
-                      : '–'
-                    }
-                  </span>
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs text-muted-foreground">Angebote</span>
-                  <span className="font-medium">{marketplaceData.numForSale}</span>
-                </div>
               </div>
               
-              {/* Deal Analysis */}
-              {record.purchasePrice && marketplaceData.medianPrice && (
+              {/* Deal Analysis - now with total price comparison */}
+              {record.purchasePrice && (marketplaceData.lowestTotalPrice || marketplaceData.lowestPrice) && (
                 <DealAnalysis 
                   purchasePrice={record.purchasePrice} 
                   lowestPrice={marketplaceData.lowestPrice}
+                  lowestTotalPrice={marketplaceData.lowestTotalPrice}
                   medianPrice={marketplaceData.medianPrice} 
                 />
               )}
@@ -809,24 +823,95 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
   );
 }
 
+// Verification Badge Component
+interface VerificationBadgeProps {
+  verification: ReleaseVerification;
+}
+
+function VerificationBadge({ verification }: VerificationBadgeProps) {
+  const config = {
+    high: {
+      label: 'Verifiziert',
+      description: 'Release stimmt überein',
+      colorClass: 'text-green-500',
+      bgClass: 'bg-green-500/10',
+      borderClass: 'border-green-500/30',
+      icon: CheckCircle
+    },
+    medium: {
+      label: 'Wahrscheinlich korrekt',
+      description: 'Prüfe die Details',
+      colorClass: 'text-amber-500',
+      bgClass: 'bg-amber-500/10',
+      borderClass: 'border-amber-500/30',
+      icon: AlertCircle
+    },
+    low: {
+      label: 'Unsicher',
+      description: 'Möglicherweise falsches Release',
+      colorClass: 'text-red-400',
+      bgClass: 'bg-red-500/10',
+      borderClass: 'border-red-500/30',
+      icon: AlertCircle
+    }
+  };
+  
+  const conf = config[verification.confidence];
+  const Icon = conf.icon;
+  
+  return (
+    <div className={cn(
+      "p-2 rounded-lg border mb-2",
+      conf.bgClass,
+      conf.borderClass
+    )}>
+      <div className="flex items-start gap-2">
+        <Icon className={cn("w-4 h-4 mt-0.5 flex-shrink-0", conf.colorClass)} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={cn("text-sm font-medium", conf.colorClass)}>{conf.label}</span>
+          </div>
+          {verification.foundArtist && verification.foundTitle && (
+            <p className="text-xs text-muted-foreground truncate">
+              Gefunden: {verification.foundArtist} – {verification.foundTitle}
+              {verification.foundYear && ` (${verification.foundYear})`}
+            </p>
+          )}
+          {verification.warnings.length > 0 && (
+            <p className="text-xs text-amber-500 mt-1">
+              ⚠️ {verification.warnings[0]}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Deal Analysis Component
 interface DealAnalysisProps {
   purchasePrice: number;
   lowestPrice?: number;
-  medianPrice: number;
+  lowestTotalPrice?: number;
+  medianPrice?: number;
 }
 
-function DealAnalysis({ purchasePrice, lowestPrice, medianPrice }: DealAnalysisProps) {
-  const comparePrice = medianPrice;
+function DealAnalysis({ purchasePrice, lowestPrice, lowestTotalPrice, medianPrice }: DealAnalysisProps) {
+  // Use lowestTotalPrice for comparison if available, otherwise use lowestPrice or medianPrice
+  const comparePrice = lowestTotalPrice || lowestPrice || medianPrice;
+  
+  if (!comparePrice) return null;
+  
   const difference = purchasePrice - comparePrice;
   const percentDiff = ((difference / comparePrice) * 100);
+  const comparisonLabel = lowestTotalPrice ? "günstigstem Totalpreis" : (lowestPrice ? "günstigstem Angebot" : "Median");
   
   // Determine deal quality
   const getDealInfo = () => {
     if (percentDiff <= -20) {
       return {
         label: "Schnäppchen!",
-        description: `${Math.abs(percentDiff).toFixed(0)}% unter dem Median`,
+        description: `${Math.abs(percentDiff).toFixed(0)}% unter ${comparisonLabel}`,
         icon: ThumbsUp,
         colorClass: "text-green-500",
         bgClass: "bg-green-500/10",
@@ -835,25 +920,25 @@ function DealAnalysis({ purchasePrice, lowestPrice, medianPrice }: DealAnalysisP
     } else if (percentDiff <= -5) {
       return {
         label: "Guter Deal",
-        description: `${Math.abs(percentDiff).toFixed(0)}% unter dem Median`,
+        description: `${Math.abs(percentDiff).toFixed(0)}% unter ${comparisonLabel}`,
         icon: ThumbsUp,
         colorClass: "text-green-400",
         bgClass: "bg-green-500/5",
         borderClass: "border-green-500/20"
       };
-    } else if (percentDiff <= 5) {
+    } else if (percentDiff <= 10) {
       return {
         label: "Fairer Preis",
-        description: "Im Bereich des Medianpreises",
+        description: `Vergleichbar mit ${comparisonLabel}`,
         icon: Minus,
         colorClass: "text-muted-foreground",
         bgClass: "bg-muted/50",
         borderClass: "border-border"
       };
-    } else if (percentDiff <= 20) {
+    } else if (percentDiff <= 25) {
       return {
         label: "Etwas teurer",
-        description: `${percentDiff.toFixed(0)}% über dem Median`,
+        description: `${percentDiff.toFixed(0)}% über ${comparisonLabel}`,
         icon: TrendingUp,
         colorClass: "text-amber-500",
         bgClass: "bg-amber-500/10",
@@ -862,7 +947,7 @@ function DealAnalysis({ purchasePrice, lowestPrice, medianPrice }: DealAnalysisP
     } else {
       return {
         label: "Premium-Preis",
-        description: `${percentDiff.toFixed(0)}% über dem Median`,
+        description: `${percentDiff.toFixed(0)}% über ${comparisonLabel}`,
         icon: TrendingUp,
         colorClass: "text-red-400",
         bgClass: "bg-red-500/10",
