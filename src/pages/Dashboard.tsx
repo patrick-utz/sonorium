@@ -95,7 +95,7 @@ export default function Dashboard() {
       {/* Hero Section */}
       <motion.div variants={itemVariants} className="text-center py-6 md:py-10">
         <h1 className="text-4xl md:text-5xl font-semibold text-foreground mb-3">
-          Willkommen bei VinylVault
+          Willkommen bei SONORIUM
         </h1>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           Deine persönliche Tonträger-Sammlung

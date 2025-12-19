@@ -17,7 +17,7 @@ const RecordContext = createContext<RecordContextType | undefined>(undefined);
 
 export function RecordProvider({ children }: { children: ReactNode }) {
   const [records, setRecords] = useState<Record[]>(() => {
-    const stored = localStorage.getItem("vinylvault-records");
+    const stored = localStorage.getItem("sonorium-records");
     if (stored) {
       return JSON.parse(stored);
     }
@@ -26,7 +26,7 @@ export function RecordProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem("vinylvault-records", JSON.stringify(records));
+      localStorage.setItem("sonorium-records", JSON.stringify(records));
     } catch (e) {
       console.warn("localStorage quota exceeded, data not saved:", e);
     }

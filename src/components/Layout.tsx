@@ -39,8 +39,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="hidden sm:block">
-              <h1 className="font-display text-xl font-bold gradient-text">VinylVault</h1>
-              <p className="text-xs text-muted-foreground -mt-0.5">Deine Sammlung</p>
+              <h1 className="font-sans text-xl font-bold tracking-wide text-foreground">SONORIUM</h1>
+              <p className="text-xs text-muted-foreground -mt-0.5 tracking-wider">Deine Sammlung</p>
             </div>
           </NavLink>
 
