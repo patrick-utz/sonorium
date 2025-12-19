@@ -61,6 +61,7 @@ export interface Record {
   // Status
   status: RecordStatus;
   dateAdded: string;
+  purchaseDate?: string;
   purchasePrice?: number;
   purchaseLocation?: string;
   
