@@ -39,7 +39,7 @@ const GENRE_SUGGESTIONS = [
 
 export default function AddRecord() {
   const { id } = useParams<{ id: string }>();
-  const { addRecord, updateRecord, getRecordById } = useRecords();
+  const { addRecord, updateRecord, getRecordById, records } = useRecords();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -1015,7 +1015,7 @@ export default function AddRecord() {
                         <p className="text-sm text-muted-foreground">{rec.reason}</p>
                       )}
                       {/* Action Buttons */}
-                      <div className="flex gap-2 pt-1">
+                      <div className="flex flex-wrap gap-2 pt-1">
                         <Button
                           type="button"
                           variant="outline"
@@ -1027,13 +1027,42 @@ export default function AddRecord() {
                           className="gap-1.5 text-xs"
                         >
                           <ExternalLink className="w-3 h-3" />
-                          In Tidal öffnen
+                          Tidal
                         </Button>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           onClick={() => {
+                            const searchQuery = encodeURIComponent(`${rec.artist} ${rec.album}`);
+                            window.open(`https://open.spotify.com/search/${searchQuery}`, '_blank');
+                          }}
+                          className="gap-1.5 text-xs"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Spotify
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Check if album already exists in collection or wishlist
+                            const existingRecord = records.find(
+                              r => r.artist.toLowerCase() === rec.artist.toLowerCase() && 
+                                   r.album.toLowerCase() === rec.album.toLowerCase()
+                            );
+                            
+                            if (existingRecord) {
+                              const location = existingRecord.status === 'owned' ? 'Sammlung' : 'Wunschliste';
+                              toast({
+                                title: "Album bereits vorhanden",
+                                description: `${rec.artist} – ${rec.album} ist bereits in deiner ${location}.`,
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
                             addRecord({
                               artist: rec.artist,
                               album: rec.album,
@@ -1053,7 +1082,7 @@ export default function AddRecord() {
                           className="gap-1.5 text-xs"
                         >
                           <Plus className="w-3 h-3" />
-                          Auf Wunschliste
+                          Wunschliste
                         </Button>
                       </div>
                     </div>
