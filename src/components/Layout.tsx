@@ -32,15 +32,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container flex h-16 items-center justify-between">
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-3 group">
-            <div className="relative w-10 h-10 flex-shrink-0">
-              <div className="absolute inset-0 vinyl-disc group-hover:animate-spin-slow" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-vinyl-cream" />
-              </div>
+            <div className="relative w-10 h-10 flex-shrink-0 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/10 transition-all duration-300">
+              <Disc3 className="w-5 h-5 text-primary group-hover:animate-spin-slow" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="font-sans text-xl font-bold tracking-wide text-foreground">SONORIUM</h1>
-              <p className="text-xs text-muted-foreground -mt-0.5 tracking-wider">Deine Sammlung</p>
+              <h1 className="font-sans text-xl font-bold tracking-widest text-foreground">SONORIUM</h1>
+              <p className="text-[10px] text-muted-foreground -mt-0.5 tracking-widest uppercase">A place for your music</p>
             </div>
           </NavLink>
 
