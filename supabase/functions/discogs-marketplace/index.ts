@@ -45,6 +45,18 @@ interface MarketplaceResult {
   verification: ReleaseVerification;
 }
 
+interface DiscogsSearchResult {
+  id: number;
+  title: string;
+  artist: string;
+  year?: number;
+  label?: string;
+  catno?: string;
+  country?: string;
+  format?: string;
+  thumb?: string;
+}
+
 // Calculate string similarity (Levenshtein-based)
 function similarity(s1: string, s2: string): number {
   const a = s1.toLowerCase().trim();
@@ -205,6 +217,55 @@ async function searchDiscogsRelease(query: { artist?: string; album?: string; ca
   }
 }
 
+// Search for alternative releases on Discogs
+async function searchAlternativeReleases(query: { artist?: string; album?: string }): Promise<DiscogsSearchResult[]> {
+  if (!DISCOGS_API_KEY || !query.artist || !query.album) {
+    return [];
+  }
+
+  try {
+    const searchUrl = `https://api.discogs.com/database/search?type=release&artist=${encodeURIComponent(query.artist)}&release_title=${encodeURIComponent(query.album)}&per_page=15`;
+    
+    console.log('Searching alternative releases:', searchUrl);
+
+    const response = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': DISCOGS_USER_AGENT,
+        'Authorization': `Discogs token=${DISCOGS_API_KEY}`
+      }
+    });
+
+    if (!response.ok) {
+      console.log('Alternative search failed:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    
+    if (!data.results || data.results.length === 0) {
+      return [];
+    }
+
+    return data.results.map((r: any) => {
+      const [artist, title] = (r.title || '').split(' - ');
+      return {
+        id: r.id,
+        title: title?.trim() || r.title,
+        artist: artist?.trim() || '',
+        year: r.year,
+        label: r.label?.[0] || undefined,
+        catno: r.catno || undefined,
+        country: r.country || undefined,
+        format: r.format?.join(', ') || undefined,
+        thumb: r.thumb || undefined
+      };
+    });
+  } catch (error) {
+    console.error('Alternative search error:', error);
+    return [];
+  }
+}
+
 // Get marketplace listings for a release with shipping costs
 async function getMarketplaceListings(releaseId: number, currency: string = 'EUR', verification: ReleaseVerification): Promise<MarketplaceResult | null> {
   if (!DISCOGS_API_KEY) {
@@ -298,9 +359,18 @@ serve(async (req) => {
   }
 
   try {
-    const { artist, album, catalogNumber, barcode, releaseId, year } = await req.json();
+    const { artist, album, catalogNumber, barcode, releaseId, year, action } = await req.json();
     
-    console.log('Marketplace request:', { artist, album, catalogNumber, barcode, releaseId, year });
+    console.log('Marketplace request:', { artist, album, catalogNumber, barcode, releaseId, year, action });
+
+    // Handle search for alternative releases
+    if (action === 'search-alternatives') {
+      const alternatives = await searchAlternativeReleases({ artist, album });
+      return new Response(
+        JSON.stringify({ data: { alternatives } }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     let discogsReleaseId = releaseId;
     let verification: ReleaseVerification = {
@@ -320,13 +390,13 @@ serve(async (req) => {
         verification = searchResult.verification;
       }
     } else {
-      // If release ID is provided, we assume it's already verified
+      // If release ID is provided, we assume it's already verified (manually selected)
       verification = {
         verified: true,
         confidence: 'high',
         foundArtist: artist || '',
         foundTitle: album || '',
-        matchReasons: ['Release-ID direkt angegeben'],
+        matchReasons: ['Manuell ausgewählt'],
         warnings: []
       };
     }

@@ -56,6 +56,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function RecordDetail() {
   const { id } = useParams<{ id: string }>();
@@ -514,8 +522,9 @@ interface PurchaseInfoCardProps {
     purchasePrice?: number;
     purchaseLocation?: string;
     dateAdded: string;
+    discogsReleaseId?: number;
   };
-  updateRecord: (id: string, updates: Partial<{ purchaseDate?: string; purchasePrice?: number; purchaseLocation?: string }>) => void;
+  updateRecord: (id: string, updates: Partial<{ purchaseDate?: string; purchasePrice?: number; purchaseLocation?: string; discogsReleaseId?: number }>) => void;
 }
 
 interface ReleaseVerification {
@@ -542,6 +551,18 @@ interface MarketplaceData {
   verification: ReleaseVerification;
 }
 
+interface DiscogsSearchResult {
+  id: number;
+  title: string;
+  artist: string;
+  year?: number;
+  label?: string;
+  catno?: string;
+  country?: string;
+  format?: string;
+  thumb?: string;
+}
+
 function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [purchaseDate, setPurchaseDate] = useState<Date | undefined>(
@@ -559,41 +580,86 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
   const [marketplaceData, setMarketplaceData] = useState<MarketplaceData | null>(null);
   const [marketplaceLoading, setMarketplaceLoading] = useState(false);
   const [marketplaceError, setMarketplaceError] = useState<string | null>(null);
+  
+  // Release selection dialog state
+  const [showReleaseDialog, setShowReleaseDialog] = useState(false);
+  const [alternativeReleases, setAlternativeReleases] = useState<DiscogsSearchResult[]>([]);
+  const [searchingAlternatives, setSearchingAlternatives] = useState(false);
+  const [selectedReleaseId, setSelectedReleaseId] = useState<number | undefined>(record.discogsReleaseId);
 
   // Fetch Discogs marketplace prices
-  useEffect(() => {
-    const fetchMarketplaceData = async () => {
-      setMarketplaceLoading(true);
-      setMarketplaceError(null);
-      
-      try {
-        const { data, error } = await supabase.functions.invoke('discogs-marketplace', {
-          body: {
-            artist: record.artist,
-            album: record.album,
-            catalogNumber: record.catalogNumber,
-            barcode: record.barcode
-          }
-        });
-
-        if (error) {
-          console.error('Marketplace fetch error:', error);
-          setMarketplaceError('Keine Preisdaten verfügbar');
-        } else if (data?.data) {
-          setMarketplaceData(data.data);
-        } else if (data?.error) {
-          setMarketplaceError(data.error);
+  const fetchMarketplaceData = async (releaseId?: number) => {
+    setMarketplaceLoading(true);
+    setMarketplaceError(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('discogs-marketplace', {
+        body: {
+          artist: record.artist,
+          album: record.album,
+          catalogNumber: record.catalogNumber,
+          barcode: record.barcode,
+          releaseId: releaseId || selectedReleaseId
         }
-      } catch (err) {
-        console.error('Marketplace fetch error:', err);
-        setMarketplaceError('Fehler beim Laden der Preisdaten');
-      } finally {
-        setMarketplaceLoading(false);
-      }
-    };
+      });
 
+      if (error) {
+        console.error('Marketplace fetch error:', error);
+        setMarketplaceError('Keine Preisdaten verfügbar');
+      } else if (data?.data) {
+        setMarketplaceData(data.data);
+      } else if (data?.error) {
+        setMarketplaceError(data.error);
+      }
+    } catch (err) {
+      console.error('Marketplace fetch error:', err);
+      setMarketplaceError('Fehler beim Laden der Preisdaten');
+    } finally {
+      setMarketplaceLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchMarketplaceData();
-  }, [record.artist, record.album, record.catalogNumber, record.barcode]);
+  }, [record.artist, record.album, record.catalogNumber, record.barcode, selectedReleaseId]);
+
+  // Search for alternative releases
+  const searchAlternatives = async () => {
+    setSearchingAlternatives(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('discogs-marketplace', {
+        body: {
+          artist: record.artist,
+          album: record.album,
+          action: 'search-alternatives'
+        }
+      });
+
+      if (error) {
+        console.error('Alternative search error:', error);
+      } else if (data?.data?.alternatives) {
+        setAlternativeReleases(data.data.alternatives);
+      }
+    } catch (err) {
+      console.error('Alternative search error:', err);
+    } finally {
+      setSearchingAlternatives(false);
+    }
+  };
+
+  const handleSelectRelease = (releaseId: number) => {
+    setSelectedReleaseId(releaseId);
+    updateRecord(record.id, { discogsReleaseId: releaseId });
+    setShowReleaseDialog(false);
+    fetchMarketplaceData(releaseId);
+  };
+
+  const handleOpenReleaseDialog = () => {
+    setShowReleaseDialog(true);
+    if (alternativeReleases.length === 0) {
+      searchAlternatives();
+    }
+  };
 
   const handleSave = () => {
     updateRecord(record.id, {
@@ -767,8 +833,21 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
             <p className="text-sm text-muted-foreground/60 text-center py-2">{marketplaceError}</p>
           ) : marketplaceData ? (
             <>
-              {/* Verification Status */}
-              <VerificationBadge verification={marketplaceData.verification} />
+              {/* Verification Status with change button */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <VerificationBadge verification={marketplaceData.verification} />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleOpenReleaseDialog}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Edit className="w-3 h-3 mr-1" />
+                  Ändern
+                </Button>
+              </div>
               
               <div className="grid grid-cols-3 gap-3 text-center mt-3">
                 <div className="flex flex-col items-center gap-1">
@@ -819,6 +898,79 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
           </span>
         </div>
       </CardContent>
+
+      {/* Release Selection Dialog */}
+      <Dialog open={showReleaseDialog} onOpenChange={setShowReleaseDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Discogs Release auswählen</DialogTitle>
+            <DialogDescription>
+              Wähle das korrekte Release für "{record.artist} – {record.album}"
+            </DialogDescription>
+          </DialogHeader>
+          
+          {searchingAlternatives ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Suche Releases...</span>
+            </div>
+          ) : alternativeReleases.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Keine alternativen Releases gefunden.
+            </div>
+          ) : (
+            <ScrollArea className="h-[400px] pr-4">
+              <div className="space-y-2">
+                {alternativeReleases.map((release) => (
+                  <button
+                    key={release.id}
+                    onClick={() => handleSelectRelease(release.id)}
+                    className={cn(
+                      "w-full p-3 rounded-lg border text-left transition-colors",
+                      "hover:bg-accent hover:border-primary/50",
+                      selectedReleaseId === release.id && "bg-primary/10 border-primary",
+                      marketplaceData?.releaseId === release.id && "ring-2 ring-primary"
+                    )}
+                  >
+                    <div className="flex gap-3">
+                      {release.thumb && (
+                        <img 
+                          src={release.thumb} 
+                          alt="" 
+                          className="w-12 h-12 rounded object-cover flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium truncate">{release.artist}</span>
+                          <span className="text-muted-foreground">–</span>
+                          <span className="truncate">{release.title}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-1">
+                          {release.year && <span>{release.year}</span>}
+                          {release.label && <span>• {release.label}</span>}
+                          {release.catno && <span>• {release.catno}</span>}
+                          {release.country && <span>• {release.country}</span>}
+                        </div>
+                        {release.format && (
+                          <div className="text-xs text-muted-foreground/70 mt-1 truncate">
+                            {release.format}
+                          </div>
+                        )}
+                      </div>
+                      {marketplaceData?.releaseId === release.id && (
+                        <Badge variant="outline" className="text-xs flex-shrink-0 self-start">
+                          Aktuell
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

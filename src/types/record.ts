@@ -79,6 +79,9 @@ export interface Record {
   
   // Empfehlungen
   recommendations?: RecordRecommendation[];
+  
+  // Discogs-Verknüpfung
+  discogsReleaseId?: number;
 }
 
 export interface CollectionStats {
