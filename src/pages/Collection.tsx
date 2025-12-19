@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Camera } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Camera, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Record, RecordFormat } from "@/types/record";
@@ -31,6 +31,7 @@ export default function Collection() {
   const [formatFilter, setFormatFilter] = useState<RecordFormat | "all">("all");
   const [genreFilter, setGenreFilter] = useState<string>("all");
   const [tagFilter, setTagFilter] = useState<string>("all");
+  const [moodFilter, setMoodFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
@@ -38,11 +39,15 @@ export default function Collection() {
   useEffect(() => {
     const genreParam = searchParams.get("genre");
     const tagParam = searchParams.get("tag");
+    const moodParam = searchParams.get("mood");
     if (genreParam) {
       setGenreFilter(genreParam);
     }
     if (tagParam) {
       setTagFilter(tagParam);
+    }
+    if (moodParam) {
+      setMoodFilter(moodParam);
     }
   }, [searchParams]);
 
@@ -63,6 +68,14 @@ export default function Collection() {
     }
   };
 
+  const handleMoodChange = (value: string) => {
+    setMoodFilter(value);
+    if (searchParams.has("mood")) {
+      searchParams.delete("mood");
+      setSearchParams(searchParams);
+    }
+  };
+
   // Extract all unique genres from records
   const allGenres = Array.from(
     new Set(records.flatMap((record) => record.genre))
@@ -71,6 +84,11 @@ export default function Collection() {
   // Extract all unique tags from records
   const allTags = Array.from(
     new Set(records.flatMap((record) => record.tags || []))
+  ).sort();
+
+  // Extract all unique moods from records
+  const allMoods = Array.from(
+    new Set(records.flatMap((record) => record.moods || []))
   ).sort();
 
   // Filter and sort records
@@ -85,7 +103,8 @@ export default function Collection() {
       const matchesFormat = formatFilter === "all" || record.format === formatFilter;
       const matchesGenre = genreFilter === "all" || record.genre.includes(genreFilter);
       const matchesTag = tagFilter === "all" || record.tags?.includes(tagFilter);
-      return matchesSearch && matchesFormat && matchesGenre && matchesTag;
+      const matchesMood = moodFilter === "all" || record.moods?.includes(moodFilter);
+      return matchesSearch && matchesFormat && matchesGenre && matchesTag && matchesMood;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -177,6 +196,26 @@ export default function Collection() {
                   {allTags.map((tag) => (
                     <SelectItem key={tag} value={tag}>
                       {tag}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {allMoods.length > 0 && (
+              <Select
+                value={moodFilter}
+                onValueChange={handleMoodChange}
+              >
+                <SelectTrigger className="w-[140px] bg-card border-border/50">
+                  <Sparkles className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <SelectValue placeholder="Stimmung" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover max-h-[300px]">
+                  <SelectItem value="all">Alle Stimmungen</SelectItem>
+                  {allMoods.map((mood) => (
+                    <SelectItem key={mood} value={mood}>
+                      {mood}
                     </SelectItem>
                   ))}
                 </SelectContent>

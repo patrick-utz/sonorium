@@ -25,6 +25,7 @@ export const sampleRecords: Record[] = [
     vinylRecommendation: "must-have",
     recommendationReason: "Eines der wichtigsten Jazz-Alben aller Zeiten. Die Vinyl-Version bietet eine Wärme, die digital nicht erreicht wird.",
     personalNotes: "Perfekter Zustand, klingt fantastisch",
+    moods: ["entspannt", "nachdenklich", "melancholisch"],
   },
   {
     id: "2",
@@ -48,6 +49,7 @@ export const sampleRecords: Record[] = [
     purchasePrice: 45,
     vinylRecommendation: "must-have",
     recommendationReason: "Absoluter Klassiker. Original Pressungen haben eine besondere Magie.",
+    moods: ["romantisch", "nostalgisch", "emotional"],
   },
   {
     id: "3",
@@ -70,6 +72,7 @@ export const sampleRecords: Record[] = [
     dateAdded: "2024-02-10",
     vinylRecommendation: "must-have",
     recommendationReason: "Meilenstein der 90er. Die Vinyl-Version bringt die Atmosphäre perfekt rüber.",
+    moods: ["nachdenklich", "düster", "intensiv"],
   },
   {
     id: "4",
@@ -92,6 +95,7 @@ export const sampleRecords: Record[] = [
     dateAdded: "2024-03-05",
     vinylRecommendation: "nice-to-have",
     recommendationReason: "Hervorragend produziert, aber der Unterschied zu Digital ist minimal.",
+    moods: ["energiegeladen", "tanzbar", "funky"],
   },
   {
     id: "5",
@@ -114,6 +118,7 @@ export const sampleRecords: Record[] = [
     dateAdded: "2024-03-15",
     vinylRecommendation: "must-have",
     recommendationReason: "Das ultimative Vinyl-Erlebnis. Original Pressungen sind Goldwert.",
+    moods: ["psychedelisch", "intensiv", "episch"],
   },
   {
     id: "6",
@@ -134,6 +139,7 @@ export const sampleRecords: Record[] = [
     status: "owned",
     dateAdded: "2024-01-28",
     personalNotes: "Interessante Produktion, Bass braucht gute Anlage",
+    moods: ["düster", "introspektiv", "melancholisch"],
   },
   {
     id: "7",
@@ -156,6 +162,7 @@ export const sampleRecords: Record[] = [
     dateAdded: "2024-03-18",
     vinylRecommendation: "must-have",
     recommendationReason: "Pionierarbeit der elektronischen Musik. Deutsche Originale sind gesucht.",
+    moods: ["futuristisch", "hypnotisch", "kühl"],
   },
   {
     id: "8",
@@ -179,5 +186,6 @@ export const sampleRecords: Record[] = [
     purchasePrice: 55,
     vinylRecommendation: "must-have",
     recommendationReason: "Die Analogue Productions Version ist audiophil. Perfekte Aufnahme für Vinyl.",
+    moods: ["entspannt", "romantisch", "warm"],
   },
 ];

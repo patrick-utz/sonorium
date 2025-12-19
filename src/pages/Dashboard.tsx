@@ -1,7 +1,7 @@
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Disc3, Disc, Music, TrendingUp, Calendar, Star, Tag } from "lucide-react";
+import { Disc3, Disc, Music, TrendingUp, Calendar, Star, Tag, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -38,6 +38,18 @@ export default function Dashboard() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
 
+  // Calculate mood distribution
+  const moodCount = records.reduce((acc, record) => {
+    (record.moods || []).forEach((m) => {
+      acc[m] = (acc[m] || 0) + 1;
+    });
+    return acc;
+  }, {} as Record<string, number>);
+
+  const topMoods = Object.entries(moodCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12);
+
   // Recently added
   const recentlyAdded = [...records]
     .sort((a, b) => new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime())
@@ -67,6 +79,10 @@ export default function Dashboard() {
 
   const handleTagClick = (tag: string) => {
     navigate(`/sammlung?tag=${encodeURIComponent(tag)}`);
+  };
+
+  const handleMoodClick = (mood: string) => {
+    navigate(`/sammlung?mood=${encodeURIComponent(mood)}`);
   };
 
   return (
@@ -199,6 +215,33 @@ export default function Dashboard() {
                     className="px-4 py-2 rounded-full bg-muted text-muted-foreground text-sm font-medium hover:bg-border hover:text-foreground transition-colors"
                   >
                     {tag} <span className="opacity-50">({count})</span>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Moods */}
+      {topMoods.length > 0 && (
+        <motion.div variants={itemVariants}>
+          <Card className="bg-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-medium flex items-center gap-2 text-foreground">
+                <Sparkles className="w-5 h-5 text-muted-foreground" />
+                Stimmungen
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {topMoods.map(([mood, count]) => (
+                  <button
+                    key={mood}
+                    onClick={() => handleMoodClick(mood)}
+                    className="px-4 py-2 rounded-full bg-muted text-muted-foreground text-sm font-medium hover:bg-border hover:text-foreground transition-colors"
+                  >
+                    {mood} <span className="opacity-50">({count})</span>
                   </button>
                 ))}
               </div>
