@@ -4,7 +4,7 @@ import { StarRating } from "./StarRating";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
 import { motion } from "framer-motion";
-import { Camera, Trash2 } from "lucide-react";
+import { Camera, Trash2, Music } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -207,6 +207,33 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, className
               {record.recordingQuality}/5
             </span>
           )}
+        </div>
+        {/* Streaming Links */}
+        <div className="flex items-center gap-2 pt-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const query = encodeURIComponent(`${record.artist} ${record.album}`);
+              window.open(`https://open.spotify.com/search/${query}`, '_blank');
+            }}
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-[#1DB954]/10 text-[#1DB954] hover:bg-[#1DB954]/20 transition-colors"
+            title="Auf Spotify suchen"
+          >
+            <Music className="w-3 h-3" />
+            Spotify
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const query = encodeURIComponent(`${record.artist} ${record.album}`);
+              window.open(`https://tidal.com/search?q=${query}`, '_blank');
+            }}
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-[#00FFFF]/10 text-[#00BFBF] hover:bg-[#00FFFF]/20 transition-colors"
+            title="Auf Tidal suchen"
+          >
+            <Music className="w-3 h-3" />
+            Tidal
+          </button>
         </div>
       </div>
     </motion.div>
