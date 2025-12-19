@@ -226,176 +226,178 @@ export default function RecordDetail() {
         </motion.div>
       </div>
 
-      {/* Additional Info Cards */}
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* Quality Ratings */}
-        {(record.recordingQuality || record.masteringQuality || record.artisticRating) && (
-          <Card className="bg-gradient-card border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Qualitätsbewertungen</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+      {/* Qualitätsbewertungen - volle Breite */}
+      {(record.recordingQuality || record.masteringQuality || record.artisticRating || record.criticScore) && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Qualitätsbewertungen</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {record.recordingQuality && (
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-sm text-muted-foreground">Aufnahmequalität</span>
                   <StarRating rating={record.recordingQuality} size="sm" />
                 </div>
               )}
               {record.masteringQuality && (
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-sm text-muted-foreground">Mastering-Qualität</span>
                   <StarRating rating={record.masteringQuality} size="sm" />
                 </div>
               )}
               {record.artisticRating && (
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-sm text-muted-foreground">Künstlerische Bewertung</span>
                   <StarRating rating={record.artisticRating} size="sm" />
                 </div>
               )}
               {record.criticScore && (
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-sm text-muted-foreground">Kritiker-Score</span>
                   <span className="font-semibold text-primary">{record.criticScore}/100</span>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Vinyl Recommendation */}
-        {record.format === "vinyl" && recConfig && (
-          <Card className="bg-gradient-card border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Vinyl-Empfehlung</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Badge
-                variant="outline"
-                className={cn("gap-2 text-base py-1.5", recConfig.className)}
-              >
-                <recConfig.icon className="w-4 h-4" />
-                {recConfig.label}
-              </Badge>
-              {record.recommendationReason && (
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {record.recommendationReason}
+      {/* Vinyl Recommendation - volle Breite falls vorhanden */}
+      {record.format === "vinyl" && recConfig && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Vinyl-Empfehlung</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Badge
+              variant="outline"
+              className={cn("gap-2 text-base py-1.5", recConfig.className)}
+            >
+              <recConfig.icon className="w-4 h-4" />
+              {recConfig.label}
+            </Badge>
+            {record.recommendationReason && (
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {record.recommendationReason}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Künstlerische und Audiophile Beurteilung - nebeneinander */}
+      {(record.artisticAssessment || record.audiophileAssessment) && (
+        <div className="grid md:grid-cols-2 gap-4">
+          {record.artisticAssessment && (
+            <Card className="bg-gradient-card border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  Künstlerische Beurteilung
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                  {record.artisticAssessment}
                 </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
+          {record.audiophileAssessment && (
+            <Card className="bg-gradient-card border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-primary" />
+                  Audiophile Beurteilung
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                  {record.audiophileAssessment}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
-        {/* Purchase Info */}
-        {(record.purchasePrice || record.purchaseLocation || record.purchaseDate) && (
-          <Card className="bg-gradient-card border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-primary" />
-                Kaufinformationen
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {record.purchasePrice && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Preis</span>
-                  <span className="font-semibold">CHF {record.purchasePrice.toFixed(2)}</span>
-                </div>
-              )}
+      {/* Stichworte - volle Breite */}
+      {record.tags && record.tags.length > 0 && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Music className="w-5 h-5 text-primary" />
+              Stichworte
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {record.tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-sm">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Persönliche Notizen - volle Breite */}
+      {record.personalNotes && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Persönliche Notizen</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {record.personalNotes}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Kaufinformationen - volle Breite */}
+      {(record.purchasePrice || record.purchaseLocation || record.purchaseDate) && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-primary" />
+              Kaufinformationen
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid sm:grid-cols-3 gap-4">
               {record.purchaseDate && (
-                <div className="flex justify-between">
+                <div className="flex flex-col items-center gap-1">
                   <span className="text-sm text-muted-foreground">Kaufdatum</span>
-                  <span className="text-sm flex items-center gap-1">
-                    <CalendarDays className="w-3 h-3" />
+                  <span className="font-medium flex items-center gap-1">
+                    <CalendarDays className="w-4 h-4" />
                     {new Date(record.purchaseDate).toLocaleDateString("de-CH")}
                   </span>
                 </div>
               )}
-              {record.purchaseLocation && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Gekauft bei</span>
-                  <span className="text-sm">{record.purchaseLocation}</span>
+              {record.purchasePrice && (
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-sm text-muted-foreground">Preis</span>
+                  <span className="font-semibold">CHF {record.purchasePrice.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between pt-2 border-t border-border/50">
-                <span className="text-sm text-muted-foreground">Hinzugefügt am</span>
-                <span className="text-sm">
-                  {new Date(record.dateAdded).toLocaleDateString("de-CH")}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* AI Audiophile Assessment */}
-        {record.audiophileAssessment && (
-          <Card className="bg-gradient-card border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Brain className="w-5 h-5 text-primary" />
-                Audiophile Beurteilung
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                {record.audiophileAssessment}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* AI Artistic Assessment */}
-        {record.artisticAssessment && (
-          <Card className="bg-gradient-card border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                Künstlerische Beurteilung
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                {record.artisticAssessment}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Tags */}
-        {record.tags && record.tags.length > 0 && (
-          <Card className="bg-gradient-card border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Music className="w-5 h-5 text-primary" />
-                Stichworte
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {record.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-sm">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Personal Notes */}
-        {record.personalNotes && (
-          <Card className="bg-gradient-card border-border/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Persönliche Notizen</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {record.personalNotes}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              {record.purchaseLocation && (
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-sm text-muted-foreground">Gekauft bei</span>
+                  <span className="font-medium">{record.purchaseLocation}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-center pt-4 border-t border-border/50 mt-4">
+              <span className="text-sm text-muted-foreground">
+                Hinzugefügt am {new Date(record.dateAdded).toLocaleDateString("de-CH")}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recommendations - Full Width */}
       {record.recommendations && record.recommendations.length > 0 && (
