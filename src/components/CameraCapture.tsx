@@ -176,7 +176,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border/50 bg-background">
-        <h2 className="font-display text-lg font-semibold">
+        <h2 className="text-lg font-semibold">
           {mode === "camera" ? "Foto aufnehmen" : "Bild auswählen"}
         </h2>
         <Button variant="ghost" size="icon" onClick={handleClose}>

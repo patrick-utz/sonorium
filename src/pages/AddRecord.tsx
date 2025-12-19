@@ -428,7 +428,7 @@ export default function AddRecord() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl md:text-4xl font-bold gradient-text">
+            <h1 className="text-3xl md:text-4xl font-bold gradient-text">
               {isEditing ? "Tonträger bearbeiten" : "Neuer Tonträger"}
             </h1>
             <p className="text-muted-foreground mt-1">
@@ -503,7 +503,7 @@ export default function AddRecord() {
           {/* Cover Art Upload */}
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Camera className="w-5 h-5 text-primary" />
                 Cover-Bild
               </CardTitle>
@@ -601,7 +601,7 @@ export default function AddRecord() {
           {/* Basic Info */}
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg">Grundinformationen</CardTitle>
+              <CardTitle className="text-lg">Grundinformationen</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
@@ -749,7 +749,7 @@ export default function AddRecord() {
           {/* Format & Status */}
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg">Format & Status</CardTitle>
+              <CardTitle className="text-lg">Format & Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
@@ -828,7 +828,7 @@ export default function AddRecord() {
           {/* Kaufinformationen */}
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-primary" />
                 Kaufinformationen
               </CardTitle>
@@ -884,7 +884,7 @@ export default function AddRecord() {
           {/* Rating */}
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg">Deine Bewertung</CardTitle>
+              <CardTitle className="text-lg">Deine Bewertung</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
@@ -904,7 +904,7 @@ export default function AddRecord() {
           {/* KI-Bewertungen */}
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
                 KI-Bewertungen
               </CardTitle>
@@ -984,7 +984,7 @@ export default function AddRecord() {
           {formData.recommendations && formData.recommendations.length > 0 && (
             <Card className="bg-gradient-card border-border/50">
               <CardHeader className="pb-3">
-                <CardTitle className="font-display text-lg flex items-center gap-2">
+                <CardTitle className="text-lg flex items-center gap-2">
                   <Music className="w-5 h-5 text-primary" />
                   Ähnliche Alben
                 </CardTitle>
@@ -1024,7 +1024,7 @@ export default function AddRecord() {
           {/* Tags / Keywords */}
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg">Stichworte</CardTitle>
+              <CardTitle className="text-lg">Stichworte</CardTitle>
               <CardDescription>
                 Füge Stichworte für Stimmung, Instrumente, Anlässe hinzu
               </CardDescription>
@@ -1041,7 +1041,7 @@ export default function AddRecord() {
           {/* Notes */}
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg">Persönliche Notizen</CardTitle>
+              <CardTitle className="text-lg">Persönliche Notizen</CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea

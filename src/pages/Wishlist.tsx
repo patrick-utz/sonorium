@@ -30,7 +30,7 @@ export default function Wishlist() {
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="font-display text-3xl md:text-4xl font-bold gradient-text flex items-center gap-3">
+          <h1 className="text-3xl md:text-4xl font-bold gradient-text flex items-center gap-3">
             <Heart className="w-8 h-8 text-accent fill-accent" />
             Wunschliste
           </h1>
@@ -63,7 +63,7 @@ export default function Wishlist() {
             className="text-center py-16"
           >
             <Heart className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-            <h3 className="font-display text-xl font-semibold text-foreground mb-2">
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               {searchQuery ? "Keine Treffer" : "Deine Wunschliste ist leer"}
             </h3>
             <p className="text-muted-foreground mb-6">

@@ -269,7 +269,7 @@ export default function Export() {
     >
       {/* Header */}
       <div>
-        <h1 className="font-display text-3xl md:text-4xl font-bold gradient-text flex items-center gap-3">
+        <h1 className="text-3xl md:text-4xl font-bold gradient-text flex items-center gap-3">
           <Download className="w-8 h-8 text-primary" />
           Export & Sicherung
         </h1>
@@ -282,7 +282,7 @@ export default function Export() {
       <Card className="bg-gradient-card border-border/50">
         <CardContent className="p-6">
           <div className="text-center">
-            <p className="text-4xl font-display font-bold text-foreground">
+            <p className="text-4xl font-bold text-foreground">
               {records.length}
             </p>
             <p className="text-muted-foreground">Tonträger in der Sammlung</p>
@@ -293,7 +293,7 @@ export default function Export() {
       {/* Backup Section */}
       <Card className="bg-gradient-card border-border/50">
         <CardHeader className="pb-3">
-          <CardTitle className="font-display text-lg">Datensicherung</CardTitle>
+          <CardTitle className="text-lg">Datensicherung</CardTitle>
           <CardDescription>
             Erstelle eine vollständige Sicherung deiner Sammlung oder stelle eine frühere Sicherung wieder her
           </CardDescription>
@@ -306,7 +306,7 @@ export default function Export() {
             >
               <CardContent className="p-4 text-center">
                 <Save className="w-10 h-10 mx-auto mb-2 text-primary" />
-                <h3 className="font-display font-semibold mb-1">Sicherung erstellen</h3>
+                <h3 className="font-semibold mb-1">Sicherung erstellen</h3>
                 <p className="text-xs text-muted-foreground">
                   Alle Daten als JSON speichern
                 </p>
@@ -319,7 +319,7 @@ export default function Export() {
             >
               <CardContent className="p-4 text-center">
                 <Upload className="w-10 h-10 mx-auto mb-2 text-accent" />
-                <h3 className="font-display font-semibold mb-1">Sicherung laden</h3>
+                <h3 className="font-semibold mb-1">Sicherung laden</h3>
                 <p className="text-xs text-muted-foreground">
                   Frühere Sicherung wiederherstellen
                 </p>
@@ -341,7 +341,7 @@ export default function Export() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="font-display text-lg">Export-Felder auswählen</CardTitle>
+              <CardTitle className="text-lg">Export-Felder auswählen</CardTitle>
               <CardDescription>
                 Wähle aus, welche Informationen exportiert werden sollen
               </CardDescription>
@@ -385,7 +385,7 @@ export default function Export() {
         >
           <CardContent className="p-6 text-center">
             <FileSpreadsheet className="w-12 h-12 mx-auto mb-3 text-green-600" />
-            <h3 className="font-display text-lg font-semibold mb-1">Excel (.xlsx)</h3>
+            <h3 className="text-lg font-semibold mb-1">Excel (.xlsx)</h3>
             <p className="text-sm text-muted-foreground">
               Öffnen mit Excel, Numbers, Google Sheets
             </p>
@@ -398,7 +398,7 @@ export default function Export() {
         >
           <CardContent className="p-6 text-center">
             <FileText className="w-12 h-12 mx-auto mb-3 text-blue-600" />
-            <h3 className="font-display text-lg font-semibold mb-1">CSV</h3>
+            <h3 className="text-lg font-semibold mb-1">CSV</h3>
             <p className="text-sm text-muted-foreground">
               Universelles Format für andere Tools
             </p>
