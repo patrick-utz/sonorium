@@ -369,46 +369,48 @@ export default function RecordDetail() {
       )}
 
       {/* Kaufinformationen - volle Breite */}
-      {(record.purchasePrice || record.purchaseLocation || record.purchaseDate) && (
-        <Card className="bg-gradient-card border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-primary" />
-              Kaufinformationen
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid sm:grid-cols-3 gap-4">
-              {record.purchaseDate && (
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-sm text-muted-foreground">Kaufdatum</span>
-                  <span className="font-medium flex items-center gap-1">
-                    <CalendarDays className="w-4 h-4" />
-                    {new Date(record.purchaseDate).toLocaleDateString("de-CH")}
-                  </span>
-                </div>
-              )}
-              {record.purchasePrice && (
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-sm text-muted-foreground">Preis</span>
-                  <span className="font-semibold">CHF {record.purchasePrice.toFixed(2)}</span>
-                </div>
-              )}
-              {record.purchaseLocation && (
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-sm text-muted-foreground">Gekauft bei</span>
-                  <span className="font-medium">{record.purchaseLocation}</span>
-                </div>
-              )}
-            </div>
-            <div className="flex justify-center pt-4 border-t border-border/50 mt-4">
-              <span className="text-sm text-muted-foreground">
-                Hinzugefügt am {new Date(record.dateAdded).toLocaleDateString("de-CH")}
+      <Card className="bg-gradient-card border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ShoppingCart className="w-5 h-5 text-primary" />
+            Kaufinformationen
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-sm text-muted-foreground">Kaufdatum</span>
+              <span className="font-medium flex items-center gap-1">
+                <CalendarDays className="w-4 h-4" />
+                {record.purchaseDate 
+                  ? new Date(record.purchaseDate).toLocaleDateString("de-CH")
+                  : <span className="text-muted-foreground/50">–</span>
+                }
               </span>
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-sm text-muted-foreground">Preis</span>
+              <span className="font-semibold">
+                {record.purchasePrice 
+                  ? `CHF ${record.purchasePrice.toFixed(2)}`
+                  : <span className="text-muted-foreground/50">–</span>
+                }
+              </span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-sm text-muted-foreground">Gekauft bei</span>
+              <span className="font-medium">
+                {record.purchaseLocation || <span className="text-muted-foreground/50">–</span>}
+              </span>
+            </div>
+          </div>
+          <div className="flex justify-center pt-4 border-t border-border/50 mt-4">
+            <span className="text-sm text-muted-foreground">
+              Hinzugefügt am {new Date(record.dateAdded).toLocaleDateString("de-CH")}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recommendations - Full Width */}
       {record.recommendations && record.recommendations.length > 0 && (
