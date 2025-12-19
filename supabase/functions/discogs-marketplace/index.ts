@@ -10,6 +10,8 @@ const DISCOGS_USER_AGENT = 'Sonorium/1.0';
 
 interface MarketplaceListing {
   price: number;
+  totalPrice: number; // price + shipping
+  shippingPrice: number;
   currency: string;
   condition: string;
   sleeveCondition: string;
@@ -18,19 +20,130 @@ interface MarketplaceListing {
   url: string;
 }
 
+interface ReleaseVerification {
+  verified: boolean;
+  confidence: 'high' | 'medium' | 'low';
+  foundArtist: string;
+  foundTitle: string;
+  foundYear?: number;
+  foundLabel?: string;
+  foundCatno?: string;
+  matchReasons: string[];
+  warnings: string[];
+}
+
 interface MarketplaceResult {
   releaseId: number;
   releaseUrl: string;
   lowestPrice?: number;
+  lowestTotalPrice?: number; // including shipping
   medianPrice?: number;
   highestPrice?: number;
   currency: string;
   numForSale: number;
   listings: MarketplaceListing[];
+  verification: ReleaseVerification;
+}
+
+// Calculate string similarity (Levenshtein-based)
+function similarity(s1: string, s2: string): number {
+  const a = s1.toLowerCase().trim();
+  const b = s2.toLowerCase().trim();
+  
+  if (a === b) return 1;
+  if (a.length === 0 || b.length === 0) return 0;
+  
+  // Check if one contains the other
+  if (a.includes(b) || b.includes(a)) return 0.9;
+  
+  // Simple word overlap
+  const wordsA = a.split(/\s+/);
+  const wordsB = b.split(/\s+/);
+  const commonWords = wordsA.filter(w => wordsB.some(w2 => w2.includes(w) || w.includes(w2)));
+  const overlap = commonWords.length / Math.max(wordsA.length, wordsB.length);
+  
+  return overlap;
+}
+
+// Verify if the found release matches what we're looking for
+function verifyRelease(
+  searchParams: { artist?: string; album?: string; year?: number; catalogNumber?: string; barcode?: string },
+  releaseData: { artists: string; title: string; year?: number; labels?: { name: string; catno: string }[] }
+): ReleaseVerification {
+  const matchReasons: string[] = [];
+  const warnings: string[] = [];
+  let confidence: 'high' | 'medium' | 'low' = 'low';
+  
+  // Check artist match
+  const artistSim = searchParams.artist ? similarity(searchParams.artist, releaseData.artists) : 0;
+  if (artistSim >= 0.9) {
+    matchReasons.push('Künstler stimmt überein');
+  } else if (artistSim >= 0.5) {
+    matchReasons.push('Künstler ähnlich');
+    warnings.push(`Gefundener Künstler: "${releaseData.artists}" (erwartet: "${searchParams.artist}")`);
+  } else if (searchParams.artist) {
+    warnings.push(`Künstler unterschiedlich: "${releaseData.artists}" vs "${searchParams.artist}"`);
+  }
+  
+  // Check album/title match
+  const titleSim = searchParams.album ? similarity(searchParams.album, releaseData.title) : 0;
+  if (titleSim >= 0.9) {
+    matchReasons.push('Album stimmt überein');
+  } else if (titleSim >= 0.5) {
+    matchReasons.push('Album ähnlich');
+    warnings.push(`Gefundenes Album: "${releaseData.title}" (erwartet: "${searchParams.album}")`);
+  } else if (searchParams.album) {
+    warnings.push(`Album unterschiedlich: "${releaseData.title}" vs "${searchParams.album}"`);
+  }
+  
+  // Check year match
+  if (searchParams.year && releaseData.year) {
+    if (searchParams.year === releaseData.year) {
+      matchReasons.push('Jahr stimmt überein');
+    } else if (Math.abs(searchParams.year - releaseData.year) <= 1) {
+      matchReasons.push('Jahr ungefähr passend');
+    } else {
+      warnings.push(`Jahr unterschiedlich: ${releaseData.year} vs ${searchParams.year}`);
+    }
+  }
+  
+  // Check catalog number match
+  if (searchParams.catalogNumber && releaseData.labels) {
+    const catnoMatch = releaseData.labels.some(l => 
+      l.catno && similarity(l.catno, searchParams.catalogNumber!) >= 0.9
+    );
+    if (catnoMatch) {
+      matchReasons.push('Katalognummer stimmt überein');
+    }
+  }
+  
+  // Determine confidence
+  if (matchReasons.length >= 3 || (artistSim >= 0.9 && titleSim >= 0.9)) {
+    confidence = 'high';
+  } else if (matchReasons.length >= 2 || (artistSim >= 0.7 && titleSim >= 0.7)) {
+    confidence = 'medium';
+  } else {
+    confidence = 'low';
+  }
+  
+  // Verified if we have at least medium confidence and no critical warnings
+  const verified = confidence !== 'low' && warnings.length <= 1;
+  
+  return {
+    verified,
+    confidence,
+    foundArtist: releaseData.artists,
+    foundTitle: releaseData.title,
+    foundYear: releaseData.year,
+    foundLabel: releaseData.labels?.[0]?.name,
+    foundCatno: releaseData.labels?.[0]?.catno,
+    matchReasons,
+    warnings
+  };
 }
 
 // Search Discogs by artist + album or catalog number
-async function searchDiscogsRelease(query: { artist?: string; album?: string; catalogNumber?: string; barcode?: string }): Promise<number | null> {
+async function searchDiscogsRelease(query: { artist?: string; album?: string; catalogNumber?: string; barcode?: string; year?: number }): Promise<{ releaseId: number; verification: ReleaseVerification } | null> {
   if (!DISCOGS_API_KEY) {
     console.log('Discogs API key not configured');
     return null;
@@ -66,8 +179,23 @@ async function searchDiscogsRelease(query: { artist?: string; album?: string; ca
     const data = await response.json();
     
     if (data.results && data.results.length > 0) {
-      console.log('Found Discogs release:', data.results[0].id, data.results[0].title);
-      return data.results[0].id;
+      const result = data.results[0];
+      console.log('Found Discogs release:', result.id, result.title);
+      
+      // Parse artist and title from the result
+      const [artists, title] = (result.title || '').split(' - ');
+      
+      const verification = verifyRelease(
+        { artist: query.artist, album: query.album, year: query.year, catalogNumber: query.catalogNumber, barcode: query.barcode },
+        { 
+          artists: artists?.trim() || '', 
+          title: title?.trim() || result.title || '',
+          year: result.year,
+          labels: result.label?.map((l: string) => ({ name: l, catno: result.catno || '' })) || []
+        }
+      );
+      
+      return { releaseId: result.id, verification };
     }
 
     return null;
@@ -77,104 +205,88 @@ async function searchDiscogsRelease(query: { artist?: string; album?: string; ca
   }
 }
 
-// Get marketplace listings for a release
-async function getMarketplaceListings(releaseId: number, currency: string = 'EUR'): Promise<MarketplaceResult | null> {
+// Get marketplace listings for a release with shipping costs
+async function getMarketplaceListings(releaseId: number, currency: string = 'EUR', verification: ReleaseVerification): Promise<MarketplaceResult | null> {
   if (!DISCOGS_API_KEY) {
     console.log('Discogs API key not configured');
     return null;
   }
 
   try {
-    const url = `https://api.discogs.com/marketplace/listings?release_id=${releaseId}&sort=price&sort_order=asc&per_page=10&currency=${currency}`;
+    // First get release details for more info
+    const releaseUrl = `https://api.discogs.com/releases/${releaseId}`;
+    console.log('Fetching release details:', releaseUrl);
     
-    console.log('Fetching marketplace listings:', url);
-
-    const response = await fetch(url, {
+    const releaseResponse = await fetch(releaseUrl, {
       headers: {
         'User-Agent': DISCOGS_USER_AGENT,
         'Authorization': `Discogs token=${DISCOGS_API_KEY}`
       }
     });
 
-    if (!response.ok) {
-      console.log('Marketplace listings failed:', response.status);
+    let releaseStats = { lowestPrice: undefined as number | undefined, numForSale: 0 };
+    
+    if (releaseResponse.ok) {
+      const releaseData = await releaseResponse.json();
+      releaseStats = {
+        lowestPrice: releaseData.lowest_price,
+        numForSale: releaseData.num_for_sale || 0
+      };
       
-      // Try alternative: get release stats
-      return await getReleaseStats(releaseId, currency);
+      // Update verification with more accurate data
+      if (releaseData.artists && releaseData.title) {
+        const artistNames = releaseData.artists.map((a: any) => a.name).join(', ');
+        verification.foundArtist = artistNames;
+        verification.foundTitle = releaseData.title;
+        verification.foundYear = releaseData.year;
+        if (releaseData.labels?.[0]) {
+          verification.foundLabel = releaseData.labels[0].name;
+          verification.foundCatno = releaseData.labels[0].catno;
+        }
+      }
     }
 
-    const data = await response.json();
-    const listings = data.listings || [];
+    // Try to get individual listings for shipping info
+    // Note: The marketplace/listings endpoint requires OAuth, so we use release stats
+    // For now, we estimate shipping based on location (this could be improved with actual API data)
+    
+    // Estimated shipping costs to Switzerland
+    const estimatedShipping: Record<string, number> = {
+      'Switzerland': 5,
+      'Germany': 8,
+      'Austria': 9,
+      'France': 10,
+      'Italy': 10,
+      'Netherlands': 10,
+      'Belgium': 10,
+      'UK': 12,
+      'United Kingdom': 12,
+      'Europe': 12,
+      'USA': 20,
+      'US': 20,
+      'Japan': 25,
+      'default': 15
+    };
 
-    if (listings.length === 0) {
-      return await getReleaseStats(releaseId, currency);
-    }
-
-    const prices = listings.map((l: any) => l.price?.value || 0).filter((p: number) => p > 0);
+    // Since we can't get individual listings easily, we'll provide estimates
+    const avgShipping = 12; // Average EU shipping to Switzerland
     
     const result: MarketplaceResult = {
       releaseId,
       releaseUrl: `https://www.discogs.com/release/${releaseId}`,
-      lowestPrice: prices.length > 0 ? Math.min(...prices) : undefined,
-      highestPrice: prices.length > 0 ? Math.max(...prices) : undefined,
-      medianPrice: prices.length > 0 ? prices[Math.floor(prices.length / 2)] : undefined,
+      lowestPrice: releaseStats.lowestPrice,
+      lowestTotalPrice: releaseStats.lowestPrice ? releaseStats.lowestPrice + avgShipping : undefined,
+      numForSale: releaseStats.numForSale,
       currency,
-      numForSale: data.pagination?.items || listings.length,
-      listings: listings.slice(0, 5).map((l: any) => ({
-        price: l.price?.value || 0,
-        currency: l.price?.currency || currency,
-        condition: l.condition || 'Unknown',
-        sleeveCondition: l.sleeve_condition || 'Unknown',
-        shipsFrom: l.ships_from || 'Unknown',
-        seller: l.seller?.username || 'Unknown',
-        url: l.uri || ''
-      }))
+      listings: [],
+      verification
     };
 
-    console.log('Found', result.numForSale, 'listings, lowest:', result.lowestPrice);
+    console.log('Release stats - num for sale:', result.numForSale, 'lowest:', result.lowestPrice, 'lowest total (est.):', result.lowestTotalPrice);
     return result;
 
   } catch (error) {
     console.error('Marketplace listings error:', error);
-    return null;
-  }
-}
-
-// Get release statistics (community data)
-async function getReleaseStats(releaseId: number, currency: string = 'EUR'): Promise<MarketplaceResult | null> {
-  try {
-    const url = `https://api.discogs.com/releases/${releaseId}`;
-    
-    console.log('Fetching release stats:', url);
-
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': DISCOGS_USER_AGENT,
-        'Authorization': `Discogs token=${DISCOGS_API_KEY}`
-      }
-    });
-
-    if (!response.ok) {
-      console.log('Release stats failed:', response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    
-    const result: MarketplaceResult = {
-      releaseId,
-      releaseUrl: `https://www.discogs.com/release/${releaseId}`,
-      lowestPrice: data.lowest_price || undefined,
-      numForSale: data.num_for_sale || 0,
-      currency,
-      listings: []
-    };
-
-    console.log('Release stats - num for sale:', result.numForSale, 'lowest:', result.lowestPrice);
-    return result;
-
-  } catch (error) {
-    console.error('Release stats error:', error);
     return null;
   }
 }
@@ -186,15 +298,37 @@ serve(async (req) => {
   }
 
   try {
-    const { artist, album, catalogNumber, barcode, releaseId } = await req.json();
+    const { artist, album, catalogNumber, barcode, releaseId, year } = await req.json();
     
-    console.log('Marketplace request:', { artist, album, catalogNumber, barcode, releaseId });
+    console.log('Marketplace request:', { artist, album, catalogNumber, barcode, releaseId, year });
 
     let discogsReleaseId = releaseId;
+    let verification: ReleaseVerification = {
+      verified: false,
+      confidence: 'low',
+      foundArtist: '',
+      foundTitle: '',
+      matchReasons: [],
+      warnings: ['Keine Verifizierung möglich']
+    };
 
     // If no release ID provided, search for it
     if (!discogsReleaseId) {
-      discogsReleaseId = await searchDiscogsRelease({ artist, album, catalogNumber, barcode });
+      const searchResult = await searchDiscogsRelease({ artist, album, catalogNumber, barcode, year });
+      if (searchResult) {
+        discogsReleaseId = searchResult.releaseId;
+        verification = searchResult.verification;
+      }
+    } else {
+      // If release ID is provided, we assume it's already verified
+      verification = {
+        verified: true,
+        confidence: 'high',
+        foundArtist: artist || '',
+        foundTitle: album || '',
+        matchReasons: ['Release-ID direkt angegeben'],
+        warnings: []
+      };
     }
 
     if (!discogsReleaseId) {
@@ -205,7 +339,7 @@ serve(async (req) => {
     }
 
     // Get marketplace data
-    const marketplaceData = await getMarketplaceListings(discogsReleaseId, 'CHF');
+    const marketplaceData = await getMarketplaceListings(discogsReleaseId, 'CHF', verification);
 
     if (!marketplaceData) {
       return new Response(
