@@ -47,7 +47,7 @@ export default function RecordDetail() {
   if (!record) {
     return (
       <div className="text-center py-16">
-        <h2 className="font-display text-2xl font-bold mb-2">Nicht gefunden</h2>
+        <h2 className="text-2xl font-bold mb-2">Nicht gefunden</h2>
         <p className="text-muted-foreground mb-4">Dieser Tonträger existiert nicht.</p>
         <Button onClick={() => navigate(-1)}>Zurück</Button>
       </div>
@@ -135,7 +135,7 @@ export default function RecordDetail() {
 
           {/* Title */}
           <div>
-            <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
               {record.album}
             </h1>
             <p className="text-xl text-muted-foreground mt-1">{record.artist}</p>
@@ -229,7 +229,7 @@ export default function RecordDetail() {
         {(record.recordingQuality || record.masteringQuality || record.artisticRating) && (
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg">Qualitätsbewertungen</CardTitle>
+              <CardTitle className="text-lg">Qualitätsbewertungen</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {record.recordingQuality && (
@@ -264,7 +264,7 @@ export default function RecordDetail() {
         {record.format === "vinyl" && recConfig && (
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg">Vinyl-Empfehlung</CardTitle>
+              <CardTitle className="text-lg">Vinyl-Empfehlung</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Badge
@@ -287,7 +287,7 @@ export default function RecordDetail() {
         {(record.purchasePrice || record.purchaseLocation || record.purchaseDate) && (
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-primary" />
                 Kaufinformationen
               </CardTitle>
@@ -328,7 +328,7 @@ export default function RecordDetail() {
         {record.audiophileAssessment && (
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Brain className="w-5 h-5 text-primary" />
                 Audiophile Beurteilung
               </CardTitle>
@@ -345,7 +345,7 @@ export default function RecordDetail() {
         {record.artisticAssessment && (
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
                 Künstlerische Beurteilung
               </CardTitle>
@@ -362,7 +362,7 @@ export default function RecordDetail() {
         {record.tags && record.tags.length > 0 && (
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg flex items-center gap-2">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Music className="w-5 h-5 text-primary" />
                 Stichworte
               </CardTitle>
@@ -383,7 +383,7 @@ export default function RecordDetail() {
         {record.personalNotes && (
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg">Persönliche Notizen</CardTitle>
+              <CardTitle className="text-lg">Persönliche Notizen</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground leading-relaxed">

@@ -127,7 +127,7 @@ export default function Collection() {
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="font-display text-3xl md:text-4xl font-bold gradient-text">
+          <h1 className="text-3xl md:text-4xl font-bold gradient-text">
             Deine Sammlung
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -274,7 +274,7 @@ export default function Collection() {
             className="text-center py-16"
           >
             <div className="w-24 h-24 mx-auto mb-4 vinyl-disc" />
-            <h3 className="font-display text-xl font-semibold text-foreground mb-2">
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               Keine Tonträger gefunden
             </h3>
             <p className="text-muted-foreground">

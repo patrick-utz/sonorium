@@ -78,7 +78,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-2">
           <ScanBarcode className="w-5 h-5 text-primary" />
-          <h2 className="font-display text-lg font-semibold">Barcode scannen</h2>
+          <h2 className="text-lg font-semibold">Barcode scannen</h2>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="w-5 h-5" />
