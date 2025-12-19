@@ -139,7 +139,7 @@ export default function Export() {
     }));
     ws["!cols"] = colWidths;
 
-    XLSX.writeFile(wb, `VinylVault_Export_${new Date().toISOString().split("T")[0]}.xlsx`);
+    XLSX.writeFile(wb, `SONORIUM_Export_${new Date().toISOString().split("T")[0]}.xlsx`);
 
     toast({
       title: "Export erfolgreich",
@@ -180,7 +180,7 @@ export default function Export() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `VinylVault_Export_${new Date().toISOString().split("T")[0]}.csv`;
+    link.download = `SONORIUM_Export_${new Date().toISOString().split("T")[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
 
@@ -203,7 +203,7 @@ export default function Export() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `VinylVault_Backup_${new Date().toISOString().split("T")[0]}.json`;
+    link.download = `SONORIUM_Backup_${new Date().toISOString().split("T")[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
 
