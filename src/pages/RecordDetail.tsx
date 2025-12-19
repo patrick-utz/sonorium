@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,9 @@ import {
   Pencil,
   Check,
   X,
+  TrendingUp,
+  ExternalLink as ExternalLinkIcon,
+  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -484,12 +488,25 @@ export default function RecordDetail() {
 interface PurchaseInfoCardProps {
   record: {
     id: string;
+    artist: string;
+    album: string;
+    catalogNumber?: string;
+    barcode?: string;
     purchaseDate?: string;
     purchasePrice?: number;
     purchaseLocation?: string;
     dateAdded: string;
   };
   updateRecord: (id: string, updates: Partial<{ purchaseDate?: string; purchasePrice?: number; purchaseLocation?: string }>) => void;
+}
+
+interface MarketplaceData {
+  releaseId: number;
+  releaseUrl: string;
+  lowestPrice?: number;
+  medianPrice?: number;
+  numForSale: number;
+  currency: string;
 }
 
 function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
@@ -504,6 +521,46 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
     record.purchaseLocation || ""
   );
   const [calendarOpen, setCalendarOpen] = useState(false);
+  
+  // Discogs marketplace state
+  const [marketplaceData, setMarketplaceData] = useState<MarketplaceData | null>(null);
+  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
+  const [marketplaceError, setMarketplaceError] = useState<string | null>(null);
+
+  // Fetch Discogs marketplace prices
+  useEffect(() => {
+    const fetchMarketplaceData = async () => {
+      setMarketplaceLoading(true);
+      setMarketplaceError(null);
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('discogs-marketplace', {
+          body: {
+            artist: record.artist,
+            album: record.album,
+            catalogNumber: record.catalogNumber,
+            barcode: record.barcode
+          }
+        });
+
+        if (error) {
+          console.error('Marketplace fetch error:', error);
+          setMarketplaceError('Keine Preisdaten verfügbar');
+        } else if (data?.data) {
+          setMarketplaceData(data.data);
+        } else if (data?.error) {
+          setMarketplaceError(data.error);
+        }
+      } catch (err) {
+        console.error('Marketplace fetch error:', err);
+        setMarketplaceError('Fehler beim Laden der Preisdaten');
+      } finally {
+        setMarketplaceLoading(false);
+      }
+    };
+
+    fetchMarketplaceData();
+  }, [record.artist, record.album, record.catalogNumber, record.barcode]);
 
   const handleSave = () => {
     updateRecord(record.id, {
@@ -647,6 +704,62 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
             </div>
           </div>
         )}
+        
+        {/* Discogs Marketplace Prices */}
+        <div className="pt-4 border-t border-border/50 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <TrendingUp className="w-4 h-4" />
+              Discogs Marktpreise
+            </span>
+            {marketplaceData && (
+              <a
+                href={marketplaceData.releaseUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                Auf Discogs ansehen
+                <ExternalLinkIcon className="w-3 h-3" />
+              </a>
+            )}
+          </div>
+          
+          {marketplaceLoading ? (
+            <div className="flex items-center justify-center py-3">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">Lade Preise...</span>
+            </div>
+          ) : marketplaceError ? (
+            <p className="text-sm text-muted-foreground/60 text-center py-2">{marketplaceError}</p>
+          ) : marketplaceData ? (
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs text-muted-foreground">Günstigster</span>
+                <span className="font-semibold text-accent">
+                  {marketplaceData.lowestPrice 
+                    ? `CHF ${marketplaceData.lowestPrice.toFixed(2)}`
+                    : '–'
+                  }
+                </span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs text-muted-foreground">Median</span>
+                <span className="font-medium">
+                  {marketplaceData.medianPrice 
+                    ? `CHF ${marketplaceData.medianPrice.toFixed(2)}`
+                    : '–'
+                  }
+                </span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs text-muted-foreground">Angebote</span>
+                <span className="font-medium">{marketplaceData.numForSale}</span>
+              </div>
+            </div>
+          ) : null}
+        </div>
+        
         <div className="flex justify-center pt-4 border-t border-border/50 mt-4">
           <span className="text-sm text-muted-foreground">
             Hinzugefügt am {new Date(record.dateAdded).toLocaleDateString("de-CH")}
