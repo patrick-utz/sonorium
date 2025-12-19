@@ -26,7 +26,7 @@ import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { AlternativeReleases } from "@/components/AlternativeReleases";
-import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library, ShoppingCart, ExternalLink, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -995,7 +995,7 @@ export default function AddRecord() {
               <CardContent>
                 <div className="space-y-3">
                   {formData.recommendations.map((rec, index) => (
-                    <div key={index} className="bg-muted/50 rounded-lg p-4 space-y-2">
+                    <div key={index} className="bg-muted/50 rounded-lg p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <span className="font-medium text-foreground">{rec.artist}</span>
@@ -1014,6 +1014,48 @@ export default function AddRecord() {
                       {rec.reason && (
                         <p className="text-sm text-muted-foreground">{rec.reason}</p>
                       )}
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const searchQuery = encodeURIComponent(`${rec.artist} ${rec.album}`);
+                            window.open(`https://tidal.com/search?q=${searchQuery}`, '_blank');
+                          }}
+                          className="gap-1.5 text-xs"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          In Tidal öffnen
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            addRecord({
+                              artist: rec.artist,
+                              album: rec.album,
+                              year: rec.year || new Date().getFullYear(),
+                              genre: formData.genre || [],
+                              label: '',
+                              format: 'vinyl',
+                              status: 'wishlist',
+                              myRating: 0,
+                              coverArt: rec.coverArt,
+                            });
+                            toast({
+                              title: "Zur Wunschliste hinzugefügt",
+                              description: `${rec.artist} – ${rec.album}`,
+                            });
+                          }}
+                          className="gap-1.5 text-xs"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Auf Wunschliste
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
