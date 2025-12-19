@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
 import { Record, RecordFormat, RecordStatus, AlternativeRelease } from "@/types/record";
@@ -26,10 +26,13 @@ import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
 import { SmartScanner } from "@/components/SmartScanner";
 import { AlternativeReleases } from "@/components/AlternativeReleases";
-import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library, ShoppingCart, ExternalLink, Plus } from "lucide-react";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library, ShoppingCart, ExternalLink, Plus, Trash2, SaveIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+const DRAFT_STORAGE_KEY = "sonorium-draft-record";
+const AUTOSAVE_DELAY = 1500; // 1.5 seconds debounce
 
 const GENRE_SUGGESTIONS = [
   "Jazz", "Rock", "Pop", "Klassik", "Electronic", "Hip-Hop", "R&B", "Soul",
@@ -78,6 +81,88 @@ export default function AddRecord() {
   const [pendingBarcodeData, setPendingBarcodeData] = useState<Partial<Record> | null>(null);
   const [alternativeReleases, setAlternativeReleases] = useState<AlternativeRelease[]>([]);
   const [selectedAlternative, setSelectedAlternative] = useState<AlternativeRelease | null>(null);
+  
+  // Autosave states
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  // Format relative time for display
+  const formatRelativeTime = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (seconds < 60) return "gerade eben";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `vor ${minutes} Min.`;
+    const hours = Math.floor(minutes / 60);
+    return `vor ${hours} Std.`;
+  };
+
+  // Clear draft from storage
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    setHasDraft(false);
+    setLastSaved(null);
+    toast({
+      title: "Entwurf verworfen",
+      description: "Der gespeicherte Entwurf wurde gelöscht.",
+    });
+  }, [toast]);
+
+  // Restore draft on mount (only for new records)
+  useEffect(() => {
+    if (isEditing || draftRestored) return;
+    
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed && typeof parsed === 'object') {
+          setFormData(parsed);
+          setHasDraft(true);
+          setDraftRestored(true);
+          toast({
+            title: "Entwurf wiederhergestellt",
+            description: "Dein letzter Entwurf wurde geladen.",
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore draft:", e);
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  }, [isEditing, draftRestored, toast]);
+
+  // Autosave with debounce (only for new records)
+  useEffect(() => {
+    if (isEditing) return;
+    
+    // Don't save if form is essentially empty
+    const hasContent = formData.artist || formData.album || formData.coverArt;
+    if (!hasContent) return;
+
+    const timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(formData));
+        setLastSaved(new Date());
+        setHasDraft(true);
+      } catch (e) {
+        console.error("Failed to save draft:", e);
+      }
+    }, AUTOSAVE_DELAY);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData, isEditing]);
+
+  // Update relative time display every minute
+  useEffect(() => {
+    if (!lastSaved) return;
+    
+    const intervalId = setInterval(() => {
+      setLastSaved(prev => prev ? new Date(prev.getTime()) : null);
+    }, 60000);
+    
+    return () => clearInterval(intervalId);
+  }, [lastSaved]);
 
   const setCoverFromFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -363,6 +448,9 @@ export default function AddRecord() {
       navigate(`/sammlung/${existingRecord.id}`);
     } else {
       addRecord(recordData);
+      // Clear draft after successful save
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      setHasDraft(false);
       toast({
         title: "Hinzugefügt",
         description: `${formData.album} wurde zur Sammlung hinzugefügt.`,
@@ -504,6 +592,27 @@ export default function AddRecord() {
                 ? "Aktualisiere die Informationen"
                 : "Füge einen neuen Tonträger zu deiner Sammlung hinzu"}
             </p>
+            {/* Autosave Status */}
+            {!isEditing && (lastSaved || hasDraft) && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <SaveIcon className="w-3 h-3" />
+                  {lastSaved ? `Entwurf gespeichert ${formatRelativeTime(lastSaved)}` : "Entwurf vorhanden"}
+                </span>
+                {hasDraft && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearDraft}
+                    className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" />
+                    Verwerfen
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex gap-2">
