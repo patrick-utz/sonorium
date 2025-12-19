@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Camera, Sparkles } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Camera, Sparkles, Heart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Record, RecordFormat } from "@/types/record";
@@ -22,7 +22,7 @@ type SortOption = "artist" | "album" | "year" | "dateAdded" | "rating";
 type ViewMode = "grid" | "list";
 
 export default function Collection() {
-  const { getOwnedRecords, updateRecord, deleteRecord } = useRecords();
+  const { getOwnedRecords, updateRecord, deleteRecord, toggleFavorite } = useRecords();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const records = getOwnedRecords();
@@ -32,6 +32,7 @@ export default function Collection() {
   const [genreFilter, setGenreFilter] = useState<string>("all");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [moodFilter, setMoodFilter] = useState<string>("all");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
@@ -40,6 +41,7 @@ export default function Collection() {
     const genreParam = searchParams.get("genre");
     const tagParam = searchParams.get("tag");
     const moodParam = searchParams.get("mood");
+    const favoriteParam = searchParams.get("favorites");
     if (genreParam) {
       setGenreFilter(genreParam);
     }
@@ -48,6 +50,9 @@ export default function Collection() {
     }
     if (moodParam) {
       setMoodFilter(moodParam);
+    }
+    if (favoriteParam === "true") {
+      setShowFavoritesOnly(true);
     }
   }, [searchParams]);
 
@@ -104,7 +109,8 @@ export default function Collection() {
       const matchesGenre = genreFilter === "all" || record.genre.includes(genreFilter);
       const matchesTag = tagFilter === "all" || record.tags?.includes(tagFilter);
       const matchesMood = moodFilter === "all" || record.moods?.includes(moodFilter);
-      return matchesSearch && matchesFormat && matchesGenre && matchesTag && matchesMood;
+      const matchesFavorite = !showFavoritesOnly || record.isFavorite;
+      return matchesSearch && matchesFormat && matchesGenre && matchesTag && matchesMood && matchesFavorite;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -148,6 +154,20 @@ export default function Collection() {
           </div>
 
           <div className="flex gap-2 flex-wrap">
+            {/* Favorites Toggle */}
+            <Button
+              variant={showFavoritesOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              className={cn(
+                "gap-2",
+                showFavoritesOnly && "bg-red-500 hover:bg-red-600 text-white"
+              )}
+            >
+              <Heart className={cn("w-4 h-4", showFavoritesOnly && "fill-current")} />
+              Favoriten
+            </Button>
+
             <Select
               value={formatFilter}
               onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
@@ -297,6 +317,7 @@ export default function Collection() {
                 onClick={() => navigate(`/sammlung/${record.id}`)}
                 onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
                 onDelete={() => deleteRecord(record.id)}
+                onToggleFavorite={() => toggleFavorite(record.id)}
               />
             ))}
           </motion.div>

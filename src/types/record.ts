@@ -74,6 +74,9 @@ export interface Record {
   tags?: string[]; // Stichworte für Stimmung, Instrumente, etc.
   moods?: string[]; // Stimmungen wie "entspannend", "energiegeladen", etc.
   
+  // Favorit
+  isFavorite?: boolean;
+  
   // Empfehlungen
   recommendations?: RecordRecommendation[];
 }
