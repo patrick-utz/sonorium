@@ -16,9 +16,11 @@ export default {
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         body: ["Inter", "system-ui", "sans-serif"],
+        display: ["Playfair Display", "Georgia", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",
+        "border-strong": "hsl(var(--border-strong))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
@@ -42,6 +44,8 @@ export default {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+          secondary: "hsl(var(--accent-secondary))",
+          "secondary-foreground": "hsl(var(--accent-secondary-foreground))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -76,18 +80,21 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 4px)",
       },
       boxShadow: {
         vinyl: "var(--shadow-vinyl)",
         card: "var(--shadow-card)",
         cover: "var(--shadow-cover)",
         hover: "var(--shadow-hover)",
+        glow: "var(--shadow-glow)",
       },
       backgroundImage: {
         "gradient-vinyl": "var(--gradient-vinyl)",
         "gradient-gold": "var(--gradient-gold)",
         "gradient-warm": "var(--gradient-warm)",
         "gradient-card": "var(--gradient-card)",
+        "gradient-card-hover": "var(--gradient-card-hover)",
       },
       keyframes: {
         "accordion-down": {
