@@ -10,6 +10,8 @@ interface RecordContextType {
   getRecordById: (id: string) => Record | undefined;
   getOwnedRecords: () => Record[];
   getWishlistRecords: () => Record[];
+  getFavoriteRecords: () => Record[];
+  toggleFavorite: (id: string) => void;
   importRecords: (records: Record[], mode: "merge" | "replace") => void;
 }
 
@@ -65,6 +67,18 @@ export function RecordProvider({ children }: { children: ReactNode }) {
     return records.filter((record) => record.status === "wishlist");
   };
 
+  const getFavoriteRecords = () => {
+    return records.filter((record) => record.isFavorite);
+  };
+
+  const toggleFavorite = (id: string) => {
+    setRecords((prev) =>
+      prev.map((record) =>
+        record.id === id ? { ...record, isFavorite: !record.isFavorite } : record
+      )
+    );
+  };
+
   const importRecords = (importedRecords: Record[], mode: "merge" | "replace") => {
     if (mode === "replace") {
       setRecords(importedRecords);
@@ -86,6 +100,8 @@ export function RecordProvider({ children }: { children: ReactNode }) {
         getRecordById,
         getOwnedRecords,
         getWishlistRecords,
+        getFavoriteRecords,
+        toggleFavorite,
         importRecords,
       }}
     >

@@ -4,7 +4,7 @@ import { StarRating } from "./StarRating";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
 import { motion } from "framer-motion";
-import { Camera, Trash2, Music } from "lucide-react";
+import { Camera, Trash2, Music, Heart } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -24,10 +24,11 @@ interface RecordCardProps {
   onClick?: () => void;
   onCoverUpdate?: (coverArt: string) => void;
   onDelete?: () => void;
+  onToggleFavorite?: () => void;
   className?: string;
 }
 
-export function RecordCard({ record, onClick, onCoverUpdate, onDelete, className }: RecordCardProps) {
+export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleFavorite, className }: RecordCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -165,6 +166,25 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, className
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        )}
+
+        {/* Favorite Button */}
+        {onToggleFavorite && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite();
+            }}
+            className={cn(
+              "absolute bottom-3 right-3 p-2 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110",
+              record.isFavorite 
+                ? "bg-red-500/80 text-white opacity-100" 
+                : "bg-background/80 text-muted-foreground opacity-0 group-hover:opacity-100"
+            )}
+            title={record.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+          >
+            <Heart className={cn("w-4 h-4", record.isFavorite && "fill-current")} />
+          </button>
         )}
         
         {/* Format Badge */}
