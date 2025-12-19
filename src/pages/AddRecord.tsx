@@ -24,7 +24,7 @@ import {
 import { StarRating } from "@/components/StarRating";
 import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { SmartScanner } from "@/components/SmartScanner";
 import { AlternativeReleases } from "@/components/AlternativeReleases";
 import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library, ShoppingCart, ExternalLink, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -66,7 +66,7 @@ export default function AddRecord() {
   );
 
   const [showCamera, setShowCamera] = useState(false);
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showSmartScanner, setShowSmartScanner] = useState(false);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
   const [isCoverDragActive, setIsCoverDragActive] = useState(false);
   const [genreInput, setGenreInput] = useState("");
@@ -238,6 +238,73 @@ export default function AddRecord() {
     }
   };
 
+  // Handle image analysis (when no barcode was found in photo)
+  const handleImageAnalysis = async (imageBase64: string) => {
+    setIsBarcodeLoading(true);
+    
+    toast({
+      title: "Label-Foto erkannt",
+      description: "KI analysiert das Bild...",
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('complete-record', {
+        body: {
+          labelImage: imageBase64,
+          artist: formData.artist,
+          album: formData.album,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.data) {
+        const aiData = data.data;
+        
+        setPendingBarcodeData({
+          artist: aiData.artist,
+          album: aiData.album,
+          year: aiData.year,
+          genre: aiData.genre,
+          label: aiData.label,
+          catalogNumber: aiData.catalogNumber,
+          formatDetails: aiData.formatDetails,
+          pressing: aiData.pressing,
+          tags: aiData.tags,
+          personalNotes: aiData.personalNotes,
+          coverArt: aiData.coverArtBase64 || aiData.coverArtUrl || imageBase64,
+          audiophileAssessment: aiData.audiophileAssessment,
+          artisticAssessment: aiData.artisticAssessment,
+          recordingQuality: aiData.recordingQuality,
+          masteringQuality: aiData.masteringQuality,
+          artisticRating: aiData.artisticRating,
+          recommendations: aiData.recommendations,
+        });
+        
+        setAlternativeReleases(aiData.alternativeReleases || []);
+        setSelectedAlternative(null);
+        setShowStatusDialog(true);
+      } else if (data?.error) {
+        throw new Error(data.error);
+      } else {
+        toast({
+          title: "Kein Album erkannt",
+          description: "Die KI konnte keine Album-Informationen aus dem Bild extrahieren.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Image analysis error:', error);
+      toast({
+        title: "Fehler",
+        description: error instanceof Error ? error.message : "Bildanalyse fehlgeschlagen",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBarcodeLoading(false);
+    }
+  };
+
   const handleStatusSelection = (status: RecordStatus) => {
     if (pendingBarcodeData) {
       setFormData((prev) => ({
@@ -342,10 +409,11 @@ export default function AddRecord() {
             onClose={() => setShowCamera(false)}
           />
         )}
-        {showBarcodeScanner && (
-          <BarcodeScanner
-            onScan={handleBarcodeScan}
-            onClose={() => setShowBarcodeScanner(false)}
+        {showSmartScanner && (
+          <SmartScanner
+            onBarcodeDetected={handleBarcodeScan}
+            onImageCaptured={handleImageAnalysis}
+            onClose={() => setShowSmartScanner(false)}
           />
         )}
       </AnimatePresence>
@@ -442,7 +510,7 @@ export default function AddRecord() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setShowBarcodeScanner(true)}
+                onClick={() => setShowSmartScanner(true)}
                 disabled={isBarcodeLoading}
                 className="gap-2"
               >
