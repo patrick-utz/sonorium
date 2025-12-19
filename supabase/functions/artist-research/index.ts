@@ -10,6 +10,8 @@ interface AudiophileProfile {
     turntable: string;
     amplifier: string;
     speakers: string;
+    cdPlayer?: string;
+    dac?: string;
     other?: string;
   };
   preferences: {
@@ -53,6 +55,8 @@ serve(async (req) => {
       if (eq.turntable) parts.push(`Plattenspieler: ${eq.turntable}`);
       if (eq.amplifier) parts.push(`Verstärker: ${eq.amplifier}`);
       if (eq.speakers) parts.push(`Lautsprecher: ${eq.speakers}`);
+      if (eq.cdPlayer) parts.push(`CD-Player: ${eq.cdPlayer}`);
+      if (eq.dac) parts.push(`DAC/Digitalvorstufe: ${eq.dac}`);
       if (eq.other) parts.push(`Sonstiges: ${eq.other}`);
       if (parts.length > 0) {
         equipmentContext = `\n\nDas Equipment des Nutzers:\n${parts.join('\n')}`;
