@@ -509,6 +509,7 @@ interface MarketplaceData {
   releaseUrl: string;
   lowestPrice?: number;
   medianPrice?: number;
+  highestPrice?: number;
   numForSale: number;
   currency: string;
 }
@@ -738,10 +739,10 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
             <p className="text-sm text-muted-foreground/60 text-center py-2">{marketplaceError}</p>
           ) : marketplaceData ? (
             <>
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-4 gap-3 text-center">
                 <div className="flex flex-col items-center gap-1">
                   <span className="text-xs text-muted-foreground">Günstigster</span>
-                  <span className="font-semibold text-accent">
+                  <span className="font-semibold text-green-500">
                     {marketplaceData.lowestPrice 
                       ? `CHF ${marketplaceData.lowestPrice.toFixed(2)}`
                       : '–'
@@ -753,6 +754,15 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
                   <span className="font-medium">
                     {marketplaceData.medianPrice 
                       ? `CHF ${marketplaceData.medianPrice.toFixed(2)}`
+                      : '–'
+                    }
+                  </span>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Höchster</span>
+                  <span className="font-semibold text-red-400">
+                    {marketplaceData.highestPrice 
+                      ? `CHF ${marketplaceData.highestPrice.toFixed(2)}`
                       : '–'
                     }
                   </span>
