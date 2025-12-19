@@ -13,9 +13,16 @@ interface BarcodeScannerProps {
 export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
+
+  const isProbablyMobile =
+    typeof window !== "undefined" &&
+    (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+
+  const initialMode: "camera" | "file" = isProbablyMobile ? "file" : "camera";
+
+  const [mode, setMode] = useState<"camera" | "file">(initialMode);
+  const [isLoading, setIsLoading] = useState(initialMode === "camera");
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<"camera" | "file">("camera");
   const [manualCode, setManualCode] = useState("");
   const controlsRef = useRef<{ stop: () => void } | null>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
@@ -28,6 +35,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   }, []);
 
   const startScanning = useCallback(async () => {
+    stopScanning();
     setIsLoading(true);
     setError(null);
 
@@ -37,26 +45,63 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
       }
       const reader = readerRef.current;
 
+      if (!videoRef.current) {
+        throw new Error("Video element not ready");
+      }
+
+      // Best effort on mobile: request back camera by constraints first.
+      try {
+        const constraints: MediaStreamConstraints = {
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        };
+
+        const controls = await reader.decodeFromConstraints(
+          constraints,
+          videoRef.current,
+          (result) => {
+            if (result) {
+              const barcodeText = result.getText();
+              onScan(barcodeText);
+              onClose();
+            }
+          }
+        );
+
+        controlsRef.current = controls;
+        setIsLoading(false);
+        return;
+      } catch (constraintErr) {
+        // Fallback below.
+        console.debug("decodeFromConstraints failed, falling back:", constraintErr);
+      }
+
       const videoInputDevices = await BrowserMultiFormatReader.listVideoInputDevices();
-      
+
       if (videoInputDevices.length === 0) {
-        setError("Keine Kamera gefunden. Nutze den Datei-Upload oder manuelle Eingabe.");
+        setError("Keine Kamera gefunden. Nutze den Foto-Modus oder manuelle Eingabe.");
+        setMode("file");
         setIsLoading(false);
         return;
       }
 
       // Prefer back camera
       const backCamera = videoInputDevices.find(
-        (device) => device.label.toLowerCase().includes("back") || 
-                    device.label.toLowerCase().includes("rear") ||
-                    device.label.toLowerCase().includes("rück")
+        (device) =>
+          device.label.toLowerCase().includes("back") ||
+          device.label.toLowerCase().includes("rear") ||
+          device.label.toLowerCase().includes("rück")
       );
       const deviceId = backCamera?.deviceId || videoInputDevices[0].deviceId;
 
       const controls = await reader.decodeFromVideoDevice(
         deviceId,
-        videoRef.current!,
-        (result, err) => {
+        videoRef.current,
+        (result) => {
           if (result) {
             const barcodeText = result.getText();
             onScan(barcodeText);
@@ -64,15 +109,18 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
           }
         }
       );
-      
+
       controlsRef.current = controls;
       setIsLoading(false);
     } catch (err) {
       console.error("Barcode scanner error:", err);
-      setError("Kamerazugriff nicht möglich. Nutze den Datei-Upload oder manuelle Eingabe.");
+      setError(
+        "Kamerazugriff nicht möglich. Nutze „Foto/Datei“ oder gib den Code manuell ein."
+      );
+      setMode("file");
       setIsLoading(false);
     }
-  }, [onScan, onClose]);
+  }, [onScan, onClose, stopScanning]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,19 +163,21 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   }, [stopScanning]);
 
   const switchToCamera = useCallback(() => {
+    setError(null);
     setMode("camera");
-    startScanning();
-  }, [startScanning]);
+  }, []);
 
   useEffect(() => {
     if (mode === "camera") {
       startScanning();
+    } else {
+      stopScanning();
     }
 
     return () => {
       stopScanning();
     };
-  }, []);
+  }, [mode, startScanning, stopScanning]);
 
   return (
     <motion.div
