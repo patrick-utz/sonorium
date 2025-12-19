@@ -8,12 +8,14 @@ import {
   Download,
   Disc3,
   Menu,
-  X
+  X,
+  Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QuickSearch } from "@/components/QuickSearch";
+import { useRecords } from "@/context/RecordContext";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -25,6 +27,8 @@ const navItems = [
 export function Layout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { getFavoriteRecords } = useRecords();
+  const favoriteCount = getFavoriteRecords().length;
 
   return (
     <div className="min-h-screen bg-background texture-overlay">
@@ -68,6 +72,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </NavLink>
               );
             })}
+            
+            {/* Favorites Quick Link */}
+            <NavLink
+              to="/sammlung?favorites=true"
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all relative",
+                location.search.includes("favorites=true")
+                  ? "bg-red-500 text-white"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              )}
+              title="Favoriten anzeigen"
+            >
+              <Star className={cn("w-4 h-4", location.search.includes("favorites=true") && "fill-current")} />
+              {favoriteCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {favoriteCount}
+                </span>
+              )}
+            </NavLink>
           </nav>
 
           {/* Add Button */}
@@ -126,6 +149,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       </NavLink>
                     );
                   })}
+                  
+                  {/* Mobile Favorites Link */}
+                  <NavLink
+                    to="/sammlung?favorites=true"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                      location.search.includes("favorites=true")
+                        ? "bg-red-500 text-white"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    )}
+                  >
+                    <Star className={cn("w-5 h-5", location.search.includes("favorites=true") && "fill-current")} />
+                    Favoriten
+                    {favoriteCount > 0 && (
+                      <span className="ml-auto w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                        {favoriteCount}
+                      </span>
+                    )}
+                  </NavLink>
                 </div>
               </div>
             </motion.nav>
