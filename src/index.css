@@ -280,6 +280,35 @@
     @apply text-muted-foreground/25;
   }
 
+  /* Favorite heart - gold glow */
+  .heart-favorite {
+    @apply text-vinyl-gold fill-vinyl-gold;
+    filter: drop-shadow(0 0 6px hsl(var(--vinyl-gold) / 0.5)) 
+            drop-shadow(0 0 12px hsl(var(--vinyl-gold) / 0.3));
+    animation: heart-pulse 2s ease-in-out infinite;
+  }
+
+  .heart-inactive {
+    @apply text-muted-foreground/50;
+    transition: all 0.3s ease;
+  }
+
+  .heart-inactive:hover {
+    @apply text-vinyl-gold/60;
+    filter: drop-shadow(0 0 4px hsl(var(--vinyl-gold) / 0.3));
+  }
+
+  @keyframes heart-pulse {
+    0%, 100% {
+      filter: drop-shadow(0 0 6px hsl(var(--vinyl-gold) / 0.5)) 
+              drop-shadow(0 0 12px hsl(var(--vinyl-gold) / 0.3));
+    }
+    50% {
+      filter: drop-shadow(0 0 8px hsl(var(--vinyl-gold) / 0.6)) 
+              drop-shadow(0 0 16px hsl(var(--vinyl-gold) / 0.4));
+    }
+  }
+
   /* Section headings */
   .section-heading {
     font-family: "Playfair Display", Georgia, serif;
