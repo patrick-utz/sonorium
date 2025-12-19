@@ -29,11 +29,11 @@
 
     /* Secondary */
     --secondary: 220 10% 16%;
-    --secondary-foreground: 220 10% 70%;
+    --secondary-foreground: 220 10% 80%;
 
     /* Muted */
     --muted: 220 10% 16%;
-    --muted-foreground: 220 10% 50%;
+    --muted-foreground: 220 10% 65%;
 
     /* Accent - Warm gold for stars */
     --accent: 43 90% 55%;
@@ -98,10 +98,10 @@
     --primary-foreground: 220 15% 8%;
 
     --secondary: 220 10% 16%;
-    --secondary-foreground: 220 10% 70%;
+    --secondary-foreground: 220 10% 80%;
 
     --muted: 220 10% 16%;
-    --muted-foreground: 220 10% 50%;
+    --muted-foreground: 220 10% 65%;
 
     --accent: 43 90% 55%;
     --accent-foreground: 220 15% 8%;
