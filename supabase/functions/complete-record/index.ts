@@ -856,11 +856,97 @@ serve(async (req) => {
   }
 
   try {
-    const { artist, album, year, genre, label, coverArt, barcode, catalogNumber } = await req.json();
+    const { artist: inputArtist, album: inputAlbum, year, genre, label, coverArt, barcode, catalogNumber, labelImage } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    let artist = inputArtist;
+    let album = inputAlbum;
+    let extractedBarcode: string | undefined;
+    let extractedCatalogNumber: string | undefined;
+
+    // Step 0a: If labelImage is provided, use AI to extract album information
+    if (labelImage) {
+      console.log('Analyzing label image with AI...');
+      try {
+        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'system',
+                content: `Du bist ein Experte für Schallplatten und CDs. Analysiere das Bild eines Album-Labels oder Covers und extrahiere die folgenden Informationen. Antworte NUR mit einem JSON-Objekt, ohne zusätzlichen Text.
+
+Das JSON muss diese Struktur haben:
+{
+  "artist": "Künstlername",
+  "album": "Albumtitel",
+  "label": "Plattenlabel (z.B. ECM, Blue Note, Deutsche Grammophon)",
+  "catalogNumber": "Katalognummer (z.B. ECM 1234, BN-LA456-G)",
+  "barcode": "EAN/Barcode falls sichtbar (nur Zahlen)",
+  "year": Jahr als Zahl oder null,
+  "confidence": "high" | "medium" | "low"
+}
+
+Wichtige Hinweise:
+- Extrahiere alle sichtbaren Informationen
+- Katalognummern haben oft ein Format wie "ECM 1234" oder "2LP-567"
+- Wenn du dir nicht sicher bist, setze das Feld auf null
+- Suche nach Hinweisen auf Label, Katalognummer, EAN-Code`
+              },
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Analysiere dieses Bild eines Album-Labels oder Covers und extrahiere die Informationen.'
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: labelImage
+                    }
+                  }
+                ]
+              }
+            ],
+            max_tokens: 500
+          })
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          const content = aiData.choices?.[0]?.message?.content || '';
+          console.log('AI response:', content);
+          
+          // Parse JSON from response
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            try {
+              const parsed = JSON.parse(jsonMatch[0]);
+              artist = artist || parsed.artist || undefined;
+              album = album || parsed.album || undefined;
+              extractedBarcode = parsed.barcode || undefined;
+              extractedCatalogNumber = parsed.catalogNumber || undefined;
+              console.log('Extracted from image:', { artist, album, barcode: extractedBarcode, catalogNumber: extractedCatalogNumber });
+            } catch (parseErr) {
+              console.error('Failed to parse AI JSON response:', parseErr);
+            }
+          }
+        } else {
+          console.error('AI analysis failed:', aiResponse.status, await aiResponse.text());
+        }
+      } catch (aiErr) {
+        console.error('AI image analysis error:', aiErr);
+      }
     }
 
     let foundCoverArt: string | null = null;
@@ -878,10 +964,14 @@ serve(async (req) => {
       styles?: string[];
     } | null = null;
 
+    // Use extracted values if not provided directly
+    const effectiveBarcode = barcode || extractedBarcode;
+    const effectiveCatalogNumber = catalogNumber || extractedCatalogNumber;
+
     // Step 0: Get Discogs pressing information first (if API key is configured)
     if (DISCOGS_API_KEY) {
       console.log('Fetching Discogs pressing information...');
-      discogsPressInfo = await getDiscogsPressInfo(artist || '', album || '', barcode, catalogNumber);
+      discogsPressInfo = await getDiscogsPressInfo(artist || '', album || '', effectiveBarcode, effectiveCatalogNumber);
       if (discogsPressInfo) {
         console.log('Got Discogs press info:', discogsPressInfo);
       }
@@ -889,17 +979,17 @@ serve(async (req) => {
     }
 
     // Step 1: Try catalog number first (most reliable for vinyl)
-    if (catalogNumber || barcode) {
-      const searchTerm = catalogNumber || barcode;
+    if (effectiveCatalogNumber || effectiveBarcode) {
+      const searchTerm = effectiveCatalogNumber || effectiveBarcode;
       console.log('Searching by catalog/barcode:', searchTerm);
       
       // Try catalog number search first
-      mbData = await searchByCatalogNumber(searchTerm);
+      mbData = await searchByCatalogNumber(searchTerm!);
       
       // If catalog number didn't work, try barcode search
-      if (!mbData && barcode) {
+      if (!mbData && effectiveBarcode) {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        mbData = await searchByBarcode(barcode);
+        mbData = await searchByBarcode(effectiveBarcode);
       }
       
       if (mbData?.mbid) {
@@ -913,7 +1003,7 @@ serve(async (req) => {
         
         // Multi-source cover art search (with Discogs priority)
         await new Promise(resolve => setTimeout(resolve, 500));
-        foundCoverArt = await searchCoverArtMultiSource(mbData.artist, mbData.album, mbData.mbid, barcode, catalogNumber);
+        foundCoverArt = await searchCoverArtMultiSource(mbData.artist, mbData.album, mbData.mbid, effectiveBarcode, effectiveCatalogNumber);
       }
     }
     
@@ -935,10 +1025,10 @@ serve(async (req) => {
         
         // Multi-source cover art search (with Discogs priority)
         await new Promise(resolve => setTimeout(resolve, 500));
-        foundCoverArt = await searchCoverArtMultiSource(artist, album, mbid, barcode, catalogNumber);
+        foundCoverArt = await searchCoverArtMultiSource(artist, album, mbid, effectiveBarcode, effectiveCatalogNumber);
       } else {
         // No MusicBrainz match, still try cover art sources
-        foundCoverArt = await searchCoverArtMultiSource(artist, album, undefined, barcode, catalogNumber);
+        foundCoverArt = await searchCoverArtMultiSource(artist, album, undefined, effectiveBarcode, effectiveCatalogNumber);
       }
     }
     
@@ -949,8 +1039,8 @@ serve(async (req) => {
         artist || mbData?.artist || '', 
         album || mbData?.album || '',
         undefined,
-        barcode,
-        catalogNumber
+        effectiveBarcode,
+        effectiveCatalogNumber
       );
     }
     
