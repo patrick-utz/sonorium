@@ -1,6 +1,7 @@
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
-import { Disc3, Heart } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Disc3, Disc, Music, TrendingUp, Calendar, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
@@ -10,16 +11,30 @@ export default function Dashboard() {
 
   const ownedRecords = getOwnedRecords();
   const wishlistRecords = getWishlistRecords();
+  const vinylCount = records.filter((r) => r.format === "vinyl").length;
+  const cdCount = records.filter((r) => r.format === "cd").length;
+
+  // Calculate genre distribution
+  const genreCount = records.reduce((acc, record) => {
+    record.genre.forEach((g) => {
+      acc[g] = (acc[g] || 0) + 1;
+    });
+    return acc;
+  }, {} as Record<string, number>);
+
+  const topGenres = Object.entries(genreCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
 
   // Recently added
-  const recentlyAdded = [...ownedRecords]
+  const recentlyAdded = [...records]
     .sort((a, b) => new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime())
     .slice(0, 4);
 
-  // Featured record (most recent or highest rated)
-  const featuredRecord = [...ownedRecords]
-    .sort((a, b) => b.myRating - a.myRating || new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime())
-    [0];
+  // Top rated
+  const topRated = [...ownedRecords]
+    .filter((r) => r.myRating === 5)
+    .slice(0, 4);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -39,132 +54,156 @@ export default function Dashboard() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      className="space-y-8"
     >
-      {/* Header Greeting */}
-      <motion.div variants={itemVariants}>
-        <h1 className="text-3xl font-bold text-foreground">
-          Hallo, <span className="text-muted-foreground">Sammler</span>
+      {/* Hero Section */}
+      <motion.div variants={itemVariants} className="text-center py-6 md:py-10">
+        <h1 className="font-display text-4xl md:text-5xl font-bold gradient-text mb-3">
+          Willkommen bei VinylVault
         </h1>
-        <p className="text-muted-foreground mt-1">
-          Deine Sammlung wächst.
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          Deine persönliche Tonträger-Sammlung, liebevoll kuratiert.
         </p>
       </motion.div>
 
       {/* Stats Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
-        <div 
-          className="stat-card cursor-pointer hover:bg-card/80 transition-colors"
-          onClick={() => navigate("/sammlung")}
-        >
-          <div className="flex-1">
-            <p className="text-3xl font-bold text-foreground">{ownedRecords.length}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Alben</p>
-          </div>
-          <Disc3 className="w-6 h-6 text-muted-foreground" />
-        </div>
-
-        <div 
-          className="stat-card cursor-pointer hover:bg-card/80 transition-colors"
-          onClick={() => navigate("/wunschliste")}
-        >
-          <div className="flex-1">
-            <p className="text-3xl font-bold text-foreground">{wishlistRecords.length}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Wunschliste</p>
-          </div>
-          <Heart className="w-6 h-6 text-muted-foreground" />
-        </div>
-      </motion.div>
-
-      {/* Featured Record - Aktuelle Rotation */}
-      {featuredRecord && (
-        <motion.div variants={itemVariants}>
-          <h2 className="section-title mb-3">Aktuelle Rotation</h2>
-          <div 
-            className="feature-card cursor-pointer"
-            onClick={() => navigate(`/sammlung/${featuredRecord.id}`)}
-          >
-            <div className="relative aspect-[4/3] overflow-hidden">
-              {featuredRecord.coverArt ? (
-                <img
-                  src={featuredRecord.coverArt}
-                  alt={featuredRecord.album}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="album-placeholder">
-                  <Disc3 className="w-16 h-16 text-muted-foreground" />
-                </div>
-              )}
-              
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
-              
-              {/* Content */}
-              <div className="absolute bottom-0 left-0 right-0 p-4">
-                <div className="now-playing-badge mb-2 w-fit">
-                  <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
-                  NOW PLAYING
-                </div>
-                <h3 className="text-xl font-bold text-foreground">{featuredRecord.album}</h3>
-                <p className="text-muted-foreground">{featuredRecord.artist}</p>
+      <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-card border-border/50 shadow-card hover:shadow-vinyl transition-shadow">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 md:p-3 rounded-xl bg-primary/10">
+                <Music className="w-5 h-5 md:w-6 md:h-6 text-primary" />
               </div>
-
-              {/* Play button */}
-              <div className="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center">
-                <div className="w-0 h-0 border-l-[12px] border-l-foreground border-y-[8px] border-y-transparent ml-1" />
+              <div>
+                <p className="text-2xl md:text-3xl font-display font-bold text-foreground">
+                  {records.length}
+                </p>
+                <p className="text-xs md:text-sm text-muted-foreground">Gesamt</p>
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card border-border/50 shadow-card hover:shadow-vinyl transition-shadow">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 md:p-3 rounded-xl bg-primary/10">
+                <Disc3 className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl md:text-3xl font-display font-bold text-foreground">
+                  {vinylCount}
+                </p>
+                <p className="text-xs md:text-sm text-muted-foreground">Vinyl</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card border-border/50 shadow-card hover:shadow-vinyl transition-shadow">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 md:p-3 rounded-xl bg-secondary">
+                <Disc className="w-5 h-5 md:w-6 md:h-6 text-secondary-foreground" />
+              </div>
+              <div>
+                <p className="text-2xl md:text-3xl font-display font-bold text-foreground">
+                  {cdCount}
+                </p>
+                <p className="text-xs md:text-sm text-muted-foreground">CDs</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card border-border/50 shadow-card hover:shadow-vinyl transition-shadow">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 md:p-3 rounded-xl bg-accent/10">
+                <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-accent" />
+              </div>
+              <div>
+                <p className="text-2xl md:text-3xl font-display font-bold text-foreground">
+                  {wishlistRecords.length}
+                </p>
+                <p className="text-xs md:text-sm text-muted-foreground">Wunschliste</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Top Genres */}
+      {topGenres.length > 0 && (
+        <motion.div variants={itemVariants}>
+          <Card className="bg-gradient-card border-border/50 shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-xl flex items-center gap-2">
+                <Music className="w-5 h-5 text-primary" />
+                Top Genres
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {topGenres.map(([genre, count]) => (
+                  <div
+                    key={genre}
+                    className="px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium"
+                  >
+                    {genre} ({count})
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       )}
 
-      {/* Format Filter Tabs */}
-      <motion.div variants={itemVariants} className="flex gap-2 overflow-x-auto scrollbar-hidden py-1">
-        <button className="filter-tab active whitespace-nowrap">Alle</button>
-        <button className="filter-tab whitespace-nowrap" onClick={() => navigate("/sammlung?format=vinyl")}>Vinyl</button>
-        <button className="filter-tab whitespace-nowrap" onClick={() => navigate("/sammlung?format=cd")}>CD</button>
-        <button className="filter-tab whitespace-nowrap">Digital</button>
-        <button className="filter-tab whitespace-nowrap">Kassette</button>
-      </motion.div>
-
-      {/* Recently Added - Neuzugänge */}
+      {/* Recently Added */}
       {recentlyAdded.length > 0 && (
         <motion.div variants={itemVariants}>
-          <div className="section-header">
-            <h2 className="section-title">Neuzugänge</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-2xl font-semibold flex items-center gap-2">
+              <Calendar className="w-6 h-6 text-primary" />
+              Zuletzt hinzugefügt
+            </h2>
             <button
               onClick={() => navigate("/sammlung")}
-              className="section-link"
+              className="text-sm text-primary hover:text-primary/80 transition-colors"
             >
-              ALLE ANZEIGEN
+              Alle anzeigen →
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {recentlyAdded.map((record) => (
               <RecordCard
                 key={record.id}
                 record={record}
                 onClick={() => navigate(`/sammlung/${record.id}`)}
-                variant="compact"
               />
             ))}
           </div>
         </motion.div>
       )}
 
-      {/* Empty State */}
-      {ownedRecords.length === 0 && (
-        <motion.div variants={itemVariants} className="text-center py-16">
-          <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-card flex items-center justify-center">
-            <Disc3 className="w-12 h-12 text-muted-foreground" />
+      {/* Top Rated */}
+      {topRated.length > 0 && (
+        <motion.div variants={itemVariants}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-2xl font-semibold flex items-center gap-2">
+              <Star className="w-6 h-6 text-vinyl-gold" />
+              Deine Favoriten
+            </h2>
           </div>
-          <h3 className="text-xl font-bold text-foreground mb-2">
-            Starte deine Sammlung
-          </h3>
-          <p className="text-muted-foreground">
-            Füge deinen ersten Tonträger hinzu!
-          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {topRated.map((record) => (
+              <RecordCard
+                key={record.id}
+                record={record}
+                onClick={() => navigate(`/sammlung/${record.id}`)}
+              />
+            ))}
+          </div>
         </motion.div>
       )}
     </motion.div>
