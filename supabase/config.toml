@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.discogs-marketplace]
 verify_jwt = false
+
+[functions.artist-research]
+verify_jwt = false
