@@ -45,17 +45,46 @@ export default function Research() {
     setResult(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('artist-research', {
-        body: { artist: searchQuery, profile }
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 Sekunden Timeout
 
-      if (fnError) throw fnError;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/artist-research`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ artist: searchQuery, profile }),
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 429) {
+          throw new Error("Rate-Limit erreicht. Bitte versuche es in einer Minute erneut.");
+        }
+        if (response.status === 402) {
+          throw new Error("Credits aufgebraucht. Bitte Workspace aufladen.");
+        }
+        throw new Error(errorData.error || `Fehler: ${response.status}`);
+      }
+
+      const data = await response.json();
       if (data.error) throw new Error(data.error);
 
       setResult(data);
     } catch (err: any) {
       console.error("Research error:", err);
-      setError(err.message || "Ein Fehler ist aufgetreten");
+      if (err.name === 'AbortError') {
+        setError("Zeitüberschreitung - die KI-Anfrage hat zu lange gedauert. Bitte erneut versuchen.");
+      } else {
+        setError(err.message || "Ein Fehler ist aufgetreten");
+      }
     } finally {
       setIsSearching(false);
     }
