@@ -22,6 +22,9 @@ import {
   ShoppingCart,
   CalendarDays,
   Sparkles,
+  ExternalLink,
+  Star,
+  Heart,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -39,7 +42,7 @@ import {
 
 export default function RecordDetail() {
   const { id } = useParams<{ id: string }>();
-  const { getRecordById, deleteRecord } = useRecords();
+  const { getRecordById, deleteRecord, records, addRecord } = useRecords();
   const navigate = useNavigate();
 
   const record = getRecordById(id || "");
@@ -393,6 +396,103 @@ export default function RecordDetail() {
           </Card>
         )}
       </div>
+
+      {/* Recommendations - Full Width */}
+      {record.recommendations && record.recommendations.length > 0 && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Ähnliche Alben
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {record.recommendations.map((rec, index) => (
+                <div key={index} className="bg-muted/50 rounded-lg p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    {rec.coverArt && (
+                      <img 
+                        src={rec.coverArt} 
+                        alt={`${rec.artist} - ${rec.album}`}
+                        className="w-16 h-16 rounded-md object-cover flex-shrink-0"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-foreground truncate">{rec.album}</p>
+                      <p className="text-sm text-muted-foreground truncate">{rec.artist}</p>
+                      {rec.year && <p className="text-xs text-muted-foreground">{rec.year}</p>}
+                    </div>
+                    {rec.qualityScore && (
+                      <span className="flex flex-shrink-0">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className={`w-3 h-3 ${i < rec.qualityScore! ? 'fill-primary text-primary' : 'text-muted-foreground'}`} />
+                        ))}
+                      </span>
+                    )}
+                  </div>
+                  {rec.reason && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">{rec.reason}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => {
+                        const query = encodeURIComponent(`${rec.artist} ${rec.album}`);
+                        window.open(`https://open.spotify.com/search/${query}`, '_blank');
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-[#1DB954]/10 text-[#1DB954] hover:bg-[#1DB954]/20 transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Spotify
+                    </button>
+                    <button
+                      onClick={() => {
+                        const query = encodeURIComponent(`${rec.artist} ${rec.album}`);
+                        window.open(`https://tidal.com/search?q=${query}`, '_blank');
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-[#00FFFF]/10 text-[#00BFBF] hover:bg-[#00FFFF]/20 transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Tidal
+                    </button>
+                    <button
+                      onClick={() => {
+                        const existingRecord = records.find(
+                          r => r.artist.toLowerCase() === rec.artist.toLowerCase() && 
+                               r.album.toLowerCase() === rec.album.toLowerCase()
+                        );
+                        
+                        if (existingRecord) {
+                          const location = existingRecord.status === 'owned' ? 'Sammlung' : 'Wunschliste';
+                          alert(`${rec.artist} – ${rec.album} ist bereits in deiner ${location}.`);
+                          return;
+                        }
+                        
+                        addRecord({
+                          artist: rec.artist,
+                          album: rec.album,
+                          year: rec.year || new Date().getFullYear(),
+                          genre: record.genre || [],
+                          label: '',
+                          format: 'vinyl',
+                          status: 'wishlist',
+                          myRating: 0,
+                          coverArt: rec.coverArt,
+                        });
+                        alert(`${rec.artist} – ${rec.album} zur Wunschliste hinzugefügt!`);
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      <Heart className="w-3 h-3" />
+                      Wunschliste
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </motion.div>
   );
 }
