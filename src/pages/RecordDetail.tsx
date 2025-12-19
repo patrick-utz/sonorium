@@ -220,6 +220,20 @@ export default function RecordDetail() {
               {record.isFavorite ? "Favorit" : "Favorit hinzufügen"}
             </Button>
             <Button
+              asChild
+              variant="outline"
+              className="gap-2"
+            >
+              <a
+                href={`https://tidal.com/search?q=${encodeURIComponent(`${record.artist} ${record.album}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Auf Tidal anhören
+              </a>
+            </Button>
+            <Button
               onClick={() => navigate(`/bearbeiten/${record.id}`)}
               variant="secondary"
               className="gap-2"
