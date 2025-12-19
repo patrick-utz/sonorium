@@ -36,8 +36,12 @@ import {
   Check,
   X,
   TrendingUp,
+  TrendingDown,
   ExternalLink as ExternalLinkIcon,
   Loader2,
+  ThumbsUp,
+  ThumbsDown,
+  Minus,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -733,30 +737,41 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
           ) : marketplaceError ? (
             <p className="text-sm text-muted-foreground/60 text-center py-2">{marketplaceError}</p>
           ) : marketplaceData ? (
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-xs text-muted-foreground">Günstigster</span>
-                <span className="font-semibold text-accent">
-                  {marketplaceData.lowestPrice 
-                    ? `CHF ${marketplaceData.lowestPrice.toFixed(2)}`
-                    : '–'
-                  }
-                </span>
+            <>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Günstigster</span>
+                  <span className="font-semibold text-accent">
+                    {marketplaceData.lowestPrice 
+                      ? `CHF ${marketplaceData.lowestPrice.toFixed(2)}`
+                      : '–'
+                    }
+                  </span>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Median</span>
+                  <span className="font-medium">
+                    {marketplaceData.medianPrice 
+                      ? `CHF ${marketplaceData.medianPrice.toFixed(2)}`
+                      : '–'
+                    }
+                  </span>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Angebote</span>
+                  <span className="font-medium">{marketplaceData.numForSale}</span>
+                </div>
               </div>
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-xs text-muted-foreground">Median</span>
-                <span className="font-medium">
-                  {marketplaceData.medianPrice 
-                    ? `CHF ${marketplaceData.medianPrice.toFixed(2)}`
-                    : '–'
-                  }
-                </span>
-              </div>
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-xs text-muted-foreground">Angebote</span>
-                <span className="font-medium">{marketplaceData.numForSale}</span>
-              </div>
-            </div>
+              
+              {/* Deal Analysis */}
+              {record.purchasePrice && marketplaceData.medianPrice && (
+                <DealAnalysis 
+                  purchasePrice={record.purchasePrice} 
+                  lowestPrice={marketplaceData.lowestPrice}
+                  medianPrice={marketplaceData.medianPrice} 
+                />
+              )}
+            </>
           ) : null}
         </div>
         
@@ -767,5 +782,95 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// Deal Analysis Component
+interface DealAnalysisProps {
+  purchasePrice: number;
+  lowestPrice?: number;
+  medianPrice: number;
+}
+
+function DealAnalysis({ purchasePrice, lowestPrice, medianPrice }: DealAnalysisProps) {
+  const comparePrice = medianPrice;
+  const difference = purchasePrice - comparePrice;
+  const percentDiff = ((difference / comparePrice) * 100);
+  
+  // Determine deal quality
+  const getDealInfo = () => {
+    if (percentDiff <= -20) {
+      return {
+        label: "Schnäppchen!",
+        description: `${Math.abs(percentDiff).toFixed(0)}% unter dem Median`,
+        icon: ThumbsUp,
+        colorClass: "text-green-500",
+        bgClass: "bg-green-500/10",
+        borderClass: "border-green-500/30"
+      };
+    } else if (percentDiff <= -5) {
+      return {
+        label: "Guter Deal",
+        description: `${Math.abs(percentDiff).toFixed(0)}% unter dem Median`,
+        icon: ThumbsUp,
+        colorClass: "text-green-400",
+        bgClass: "bg-green-500/5",
+        borderClass: "border-green-500/20"
+      };
+    } else if (percentDiff <= 5) {
+      return {
+        label: "Fairer Preis",
+        description: "Im Bereich des Medianpreises",
+        icon: Minus,
+        colorClass: "text-muted-foreground",
+        bgClass: "bg-muted/50",
+        borderClass: "border-border"
+      };
+    } else if (percentDiff <= 20) {
+      return {
+        label: "Etwas teurer",
+        description: `${percentDiff.toFixed(0)}% über dem Median`,
+        icon: TrendingUp,
+        colorClass: "text-amber-500",
+        bgClass: "bg-amber-500/10",
+        borderClass: "border-amber-500/30"
+      };
+    } else {
+      return {
+        label: "Premium-Preis",
+        description: `${percentDiff.toFixed(0)}% über dem Median`,
+        icon: TrendingUp,
+        colorClass: "text-red-400",
+        bgClass: "bg-red-500/10",
+        borderClass: "border-red-500/30"
+      };
+    }
+  };
+  
+  const dealInfo = getDealInfo();
+  const Icon = dealInfo.icon;
+  
+  return (
+    <div className={cn(
+      "mt-4 p-3 rounded-lg border",
+      dealInfo.bgClass,
+      dealInfo.borderClass
+    )}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Icon className={cn("w-5 h-5", dealInfo.colorClass)} />
+          <div>
+            <p className={cn("font-medium", dealInfo.colorClass)}>{dealInfo.label}</p>
+            <p className="text-xs text-muted-foreground">{dealInfo.description}</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-muted-foreground">Dein Preis</p>
+          <p className={cn("font-semibold", dealInfo.colorClass)}>
+            CHF {purchasePrice.toFixed(2)}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
