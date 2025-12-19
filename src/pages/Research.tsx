@@ -69,13 +69,14 @@ export default function Research() {
     addRecord({
       artist: album.artist,
       album: album.album,
-      year: album.year,
+      year: parseInt(album.year) || new Date().getFullYear(),
+      genre: [],
       label: bestPressing?.label || album.label,
       catalogNumber: bestPressing?.catalogNumber || "",
       format: profile?.mediaFormat === 'cd' ? 'cd' : 'vinyl',
       status: "wishlist",
-      rating: album.musicalRating || 0,
-      notes: `${album.description}\n\nPressung: ${bestPressing?.notes || 'Siehe Empfehlungen'}`,
+      myRating: album.musicalRating || 0,
+      personalNotes: `${album.description}\n\nPressung: ${bestPressing?.notes || 'Siehe Empfehlungen'}`,
       tags: [],
       isFavorite: false,
     });
@@ -116,14 +117,8 @@ export default function Research() {
   };
 
   return (
-    <>
-      <Helmet>
-        <title>Recherche | SONORIUM</title>
-        <meta name="description" content="Finde die besten audiophilen Pressungen für deine Lieblingsmusiker" />
-      </Helmet>
-
-      <div className="space-y-6">
-        {/* Header */}
+    <div className="space-y-6">
+      {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">Recherche</h1>
@@ -436,7 +431,6 @@ export default function Research() {
             </CardContent>
           </Card>
         )}
-      </div>
-    </>
+    </div>
   );
 }

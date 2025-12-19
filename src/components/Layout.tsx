@@ -9,7 +9,8 @@ import {
   Disc3,
   Menu,
   X,
-  Star
+  Star,
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -21,6 +22,7 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/sammlung", label: "Sammlung", icon: Library },
   { to: "/wunschliste", label: "Wunschliste", icon: Heart },
+  { to: "/recherche", label: "Recherche", icon: Search },
   { to: "/export", label: "Export", icon: Download },
 ];
 
