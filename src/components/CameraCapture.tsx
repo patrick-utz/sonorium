@@ -161,6 +161,13 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     startCamera();
   }, [startCamera]);
 
+  // Auto-start camera on mount when in camera mode
+  useEffect(() => {
+    if (mode === "camera" && !stream && !isStarting && !capturedImage) {
+      startCamera();
+    }
+  }, [mode]);
+
   useEffect(() => {
     return () => {
       stopCamera();
@@ -233,17 +240,34 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture
+              capture="environment"
               onChange={handleFileSelect}
               className="hidden"
             />
-            <Button 
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              Datei auswählen
-            </Button>
+            <div className="space-y-2 w-full">
+              <Button 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full gap-2"
+              >
+                <Camera className="w-4 h-4" />
+                Foto aufnehmen
+              </Button>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+                id="gallery-input"
+              />
+              <Button 
+                variant="outline"
+                onClick={() => document.getElementById('gallery-input')?.click()}
+                className="w-full gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Aus Galerie wählen
+              </Button>
+            </div>
           </div>
         ) : error ? (
           <div className="text-center space-y-4 p-6 bg-card rounded-lg max-w-sm">
