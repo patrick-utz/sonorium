@@ -202,13 +202,13 @@ export default function RecordDetail() {
           <div className="flex flex-wrap gap-2 pt-4">
             <Button
               onClick={() => toggleFavorite(record.id)}
-              variant={record.isFavorite ? "default" : "outline"}
-              className={cn(
-                "gap-2",
-                record.isFavorite && "bg-red-500 hover:bg-red-600 text-white"
-              )}
+              variant={record.isFavorite ? "accent" : "outline"}
+              className="gap-2"
             >
-              <Heart className={cn("w-4 h-4", record.isFavorite && "fill-current")} />
+              <Heart className={cn(
+                "w-4 h-4",
+                record.isFavorite ? "heart-favorite fill-current" : "heart-inactive"
+              )} />
               {record.isFavorite ? "Favorit" : "Favorit hinzufügen"}
             </Button>
             <Button

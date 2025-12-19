@@ -178,12 +178,15 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
             className={cn(
               "absolute bottom-3 right-3 p-2 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110",
               record.isFavorite 
-                ? "bg-red-500/80 text-white opacity-100" 
-                : "bg-background/80 text-muted-foreground opacity-0 group-hover:opacity-100"
+                ? "bg-background/90 opacity-100" 
+                : "bg-background/80 opacity-0 group-hover:opacity-100"
             )}
             title={record.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
           >
-            <Heart className={cn("w-4 h-4", record.isFavorite && "fill-current")} />
+            <Heart className={cn(
+              "w-4 h-4 transition-all duration-300",
+              record.isFavorite ? "heart-favorite fill-current" : "heart-inactive"
+            )} />
           </button>
         )}
         
