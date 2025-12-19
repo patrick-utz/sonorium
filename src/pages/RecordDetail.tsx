@@ -1,11 +1,17 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { StarRating } from "@/components/StarRating";
 import { FormatBadge } from "@/components/FormatBadge";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { de } from "date-fns/locale";
 import {
   ArrowLeft,
   Calendar,
@@ -25,6 +31,9 @@ import {
   ExternalLink,
   Star,
   Heart,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -42,7 +51,7 @@ import {
 
 export default function RecordDetail() {
   const { id } = useParams<{ id: string }>();
-  const { getRecordById, deleteRecord, records, addRecord, toggleFavorite } = useRecords();
+  const { getRecordById, deleteRecord, records, addRecord, toggleFavorite, updateRecord } = useRecords();
   const navigate = useNavigate();
 
   const record = getRecordById(id || "");
@@ -369,48 +378,7 @@ export default function RecordDetail() {
       )}
 
       {/* Kaufinformationen - volle Breite */}
-      <Card className="bg-gradient-card border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-primary" />
-            Kaufinformationen
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid sm:grid-cols-3 gap-4">
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-sm text-muted-foreground">Kaufdatum</span>
-              <span className="font-medium flex items-center gap-1">
-                <CalendarDays className="w-4 h-4" />
-                {record.purchaseDate 
-                  ? new Date(record.purchaseDate).toLocaleDateString("de-CH")
-                  : <span className="text-muted-foreground/50">–</span>
-                }
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-sm text-muted-foreground">Preis</span>
-              <span className="font-semibold">
-                {record.purchasePrice 
-                  ? `CHF ${record.purchasePrice.toFixed(2)}`
-                  : <span className="text-muted-foreground/50">–</span>
-                }
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-sm text-muted-foreground">Gekauft bei</span>
-              <span className="font-medium">
-                {record.purchaseLocation || <span className="text-muted-foreground/50">–</span>}
-              </span>
-            </div>
-          </div>
-          <div className="flex justify-center pt-4 border-t border-border/50 mt-4">
-            <span className="text-sm text-muted-foreground">
-              Hinzugefügt am {new Date(record.dateAdded).toLocaleDateString("de-CH")}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+      <PurchaseInfoCard record={record} updateRecord={updateRecord} />
 
       {/* Recommendations - Full Width */}
       {record.recommendations && record.recommendations.length > 0 && (
@@ -509,5 +477,182 @@ export default function RecordDetail() {
         </Card>
       )}
     </motion.div>
+  );
+}
+
+// Purchase Info Component with inline editing
+interface PurchaseInfoCardProps {
+  record: {
+    id: string;
+    purchaseDate?: string;
+    purchasePrice?: number;
+    purchaseLocation?: string;
+    dateAdded: string;
+  };
+  updateRecord: (id: string, updates: Partial<{ purchaseDate?: string; purchasePrice?: number; purchaseLocation?: string }>) => void;
+}
+
+function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [purchaseDate, setPurchaseDate] = useState<Date | undefined>(
+    record.purchaseDate ? new Date(record.purchaseDate) : undefined
+  );
+  const [purchasePrice, setPurchasePrice] = useState(
+    record.purchasePrice?.toString() || ""
+  );
+  const [purchaseLocation, setPurchaseLocation] = useState(
+    record.purchaseLocation || ""
+  );
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  const handleSave = () => {
+    updateRecord(record.id, {
+      purchaseDate: purchaseDate ? purchaseDate.toISOString().split("T")[0] : undefined,
+      purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
+      purchaseLocation: purchaseLocation || undefined,
+    });
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setPurchaseDate(record.purchaseDate ? new Date(record.purchaseDate) : undefined);
+    setPurchasePrice(record.purchasePrice?.toString() || "");
+    setPurchaseLocation(record.purchaseLocation || "");
+    setIsEditing(false);
+  };
+
+  return (
+    <Card className="bg-gradient-card border-border/50">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ShoppingCart className="w-5 h-5 text-primary" />
+            Kaufinformationen
+          </CardTitle>
+          {!isEditing ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+              className="gap-1 text-muted-foreground hover:text-foreground"
+            >
+              <Pencil className="w-4 h-4" />
+              Bearbeiten
+            </Button>
+          ) : (
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancel}
+                className="gap-1 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+                Abbrechen
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleSave}
+                className="gap-1"
+              >
+                <Check className="w-4 h-4" />
+                Speichern
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isEditing ? (
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-sm text-muted-foreground">Kaufdatum</span>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !purchaseDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {purchaseDate ? format(purchaseDate, "dd.MM.yyyy", { locale: de }) : "Datum wählen"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <CalendarComponent
+                    mode="single"
+                    selected={purchaseDate}
+                    onSelect={(date) => {
+                      setPurchaseDate(date);
+                      setCalendarOpen(false);
+                    }}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-sm text-muted-foreground">Preis (CHF)</span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={purchasePrice}
+                onChange={(e) => setPurchasePrice(e.target.value)}
+                placeholder="0.00"
+                className="text-center"
+              />
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-sm text-muted-foreground">Gekauft bei</span>
+              <Input
+                type="text"
+                value={purchaseLocation}
+                onChange={(e) => setPurchaseLocation(e.target.value)}
+                placeholder="Händler / Shop"
+                className="text-center"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-sm text-muted-foreground">Kaufdatum</span>
+              <span className="font-medium flex items-center gap-1">
+                <CalendarDays className="w-4 h-4" />
+                {record.purchaseDate 
+                  ? new Date(record.purchaseDate).toLocaleDateString("de-CH")
+                  : <span className="text-muted-foreground/50">–</span>
+                }
+              </span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-sm text-muted-foreground">Preis</span>
+              <span className="font-semibold">
+                {record.purchasePrice 
+                  ? `CHF ${record.purchasePrice.toFixed(2)}`
+                  : <span className="text-muted-foreground/50">–</span>
+                }
+              </span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-sm text-muted-foreground">Gekauft bei</span>
+              <span className="font-medium">
+                {record.purchaseLocation || <span className="text-muted-foreground/50">–</span>}
+              </span>
+            </div>
+          </div>
+        )}
+        <div className="flex justify-center pt-4 border-t border-border/50 mt-4">
+          <span className="text-sm text-muted-foreground">
+            Hinzugefügt am {new Date(record.dateAdded).toLocaleDateString("de-CH")}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
