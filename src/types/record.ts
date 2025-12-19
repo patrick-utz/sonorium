@@ -72,6 +72,7 @@ export interface Record {
   // Notizen & Tags
   personalNotes?: string;
   tags?: string[]; // Stichworte für Stimmung, Instrumente, etc.
+  moods?: string[]; // Stimmungen wie "entspannend", "energiegeladen", etc.
   
   // Empfehlungen
   recommendations?: RecordRecommendation[];
