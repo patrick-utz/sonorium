@@ -1,13 +1,24 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRecords } from "@/context/RecordContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Download, FileSpreadsheet, FileText, Check } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Check, Save, Upload, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import { Record } from "@/types/record";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const exportFields = [
   { id: "artist", label: "Künstler", default: true },
@@ -33,12 +44,16 @@ const exportFields = [
 ];
 
 export default function Export() {
-  const { records } = useRecords();
+  const { records, importRecords } = useRecords();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFields, setSelectedFields] = useState<string[]>(
     exportFields.filter((f) => f.default).map((f) => f.id)
   );
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [pendingImport, setPendingImport] = useState<Record[] | null>(null);
+  const [importMode, setImportMode] = useState<"merge" | "replace">("merge");
 
   const toggleField = (fieldId: string) => {
     setSelectedFields((prev) =>
@@ -56,7 +71,7 @@ export default function Export() {
 
   const prepareExportData = () => {
     return records.map((record) => {
-      const row: Record<string, any> = {};
+      const row: globalThis.Record<string, any> = {};
       selectedFields.forEach((field) => {
         const value = record[field as keyof typeof record];
         if (field === "genre" && Array.isArray(value)) {
@@ -84,7 +99,7 @@ export default function Export() {
   };
 
   const getFieldLabels = () => {
-    const labels: Record<string, string> = {};
+    const labels: globalThis.Record<string, string> = {};
     exportFields.forEach((f) => {
       labels[f.id] = f.label;
     });
@@ -106,7 +121,7 @@ export default function Export() {
 
     // Transform data to use German labels as headers
     const transformedData = data.map((row) => {
-      const newRow: Record<string, any> = {};
+      const newRow: globalThis.Record<string, any> = {};
       Object.keys(row).forEach((key) => {
         newRow[labels[key] || key] = row[key];
       });
@@ -174,6 +189,77 @@ export default function Export() {
     });
   };
 
+  // Backup functions
+  const createBackup = () => {
+    const backup = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      recordCount: records.length,
+      records: records,
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `VinylVault_Backup_${new Date().toISOString().split("T")[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Sicherung erstellt",
+      description: `${records.length} Tonträger wurden gesichert.`,
+    });
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const backup = JSON.parse(content);
+
+        if (!backup.records || !Array.isArray(backup.records)) {
+          throw new Error("Ungültiges Backup-Format");
+        }
+
+        setPendingImport(backup.records);
+        setShowImportDialog(true);
+      } catch (error) {
+        toast({
+          title: "Fehler beim Lesen",
+          description: "Die Datei konnte nicht gelesen werden. Stelle sicher, dass es sich um eine gültige Backup-Datei handelt.",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const confirmImport = () => {
+    if (!pendingImport) return;
+
+    importRecords(pendingImport, importMode);
+    
+    toast({
+      title: "Import erfolgreich",
+      description: importMode === "replace" 
+        ? `${pendingImport.length} Tonträger wurden importiert (Sammlung ersetzt).`
+        : `${pendingImport.length} Tonträger wurden zur Sammlung hinzugefügt.`,
+    });
+
+    setPendingImport(null);
+    setShowImportDialog(false);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -184,10 +270,10 @@ export default function Export() {
       <div>
         <h1 className="font-display text-3xl md:text-4xl font-bold gradient-text flex items-center gap-3">
           <Download className="w-8 h-8 text-primary" />
-          Export
+          Export & Sicherung
         </h1>
         <p className="text-muted-foreground mt-1">
-          Exportiere deine Sammlung als Excel oder CSV-Datei
+          Exportiere oder sichere deine Sammlung
         </p>
       </div>
 
@@ -198,8 +284,54 @@ export default function Export() {
             <p className="text-4xl font-display font-bold text-foreground">
               {records.length}
             </p>
-            <p className="text-muted-foreground">Tonträger zum Exportieren</p>
+            <p className="text-muted-foreground">Tonträger in der Sammlung</p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Backup Section */}
+      <Card className="bg-gradient-card border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="font-display text-lg">Datensicherung</CardTitle>
+          <CardDescription>
+            Erstelle eine vollständige Sicherung deiner Sammlung oder stelle eine frühere Sicherung wieder her
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Card
+              className="bg-background/50 border-border/50 cursor-pointer hover:shadow-vinyl transition-shadow"
+              onClick={createBackup}
+            >
+              <CardContent className="p-4 text-center">
+                <Save className="w-10 h-10 mx-auto mb-2 text-primary" />
+                <h3 className="font-display font-semibold mb-1">Sicherung erstellen</h3>
+                <p className="text-xs text-muted-foreground">
+                  Alle Daten als JSON speichern
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="bg-background/50 border-border/50 cursor-pointer hover:shadow-vinyl transition-shadow"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <CardContent className="p-4 text-center">
+                <Upload className="w-10 h-10 mx-auto mb-2 text-accent" />
+                <h3 className="font-display font-semibold mb-1">Sicherung laden</h3>
+                <p className="text-xs text-muted-foreground">
+                  Frühere Sicherung wiederherstellen
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
         </CardContent>
       </Card>
 
@@ -208,7 +340,7 @@ export default function Export() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="font-display text-lg">Felder auswählen</CardTitle>
+              <CardTitle className="font-display text-lg">Export-Felder auswählen</CardTitle>
               <CardDescription>
                 Wähle aus, welche Informationen exportiert werden sollen
               </CardDescription>
@@ -278,6 +410,54 @@ export default function Export() {
         <Check className="w-4 h-4 inline mr-1" />
         {selectedFields.length} von {exportFields.length} Feldern ausgewählt
       </div>
+
+      {/* Import Confirmation Dialog */}
+      <AlertDialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-primary" />
+              Sicherung importieren
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Die Sicherung enthält <strong>{pendingImport?.length || 0} Tonträger</strong>.
+              </p>
+              <div className="space-y-2">
+                <Label className="text-foreground">Import-Modus:</Label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="importMode"
+                      checked={importMode === "merge"}
+                      onChange={() => setImportMode("merge")}
+                      className="accent-primary"
+                    />
+                    <span className="text-sm">Zusammenführen (hinzufügen)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="importMode"
+                      checked={importMode === "replace"}
+                      onChange={() => setImportMode("replace")}
+                      className="accent-primary"
+                    />
+                    <span className="text-sm">Ersetzen (überschreiben)</span>
+                  </label>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmImport}>
+              Importieren
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }

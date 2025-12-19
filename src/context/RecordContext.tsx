@@ -10,6 +10,7 @@ interface RecordContextType {
   getRecordById: (id: string) => Record | undefined;
   getOwnedRecords: () => Record[];
   getWishlistRecords: () => Record[];
+  importRecords: (records: Record[], mode: "merge" | "replace") => void;
 }
 
 const RecordContext = createContext<RecordContextType | undefined>(undefined);
@@ -64,6 +65,17 @@ export function RecordProvider({ children }: { children: ReactNode }) {
     return records.filter((record) => record.status === "wishlist");
   };
 
+  const importRecords = (importedRecords: Record[], mode: "merge" | "replace") => {
+    if (mode === "replace") {
+      setRecords(importedRecords);
+    } else {
+      // Merge: add imported records, skip duplicates by id
+      const existingIds = new Set(records.map((r) => r.id));
+      const newRecords = importedRecords.filter((r) => !existingIds.has(r.id));
+      setRecords((prev) => [...newRecords, ...prev]);
+    }
+  };
+
   return (
     <RecordContext.Provider
       value={{
@@ -74,6 +86,7 @@ export function RecordProvider({ children }: { children: ReactNode }) {
         getRecordById,
         getOwnedRecords,
         getWishlistRecords,
+        importRecords,
       }}
     >
       {children}
