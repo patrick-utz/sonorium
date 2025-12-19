@@ -42,7 +42,7 @@ import {
 
 export default function RecordDetail() {
   const { id } = useParams<{ id: string }>();
-  const { getRecordById, deleteRecord, records, addRecord } = useRecords();
+  const { getRecordById, deleteRecord, records, addRecord, toggleFavorite } = useRecords();
   const navigate = useNavigate();
 
   const record = getRecordById(id || "");
@@ -190,7 +190,18 @@ export default function RecordDetail() {
           )}
 
           {/* Actions */}
-          <div className="flex gap-2 pt-4">
+          <div className="flex flex-wrap gap-2 pt-4">
+            <Button
+              onClick={() => toggleFavorite(record.id)}
+              variant={record.isFavorite ? "default" : "outline"}
+              className={cn(
+                "gap-2",
+                record.isFavorite && "bg-red-500 hover:bg-red-600 text-white"
+              )}
+            >
+              <Heart className={cn("w-4 h-4", record.isFavorite && "fill-current")} />
+              {record.isFavorite ? "Favorit" : "Favorit hinzufügen"}
+            </Button>
             <Button
               onClick={() => navigate(`/bearbeiten/${record.id}`)}
               variant="secondary"
