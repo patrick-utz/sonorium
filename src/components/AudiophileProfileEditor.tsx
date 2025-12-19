@@ -110,10 +110,34 @@ export function AudiophileProfileEditor({ onClose, compact = false }: Audiophile
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="cdPlayer">CD-Player</Label>
+                <Input
+                  id="cdPlayer"
+                  placeholder="z.B. Marantz CD6007"
+                  value={formData.equipment.cdPlayer || ""}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    equipment: { ...formData.equipment, cdPlayer: e.target.value }
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dac">DAC / Digitalvorstufe</Label>
+                <Input
+                  id="dac"
+                  placeholder="z.B. Chord Qutest, RME ADI-2"
+                  value={formData.equipment.dac || ""}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    equipment: { ...formData.equipment, dac: e.target.value }
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="other">Sonstiges</Label>
                 <Input
                   id="other"
-                  placeholder="z.B. DAC, Phono-Vorstufe"
+                  placeholder="z.B. Phono-Vorstufe, Kabel"
                   value={formData.equipment.other || ""}
                   onChange={(e) => setFormData({
                     ...formData,

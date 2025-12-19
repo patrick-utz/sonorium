@@ -3,6 +3,8 @@ export interface AudiophileProfile {
     turntable: string;
     amplifier: string;
     speakers: string;
+    cdPlayer?: string;
+    dac?: string;
     other?: string;
   };
   preferences: {
