@@ -185,9 +185,9 @@ export default function Dashboard() {
                   <button
                     key={genre}
                     onClick={() => handleGenreClick(genre)}
-                    className="px-4 py-2 rounded-full bg-muted text-muted-foreground text-sm font-medium hover:bg-border hover:text-foreground transition-colors"
+                    className="px-4 py-2 rounded-full bg-muted text-muted-foreground text-sm font-medium border border-transparent hover:bg-primary/10 hover:text-foreground hover:border-primary/30 hover:scale-105 transition-all duration-200"
                   >
-                    {genre} <span className="opacity-50">({count})</span>
+                    {genre} <span className="opacity-60">({count})</span>
                   </button>
                 ))}
               </div>
@@ -212,9 +212,9 @@ export default function Dashboard() {
                   <button
                     key={tag}
                     onClick={() => handleTagClick(tag)}
-                    className="px-4 py-2 rounded-full bg-muted text-muted-foreground text-sm font-medium hover:bg-border hover:text-foreground transition-colors"
+                    className="px-4 py-2 rounded-full bg-muted text-muted-foreground text-sm font-medium border border-transparent hover:bg-primary/10 hover:text-foreground hover:border-primary/30 hover:scale-105 transition-all duration-200"
                   >
-                    {tag} <span className="opacity-50">({count})</span>
+                    {tag} <span className="opacity-60">({count})</span>
                   </button>
                 ))}
               </div>
@@ -239,9 +239,9 @@ export default function Dashboard() {
                   <button
                     key={mood}
                     onClick={() => handleMoodClick(mood)}
-                    className="px-4 py-2 rounded-full bg-muted text-muted-foreground text-sm font-medium hover:bg-border hover:text-foreground transition-colors"
+                    className="px-4 py-2 rounded-full bg-muted text-muted-foreground text-sm font-medium border border-transparent hover:bg-primary/10 hover:text-foreground hover:border-primary/30 hover:scale-105 transition-all duration-200"
                   >
-                    {mood} <span className="opacity-50">({count})</span>
+                    {mood} <span className="opacity-60">({count})</span>
                   </button>
                 ))}
               </div>
