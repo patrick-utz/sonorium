@@ -313,6 +313,129 @@ async function getCoverArt(mbid: string): Promise<string | null> {
   }
 }
 
+// Search iTunes for cover art
+async function searchITunesCover(artist: string, album: string): Promise<string | null> {
+  try {
+    console.log('Searching iTunes for cover:', artist, album);
+    const query = encodeURIComponent(`${artist} ${album}`);
+    const url = `https://itunes.apple.com/search?term=${query}&media=music&entity=album&limit=5`;
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.log('iTunes search failed:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    const results = data.results || [];
+    
+    // Find best match
+    const artistLower = artist.toLowerCase();
+    const albumLower = album.toLowerCase();
+    
+    let bestMatch = results.find((r: any) => 
+      r.artistName?.toLowerCase().includes(artistLower) && 
+      r.collectionName?.toLowerCase().includes(albumLower)
+    );
+    
+    if (!bestMatch && results.length > 0) {
+      bestMatch = results[0];
+    }
+    
+    if (bestMatch?.artworkUrl100) {
+      // Get higher resolution (600x600)
+      const artworkUrl = bestMatch.artworkUrl100.replace('100x100', '600x600');
+      console.log('Found iTunes artwork:', artworkUrl);
+      
+      const imageResponse = await fetch(artworkUrl);
+      if (!imageResponse.ok) return null;
+      
+      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      
+      console.log('iTunes cover converted to base64');
+      return `data:${contentType};base64,${base64}`;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('iTunes search error:', error);
+    return null;
+  }
+}
+
+// Search Deezer for cover art
+async function searchDeezerCover(artist: string, album: string): Promise<string | null> {
+  try {
+    console.log('Searching Deezer for cover:', artist, album);
+    const query = encodeURIComponent(`artist:"${artist}" album:"${album}"`);
+    const url = `https://api.deezer.com/search/album?q=${query}&limit=5`;
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.log('Deezer search failed:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    const results = data.data || [];
+    
+    if (results.length > 0 && results[0].cover_xl) {
+      const artworkUrl = results[0].cover_xl; // 1000x1000
+      console.log('Found Deezer artwork:', artworkUrl);
+      
+      const imageResponse = await fetch(artworkUrl);
+      if (!imageResponse.ok) return null;
+      
+      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      
+      console.log('Deezer cover converted to base64');
+      return `data:${contentType};base64,${base64}`;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Deezer search error:', error);
+    return null;
+  }
+}
+
+// Multi-source cover art search
+async function searchCoverArtMultiSource(artist: string, album: string, mbid?: string): Promise<string | null> {
+  console.log('Starting multi-source cover art search for:', artist, album);
+  
+  // Try Cover Art Archive first (if we have MBID)
+  if (mbid) {
+    const coverArt = await getCoverArt(mbid);
+    if (coverArt) {
+      console.log('Found cover via Cover Art Archive');
+      return coverArt;
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  
+  // Try iTunes
+  const itunesCover = await searchITunesCover(artist, album);
+  if (itunesCover) {
+    console.log('Found cover via iTunes');
+    return itunesCover;
+  }
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Try Deezer
+  const deezerCover = await searchDeezerCover(artist, album);
+  if (deezerCover) {
+    console.log('Found cover via Deezer');
+    return deezerCover;
+  }
+  
+  console.log('No cover found in any source');
+  return null;
+}
+
 // Search for artist image on Wikipedia/Wikimedia
 async function getArtistImage(artist: string): Promise<string | null> {
   try {
@@ -398,9 +521,6 @@ serve(async (req) => {
       }
       
       if (mbData?.mbid) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // MusicBrainz rate limit
-        foundCoverArt = await getCoverArt(mbData.mbid);
-        
         // Fetch alternative releases
         await new Promise(resolve => setTimeout(resolve, 1000));
         const releaseGroupId = await getReleaseGroupId(mbData.mbid);
@@ -408,18 +528,19 @@ serve(async (req) => {
           await new Promise(resolve => setTimeout(resolve, 1000));
           alternativeReleases = await getAlternativeReleases(releaseGroupId, 15);
         }
+        
+        // Multi-source cover art search
+        await new Promise(resolve => setTimeout(resolve, 500));
+        foundCoverArt = await searchCoverArtMultiSource(mbData.artist, mbData.album, mbData.mbid);
       }
     }
     
-    // Step 2: If no barcode match, try artist + album search
-    if (!foundCoverArt && artist && album) {
+    // Step 2: If no MusicBrainz match by catalog/barcode, try artist + album search
+    if (!mbData && artist && album) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       const mbid = await searchByArtistAlbum(artist, album);
       
       if (mbid) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        foundCoverArt = await getCoverArt(mbid);
-        
         // Fetch alternative releases if we haven't already
         if (alternativeReleases.length === 0) {
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -429,10 +550,26 @@ serve(async (req) => {
             alternativeReleases = await getAlternativeReleases(releaseGroupId, 15);
           }
         }
+        
+        // Multi-source cover art search
+        await new Promise(resolve => setTimeout(resolve, 500));
+        foundCoverArt = await searchCoverArtMultiSource(artist, album, mbid);
+      } else {
+        // No MusicBrainz match, still try iTunes/Deezer directly
+        foundCoverArt = await searchCoverArtMultiSource(artist, album);
       }
     }
     
-    // Step 3: Fallback to artist image if no cover found
+    // Step 3: If still no cover but we have artist/album info, try multi-source without MBID
+    if (!foundCoverArt && (artist || mbData?.artist) && (album || mbData?.album)) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      foundCoverArt = await searchCoverArtMultiSource(
+        artist || mbData?.artist || '', 
+        album || mbData?.album || ''
+      );
+    }
+    
+    // Step 4: Fallback to artist image if no cover found
     if (!foundCoverArt && (artist || mbData?.artist)) {
       await new Promise(resolve => setTimeout(resolve, 500));
       foundCoverArt = await getArtistImage(artist || mbData?.artist || '');
