@@ -403,11 +403,372 @@ async function searchDeezerCover(artist: string, album: string): Promise<string 
   }
 }
 
-// Multi-source cover art search
-async function searchCoverArtMultiSource(artist: string, album: string, mbid?: string): Promise<string | null> {
+// Discogs API configuration
+const DISCOGS_API_KEY = Deno.env.get('DISCOGS_API_KEY');
+const DISCOGS_USER_AGENT = 'VinylCollector/1.0';
+
+interface DiscogsRelease {
+  id: number;
+  title: string;
+  year?: number;
+  country?: string;
+  format?: string[];
+  label?: string[];
+  catno?: string;
+  cover_image?: string;
+  thumb?: string;
+  master_id?: number;
+}
+
+interface DiscogsSearchResult {
+  results: DiscogsRelease[];
+}
+
+interface DiscogsReleaseDetail {
+  id: number;
+  title: string;
+  artists?: { name: string }[];
+  year?: number;
+  country?: string;
+  labels?: { name: string; catno: string }[];
+  formats?: { name: string; descriptions?: string[]; qty?: string }[];
+  images?: { type: string; uri: string; uri150: string }[];
+  notes?: string;
+  tracklist?: { position: string; title: string; duration: string }[];
+  master_id?: number;
+  released?: string;
+  genres?: string[];
+  styles?: string[];
+}
+
+// Search Discogs by barcode
+async function searchDiscogsByBarcode(barcode: string): Promise<DiscogsRelease | null> {
+  if (!DISCOGS_API_KEY) {
+    console.log('Discogs API key not configured');
+    return null;
+  }
+  
+  try {
+    console.log('Searching Discogs by barcode:', barcode);
+    const url = `https://api.discogs.com/database/search?barcode=${barcode}&type=release`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': DISCOGS_USER_AGENT,
+        'Authorization': `Discogs token=${DISCOGS_API_KEY}`
+      }
+    });
+    
+    if (!response.ok) {
+      console.log('Discogs barcode search failed:', response.status);
+      return null;
+    }
+    
+    const data: DiscogsSearchResult = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      console.log('Found Discogs release by barcode:', data.results[0].title);
+      return data.results[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Discogs barcode search error:', error);
+    return null;
+  }
+}
+
+// Search Discogs by catalog number
+async function searchDiscogsByCatalogNumber(catalogNumber: string): Promise<DiscogsRelease | null> {
+  if (!DISCOGS_API_KEY) {
+    console.log('Discogs API key not configured');
+    return null;
+  }
+  
+  try {
+    console.log('Searching Discogs by catalog number:', catalogNumber);
+    const url = `https://api.discogs.com/database/search?catno=${encodeURIComponent(catalogNumber)}&type=release`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': DISCOGS_USER_AGENT,
+        'Authorization': `Discogs token=${DISCOGS_API_KEY}`
+      }
+    });
+    
+    if (!response.ok) {
+      console.log('Discogs catalog number search failed:', response.status);
+      return null;
+    }
+    
+    const data: DiscogsSearchResult = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      console.log('Found Discogs release by catalog number:', data.results[0].title);
+      return data.results[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Discogs catalog number search error:', error);
+    return null;
+  }
+}
+
+// Search Discogs by artist and album
+async function searchDiscogsByArtistAlbum(artist: string, album: string): Promise<DiscogsRelease | null> {
+  if (!DISCOGS_API_KEY) {
+    console.log('Discogs API key not configured');
+    return null;
+  }
+  
+  try {
+    console.log('Searching Discogs by artist/album:', artist, album);
+    const url = `https://api.discogs.com/database/search?artist=${encodeURIComponent(artist)}&release_title=${encodeURIComponent(album)}&type=release&format=vinyl`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': DISCOGS_USER_AGENT,
+        'Authorization': `Discogs token=${DISCOGS_API_KEY}`
+      }
+    });
+    
+    if (!response.ok) {
+      console.log('Discogs artist/album search failed:', response.status);
+      return null;
+    }
+    
+    const data: DiscogsSearchResult = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      console.log('Found Discogs release by artist/album:', data.results[0].title);
+      return data.results[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Discogs artist/album search error:', error);
+    return null;
+  }
+}
+
+// Get detailed release info from Discogs
+async function getDiscogsReleaseDetails(releaseId: number): Promise<DiscogsReleaseDetail | null> {
+  if (!DISCOGS_API_KEY) {
+    return null;
+  }
+  
+  try {
+    console.log('Fetching Discogs release details for ID:', releaseId);
+    const url = `https://api.discogs.com/releases/${releaseId}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': DISCOGS_USER_AGENT,
+        'Authorization': `Discogs token=${DISCOGS_API_KEY}`
+      }
+    });
+    
+    if (!response.ok) {
+      console.log('Discogs release details failed:', response.status);
+      return null;
+    }
+    
+    const data: DiscogsReleaseDetail = await response.json();
+    console.log('Got Discogs release details:', data.title);
+    return data;
+  } catch (error) {
+    console.error('Discogs release details error:', error);
+    return null;
+  }
+}
+
+// Get cover art from Discogs
+async function searchDiscogsCover(artist: string, album: string, barcode?: string, catalogNumber?: string): Promise<string | null> {
+  if (!DISCOGS_API_KEY) {
+    console.log('Discogs API key not configured, skipping Discogs cover search');
+    return null;
+  }
+  
+  try {
+    let release: DiscogsRelease | null = null;
+    
+    // Try barcode first
+    if (barcode) {
+      release = await searchDiscogsByBarcode(barcode);
+      if (release) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Rate limiting
+      }
+    }
+    
+    // Try catalog number
+    if (!release && catalogNumber) {
+      release = await searchDiscogsByCatalogNumber(catalogNumber);
+      if (release) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    // Try artist/album
+    if (!release && artist && album) {
+      release = await searchDiscogsByArtistAlbum(artist, album);
+    }
+    
+    if (!release) {
+      console.log('No Discogs release found');
+      return null;
+    }
+    
+    // Get detailed release info for high-res images
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const details = await getDiscogsReleaseDetails(release.id);
+    
+    let imageUrl: string | null = null;
+    
+    if (details?.images && details.images.length > 0) {
+      // Find primary image (type: 'primary') or use first image
+      const primaryImage = details.images.find(img => img.type === 'primary') || details.images[0];
+      imageUrl = primaryImage.uri;
+    } else if (release.cover_image) {
+      imageUrl = release.cover_image;
+    }
+    
+    if (!imageUrl) {
+      console.log('No Discogs cover image found');
+      return null;
+    }
+    
+    console.log('Downloading Discogs cover from:', imageUrl);
+    
+    const imageResponse = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': DISCOGS_USER_AGENT,
+        'Authorization': `Discogs token=${DISCOGS_API_KEY}`
+      }
+    });
+    
+    if (!imageResponse.ok) {
+      console.log('Failed to download Discogs cover:', imageResponse.status);
+      return null;
+    }
+    
+    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    
+    console.log('Discogs cover converted to base64');
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error('Discogs cover search error:', error);
+    return null;
+  }
+}
+
+// Get pressing information from Discogs
+async function getDiscogsPressInfo(artist: string, album: string, barcode?: string, catalogNumber?: string): Promise<{
+  label?: string;
+  catalogNumber?: string;
+  country?: string;
+  year?: number;
+  format?: string;
+  pressInfo?: string;
+  notes?: string;
+  genres?: string[];
+  styles?: string[];
+} | null> {
+  if (!DISCOGS_API_KEY) {
+    return null;
+  }
+  
+  try {
+    let release: DiscogsRelease | null = null;
+    
+    // Try barcode first
+    if (barcode) {
+      release = await searchDiscogsByBarcode(barcode);
+      if (release) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    // Try catalog number
+    if (!release && catalogNumber) {
+      release = await searchDiscogsByCatalogNumber(catalogNumber);
+      if (release) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    // Try artist/album
+    if (!release && artist && album) {
+      release = await searchDiscogsByArtistAlbum(artist, album);
+    }
+    
+    if (!release) {
+      return null;
+    }
+    
+    // Get detailed info
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const details = await getDiscogsReleaseDetails(release.id);
+    
+    if (!details) {
+      return {
+        label: release.label?.[0],
+        catalogNumber: release.catno,
+        country: release.country,
+        year: release.year,
+        format: release.format?.join(', ')
+      };
+    }
+    
+    // Build format string
+    const formatParts: string[] = [];
+    if (details.formats) {
+      for (const format of details.formats) {
+        let formatStr = format.name;
+        if (format.descriptions && format.descriptions.length > 0) {
+          formatStr += ` (${format.descriptions.join(', ')})`;
+        }
+        if (format.qty && parseInt(format.qty) > 1) {
+          formatStr = `${format.qty}x ${formatStr}`;
+        }
+        formatParts.push(formatStr);
+      }
+    }
+    
+    return {
+      label: details.labels?.[0]?.name,
+      catalogNumber: details.labels?.[0]?.catno,
+      country: details.country,
+      year: details.year,
+      format: formatParts.join(' + '),
+      pressInfo: formatParts.join(' + '),
+      notes: details.notes,
+      genres: details.genres,
+      styles: details.styles
+    };
+  } catch (error) {
+    console.error('Discogs press info error:', error);
+    return null;
+  }
+}
+
+// Multi-source cover art search (with Discogs priority)
+async function searchCoverArtMultiSource(artist: string, album: string, mbid?: string, barcode?: string, catalogNumber?: string): Promise<string | null> {
   console.log('Starting multi-source cover art search for:', artist, album);
   
-  // Try Cover Art Archive first (if we have MBID)
+  // Try Discogs first (best quality, most comprehensive)
+  if (DISCOGS_API_KEY) {
+    const discogsCover = await searchDiscogsCover(artist, album, barcode, catalogNumber);
+    if (discogsCover) {
+      console.log('Found cover via Discogs');
+      return discogsCover;
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  
+  // Try Cover Art Archive (if we have MBID)
   if (mbid) {
     const coverArt = await getCoverArt(mbid);
     if (coverArt) {
@@ -505,6 +866,27 @@ serve(async (req) => {
     let foundCoverArt: string | null = null;
     let mbData: { mbid: string; artist: string; album: string; year: number; label: string; catalogNumber?: string } | null = null;
     let alternativeReleases: AlternativeRelease[] = [];
+    let discogsPressInfo: {
+      label?: string;
+      catalogNumber?: string;
+      country?: string;
+      year?: number;
+      format?: string;
+      pressInfo?: string;
+      notes?: string;
+      genres?: string[];
+      styles?: string[];
+    } | null = null;
+
+    // Step 0: Get Discogs pressing information first (if API key is configured)
+    if (DISCOGS_API_KEY) {
+      console.log('Fetching Discogs pressing information...');
+      discogsPressInfo = await getDiscogsPressInfo(artist || '', album || '', barcode, catalogNumber);
+      if (discogsPressInfo) {
+        console.log('Got Discogs press info:', discogsPressInfo);
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
 
     // Step 1: Try catalog number first (most reliable for vinyl)
     if (catalogNumber || barcode) {
@@ -529,9 +911,9 @@ serve(async (req) => {
           alternativeReleases = await getAlternativeReleases(releaseGroupId, 15);
         }
         
-        // Multi-source cover art search
+        // Multi-source cover art search (with Discogs priority)
         await new Promise(resolve => setTimeout(resolve, 500));
-        foundCoverArt = await searchCoverArtMultiSource(mbData.artist, mbData.album, mbData.mbid);
+        foundCoverArt = await searchCoverArtMultiSource(mbData.artist, mbData.album, mbData.mbid, barcode, catalogNumber);
       }
     }
     
@@ -551,12 +933,12 @@ serve(async (req) => {
           }
         }
         
-        // Multi-source cover art search
+        // Multi-source cover art search (with Discogs priority)
         await new Promise(resolve => setTimeout(resolve, 500));
-        foundCoverArt = await searchCoverArtMultiSource(artist, album, mbid);
+        foundCoverArt = await searchCoverArtMultiSource(artist, album, mbid, barcode, catalogNumber);
       } else {
-        // No MusicBrainz match, still try iTunes/Deezer directly
-        foundCoverArt = await searchCoverArtMultiSource(artist, album);
+        // No MusicBrainz match, still try cover art sources
+        foundCoverArt = await searchCoverArtMultiSource(artist, album, undefined, barcode, catalogNumber);
       }
     }
     
@@ -565,7 +947,10 @@ serve(async (req) => {
       await new Promise(resolve => setTimeout(resolve, 500));
       foundCoverArt = await searchCoverArtMultiSource(
         artist || mbData?.artist || '', 
-        album || mbData?.album || ''
+        album || mbData?.album || '',
+        undefined,
+        barcode,
+        catalogNumber
       );
     }
     
@@ -575,7 +960,7 @@ serve(async (req) => {
       foundCoverArt = await getArtistImage(artist || mbData?.artist || '');
     }
 
-    // Build context from provided fields (use MusicBrainz data if found)
+    // Build context from provided fields (use MusicBrainz and Discogs data if found)
     const knownInfo: string[] = [];
     if (catalogNumber) knownInfo.push(`Katalognummer: ${catalogNumber}`);
     if (barcode) knownInfo.push(`EAN/Barcode: ${barcode}`);
@@ -592,6 +977,19 @@ serve(async (req) => {
       if (label) knownInfo.push(`Label: ${label}`);
     }
     if (genre && genre.length > 0) knownInfo.push(`Genres: ${genre.join(', ')}`);
+    
+    // Add Discogs pressing information to context
+    if (discogsPressInfo) {
+      knownInfo.push(`\n--- Discogs Pressing Info ---`);
+      if (discogsPressInfo.label) knownInfo.push(`Label (from Discogs): ${discogsPressInfo.label}`);
+      if (discogsPressInfo.catalogNumber) knownInfo.push(`Catalog# (from Discogs): ${discogsPressInfo.catalogNumber}`);
+      if (discogsPressInfo.country) knownInfo.push(`Pressland (from Discogs): ${discogsPressInfo.country}`);
+      if (discogsPressInfo.year) knownInfo.push(`Jahr (from Discogs): ${discogsPressInfo.year}`);
+      if (discogsPressInfo.format) knownInfo.push(`Format (from Discogs): ${discogsPressInfo.format}`);
+      if (discogsPressInfo.genres) knownInfo.push(`Genres (from Discogs): ${discogsPressInfo.genres.join(', ')}`);
+      if (discogsPressInfo.styles) knownInfo.push(`Styles (from Discogs): ${discogsPressInfo.styles.join(', ')}`);
+      if (discogsPressInfo.notes) knownInfo.push(`Notes (from Discogs): ${discogsPressInfo.notes.substring(0, 500)}...`);
+    }
 
     const contextInfo = knownInfo.length > 0 
       ? `Known information:\n${knownInfo.join('\n')}`
@@ -771,10 +1169,31 @@ Sei ein echter Experte. Liefere fundierte, detaillierte Analysen wie ein profess
       if (!completedData.label && mbData.label) completedData.label = mbData.label;
     }
 
+    // Use Discogs data if available (as enhancement/fallback)
+    if (discogsPressInfo) {
+      if (!completedData.label && discogsPressInfo.label) completedData.label = discogsPressInfo.label;
+      if (!completedData.year && discogsPressInfo.year) completedData.year = discogsPressInfo.year;
+      if (!completedData.catalogNumber && discogsPressInfo.catalogNumber) completedData.catalogNumber = discogsPressInfo.catalogNumber;
+      if (discogsPressInfo.format) completedData.formatDetails = discogsPressInfo.format;
+      if (discogsPressInfo.country) completedData.pressing = `${discogsPressInfo.country}${discogsPressInfo.year ? ` (${discogsPressInfo.year})` : ''}`;
+      if (discogsPressInfo.genres && discogsPressInfo.genres.length > 0 && (!completedData.genre || completedData.genre.length === 0)) {
+        completedData.genre = discogsPressInfo.genres;
+      }
+      // Add Discogs styles as additional tags
+      if (discogsPressInfo.styles && discogsPressInfo.styles.length > 0) {
+        const existingTags = completedData.tags || [];
+        completedData.tags = [...new Set([...existingTags, ...discogsPressInfo.styles])];
+      }
+      // Add Discogs notes to personal notes
+      if (discogsPressInfo.notes && !completedData.personalNotes) {
+        completedData.personalNotes = discogsPressInfo.notes.substring(0, 500);
+      }
+    }
+
     // Add the cover art we found
     if (foundCoverArt) {
       completedData.coverArtBase64 = foundCoverArt;
-      console.log('Added cover art from MusicBrainz/Wikipedia');
+      console.log('Added cover art from search sources');
     }
 
     // Add alternative releases
