@@ -37,6 +37,7 @@ const exportFields = [
   { id: "criticScore", label: "Kritiker-Score", default: false },
   { id: "status", label: "Status", default: true },
   { id: "dateAdded", label: "Hinzugefügt am", default: true },
+  { id: "purchaseDate", label: "Kaufdatum", default: false },
   { id: "purchasePrice", label: "Kaufpreis", default: false },
   { id: "purchaseLocation", label: "Kaufort", default: false },
   { id: "vinylRecommendation", label: "Vinyl-Empfehlung", default: false },

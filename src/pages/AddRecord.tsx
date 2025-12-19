@@ -26,7 +26,7 @@ import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { AlternativeReleases } from "@/components/AlternativeReleases";
-import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library } from "lucide-react";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library, ShoppingCart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -817,6 +817,62 @@ export default function AddRecord() {
                     value={formData.pressing || ""}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, pressing: e.target.value }))
+                    }
+                    className="bg-card border-border/50"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Kaufinformationen */}
+          <Card className="bg-gradient-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-primary" />
+                Kaufinformationen
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="purchasePrice">Kaufpreis (CHF)</Label>
+                  <Input
+                    id="purchasePrice"
+                    type="number"
+                    step="0.05"
+                    min="0"
+                    placeholder="z.B. 29.90"
+                    value={formData.purchasePrice || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ 
+                        ...prev, 
+                        purchasePrice: e.target.value ? parseFloat(e.target.value) : undefined 
+                      }))
+                    }
+                    className="bg-card border-border/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="purchaseDate">Kaufdatum</Label>
+                  <Input
+                    id="purchaseDate"
+                    type="date"
+                    value={formData.purchaseDate || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, purchaseDate: e.target.value }))
+                    }
+                    className="bg-card border-border/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="purchaseLocation">Kaufort</Label>
+                  <Input
+                    id="purchaseLocation"
+                    placeholder="z.B. Recordshop Zürich"
+                    value={formData.purchaseLocation || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, purchaseLocation: e.target.value }))
                     }
                     className="bg-card border-border/50"
                   />

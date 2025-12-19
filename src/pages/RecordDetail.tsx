@@ -19,6 +19,8 @@ import {
   MinusCircle,
   Brain,
   Music,
+  ShoppingCart,
+  CalendarDays,
   Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -282,16 +284,28 @@ export default function RecordDetail() {
         )}
 
         {/* Purchase Info */}
-        {(record.purchasePrice || record.purchaseLocation) && (
+        {(record.purchasePrice || record.purchaseLocation || record.purchaseDate) && (
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg">Kaufinformationen</CardTitle>
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-primary" />
+                Kaufinformationen
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {record.purchasePrice && (
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Preis</span>
-                  <span className="font-semibold">CHF {record.purchasePrice}</span>
+                  <span className="font-semibold">CHF {record.purchasePrice.toFixed(2)}</span>
+                </div>
+              )}
+              {record.purchaseDate && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Kaufdatum</span>
+                  <span className="text-sm flex items-center gap-1">
+                    <CalendarDays className="w-3 h-3" />
+                    {new Date(record.purchaseDate).toLocaleDateString("de-CH")}
+                  </span>
                 </div>
               )}
               {record.purchaseLocation && (
@@ -300,7 +314,7 @@ export default function RecordDetail() {
                   <span className="text-sm">{record.purchaseLocation}</span>
                 </div>
               )}
-              <div className="flex justify-between">
+              <div className="flex justify-between pt-2 border-t border-border/50">
                 <span className="text-sm text-muted-foreground">Hinzugefügt am</span>
                 <span className="text-sm">
                   {new Date(record.dateAdded).toLocaleDateString("de-CH")}
