@@ -164,6 +164,21 @@ export default function AddRecord() {
     return () => clearInterval(intervalId);
   }, [lastSaved]);
 
+  // Warn user before leaving with unsaved changes
+  useEffect(() => {
+    const hasContent = formData.artist || formData.album || formData.coverArt;
+    if (!hasContent || isEditing) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [formData.artist, formData.album, formData.coverArt, isEditing]);
+
   const setCoverFromFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast({
