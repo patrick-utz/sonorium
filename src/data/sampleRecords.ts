@@ -26,6 +26,7 @@ export const sampleRecords: Record[] = [
     recommendationReason: "Eines der wichtigsten Jazz-Alben aller Zeiten. Die Vinyl-Version bietet eine Wärme, die digital nicht erreicht wird.",
     personalNotes: "Perfekter Zustand, klingt fantastisch",
     moods: ["entspannt", "nachdenklich", "melancholisch"],
+    isFavorite: true,
   },
   {
     id: "2",
@@ -50,6 +51,7 @@ export const sampleRecords: Record[] = [
     vinylRecommendation: "must-have",
     recommendationReason: "Absoluter Klassiker. Original Pressungen haben eine besondere Magie.",
     moods: ["romantisch", "nostalgisch", "emotional"],
+    isFavorite: true,
   },
   {
     id: "3",
@@ -73,6 +75,7 @@ export const sampleRecords: Record[] = [
     vinylRecommendation: "must-have",
     recommendationReason: "Meilenstein der 90er. Die Vinyl-Version bringt die Atmosphäre perfekt rüber.",
     moods: ["nachdenklich", "düster", "intensiv"],
+    isFavorite: true,
   },
   {
     id: "4",
