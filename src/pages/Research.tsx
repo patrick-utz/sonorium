@@ -18,7 +18,8 @@ import {
   Disc3,
   Album as AlbumIcon,
   Lightbulb,
-  XCircle
+  XCircle,
+  FileDown
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
@@ -27,6 +28,7 @@ import { ArtistResearchResult, AlbumRecommendation } from "@/types/audiophilePro
 import { useRecords } from "@/context/RecordContext";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import jsPDF from "jspdf";
 
 export default function Research() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -145,6 +147,206 @@ export default function Research() {
     );
   };
 
+  const exportToPDF = () => {
+    if (!result) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    let y = margin;
+
+    const checkPageBreak = (height: number) => {
+      if (y + height > pageHeight - 30) {
+        doc.addPage();
+        y = margin;
+      }
+    };
+
+    // Title
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text(result.artist, margin, y);
+    y += 12;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(100);
+    doc.text("Vinyl-Recherche", margin, y);
+    doc.setTextColor(0);
+    y += 15;
+
+    // Overview
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Übersicht", margin, y);
+    y += 7;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const overviewLines = doc.splitTextToSize(result.overview, pageWidth - 2 * margin);
+    checkPageBreak(overviewLines.length * 5);
+    doc.text(overviewLines, margin, y);
+    y += overviewLines.length * 5 + 10;
+
+    // Phases
+    if (result.phases && result.phases.length > 0) {
+      checkPageBreak(20);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Schaffensphasen", margin, y);
+      y += 8;
+
+      result.phases.forEach((phase) => {
+        checkPageBreak(25);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${phase.name} (${phase.period})`, margin, y);
+        y += 5;
+        
+        doc.setFont("helvetica", "normal");
+        const phaseLines = doc.splitTextToSize(phase.description, pageWidth - 2 * margin);
+        doc.text(phaseLines, margin, y);
+        y += phaseLines.length * 4 + 3;
+        
+        doc.setFont("helvetica", "italic");
+        doc.text(`Klangqualität: ${phase.audioQuality}`, margin, y);
+        y += 8;
+      });
+      y += 5;
+    }
+
+    // Top Recommendations
+    checkPageBreak(20);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Top Vinyl-Empfehlungen", margin, y);
+    y += 10;
+
+    result.topRecommendations.forEach((album) => {
+      checkPageBreak(40);
+      
+      // Album header
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(`#${album.rank} ${album.album}`, margin, y);
+      y += 5;
+      
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`${album.artist} • ${album.year} • ${album.label}`, margin, y);
+      y += 5;
+      
+      doc.text(`Musik: ${"★".repeat(album.musicalRating)}${"☆".repeat(5 - album.musicalRating)}  Klang: ${"★".repeat(album.soundRating)}${"☆".repeat(5 - album.soundRating)}`, margin, y);
+      y += 6;
+
+      const descLines = doc.splitTextToSize(album.description, pageWidth - 2 * margin);
+      checkPageBreak(descLines.length * 4);
+      doc.text(descLines, margin, y);
+      y += descLines.length * 4 + 5;
+
+      // Pressings
+      if (album.bestPressings && album.bestPressings.length > 0) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text("Empfohlene Vinyl-Pressungen:", margin, y);
+        y += 5;
+
+        album.bestPressings.forEach((pressing) => {
+          checkPageBreak(20);
+          doc.setFont("helvetica", "normal");
+          
+          const qualityLabels: Record<string, string> = {
+            reference: "REFERENZ",
+            excellent: "Exzellent", 
+            good: "Gut",
+            acceptable: "Akzeptabel"
+          };
+          
+          const pressingHeader = `• ${pressing.label}${pressing.catalogNumber ? ` [${pressing.catalogNumber}]` : ""} - ${qualityLabels[pressing.quality] || pressing.quality}`;
+          doc.text(pressingHeader, margin + 3, y);
+          y += 4;
+          
+          if (pressing.year || pressing.country) {
+            doc.setFontSize(8);
+            doc.text(`  ${pressing.year || ""} ${pressing.country ? `(${pressing.country})` : ""}`, margin + 3, y);
+            y += 4;
+          }
+          
+          if (pressing.notes) {
+            doc.setFontSize(8);
+            const noteLines = doc.splitTextToSize(pressing.notes, pageWidth - 2 * margin - 10);
+            doc.text(noteLines, margin + 6, y);
+            y += noteLines.length * 3.5 + 2;
+          }
+          
+          if (pressing.matrixInfo) {
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "italic");
+            doc.text(`  Matrix: ${pressing.matrixInfo}`, margin + 3, y);
+            doc.setFont("helvetica", "normal");
+            y += 4;
+          }
+        });
+      }
+      y += 8;
+    });
+
+    // Buying Tips
+    if (result.buyingTips && result.buyingTips.length > 0) {
+      checkPageBreak(20);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Kauftipps", margin, y);
+      y += 8;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      result.buyingTips.forEach((tip) => {
+        checkPageBreak(10);
+        const tipLines = doc.splitTextToSize(`• ${tip}`, pageWidth - 2 * margin);
+        doc.text(tipLines, margin, y);
+        y += tipLines.length * 4 + 2;
+      });
+      y += 5;
+    }
+
+    // Avoid Labels
+    if (result.avoidLabels && result.avoidLabels.length > 0) {
+      checkPageBreak(15);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Zu vermeiden", margin, y);
+      y += 8;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(result.avoidLabels.join(", "), margin, y);
+      y += 10;
+    }
+
+    // Footer on each page
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(150);
+      doc.text("SONORIUM", pageWidth / 2, pageHeight - 10, { align: "center" });
+      doc.text(`Seite ${i} von ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: "right" });
+      doc.setTextColor(0);
+    }
+
+    // Save
+    const filename = `${result.artist.replace(/[^a-zA-Z0-9]/g, "_")}_Vinyl_Recherche.pdf`;
+    doc.save(filename);
+
+    toast({
+      title: "PDF exportiert",
+      description: filename,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -249,11 +451,20 @@ export default function Research() {
               {/* Overview */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <Music className="w-6 h-6 text-accent" />
-                    {result.artist}
-                  </CardTitle>
-                  <CardDescription className="text-base">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-3">
+                        <Music className="w-6 h-6 text-accent" />
+                        {result.artist}
+                      </CardTitle>
+                      <Badge variant="outline" className="mt-2">Vinyl-Recherche</Badge>
+                    </div>
+                    <Button variant="outline" onClick={exportToPDF} className="gap-2">
+                      <FileDown className="w-4 h-4" />
+                      PDF Export
+                    </Button>
+                  </div>
+                  <CardDescription className="text-base mt-3">
                     {result.overview}
                   </CardDescription>
                 </CardHeader>

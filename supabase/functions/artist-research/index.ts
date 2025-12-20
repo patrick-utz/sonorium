@@ -77,24 +77,21 @@ serve(async (req) => {
       }
     }
 
-    const mediaFormat = profile?.mediaFormat === 'vinyl' ? 'Vinyl/LP' : 
-                        profile?.mediaFormat === 'cd' ? 'CD' : 'Vinyl und CD';
+    const systemPrompt = `Du bist ein erfahrener Musikexperte und Vinyl-Spezialist mit tiefem Wissen über Vinyl-Pressungen, Labels und Klangqualität. 
+Du gibst ausschliesslich Empfehlungen für VINYL/LP-Pressungen - keine CDs oder digitale Formate.${equipmentContext}${preferencesContext}
 
-    const systemPrompt = `Du bist ein erfahrener Musikexperte und Audiophiler mit tiefem Wissen über Pressungen, Labels und Klangqualität. 
-Du gibst detaillierte, pressungsspezifische Empfehlungen für Sammler.${equipmentContext}${preferencesContext}
-
-Der Nutzer sucht nach: ${mediaFormat}
+WICHTIG: Bewerte und empfehle NUR Vinyl-Pressungen. Gib für JEDES Album konkrete Katalognummern der besten Pressungen an.
 
 Antworte IMMER im folgenden JSON-Format (ohne Markdown-Codeblöcke):
 {
   "artist": "Künstlername",
-  "overview": "Kurze Übersicht über den Künstler und seine Bedeutung für Sammler",
+  "overview": "Kurze Übersicht über den Künstler und seine Bedeutung für Vinyl-Sammler",
   "phases": [
     {
       "name": "Name der Phase",
       "period": "Zeitraum (z.B. 1959-1963)",
       "description": "Beschreibung der Phase",
-      "audioQuality": "Beschreibung der typischen Klangqualität dieser Phase"
+      "audioQuality": "Beschreibung der typischen Vinyl-Klangqualität dieser Phase"
     }
   ],
   "topRecommendations": [
@@ -108,36 +105,39 @@ Antworte IMMER im folgenden JSON-Format (ohne Markdown-Codeblöcke):
       "soundRating": 5,
       "description": "Kurze Beschreibung warum dieses Album wichtig ist",
       "phase": "Name der Phase (optional)",
-      "notes": "Spezielle Hinweise für den Hörer/Sammler",
+      "notes": "Spezielle Hinweise für den Vinyl-Sammler",
       "bestPressings": [
         {
           "label": "Label der Pressung",
-          "catalogNumber": "Katalognummer",
+          "catalogNumber": "KONKRETE Katalognummer (z.B. BLP 4085, V6-8456, ABC-123)",
           "year": "Jahr der Pressung",
-          "country": "Land",
+          "country": "Land (USA, Japan, UK, Deutschland, etc.)",
           "quality": "reference|excellent|good|acceptable",
-          "notes": "Detaillierte Beschreibung der Pressung",
-          "matrixInfo": "Matrix-Informationen falls relevant",
+          "notes": "Detaillierte Beschreibung der Vinyl-Pressung und warum sie empfohlen wird",
+          "matrixInfo": "Matrix-/Runout-Informationen falls bekannt (z.B. RVG, Van Gelder)",
           "avoid": false
         }
       ]
     }
   ],
-  "buyingTips": ["Tipp 1", "Tipp 2"],
-  "avoidLabels": ["Label 1", "Label 2"]
+  "buyingTips": ["Vinyl-spezifische Kauftipps"],
+  "avoidLabels": ["Zu vermeidende Labels/Pressungen für Vinyl"]
 }
 
-Gib die TOP 3 bis 5 Alben, sortiert nach audiophiler Relevanz. Berücksichtige das Equipment und die Vorlieben des Nutzers bei den Empfehlungen.`;
+KRITISCH: Gib für JEDES Album mindestens 2-3 konkrete Vinyl-Pressungen mit echten Katalognummern an. 
+Sortiere die Pressungen nach Klangqualität (beste zuerst).
+Gib die TOP 3 bis 5 Alben, sortiert nach audiophiler Vinyl-Relevanz.`;
 
-    const userPrompt = `Gib mir eine detaillierte audiophile Analyse und Kaufempfehlung für: ${artist}
+    const userPrompt = `Gib mir eine detaillierte Vinyl-Analyse und Kaufempfehlung für: ${artist}
 
 Strukturiere die Antwort wie folgt:
-1. Kurze Übersicht über den Künstler
+1. Kurze Übersicht über den Künstler aus Vinyl-Sammler-Perspektive
 2. Wichtige Schaffensphasen (falls zutreffend)
-3. Die 3-5 wichtigsten Alben mit konkreten Pressungsempfehlungen
-4. Kauftipps und zu vermeidende Labels
+3. Die 3-5 wichtigsten Alben mit KONKRETEN VINYL-Pressungsempfehlungen inkl. Katalognummern
+4. Kauftipps für Vinyl-Käufe und zu vermeidende Labels/Pressungen
 
-Fokussiere auf audiophile Qualität und gib konkrete Matrix-Nummern und Pressungsempfehlungen wo möglich.`;
+WICHTIG: Gib für jedes Album echte Katalognummern an (z.B. Blue Note BLP 4085, Riverside RLP 12-269).
+Fokussiere ausschliesslich auf Vinyl-Pressungen, keine CDs. Gib konkrete Matrix-Nummern und Runout-Infos wo bekannt.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
