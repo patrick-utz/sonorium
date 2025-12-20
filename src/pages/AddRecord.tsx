@@ -244,6 +244,9 @@ export default function AddRecord() {
           recordingQuality: aiData.recordingQuality || prev.recordingQuality,
           masteringQuality: aiData.masteringQuality || prev.masteringQuality,
           artisticRating: aiData.artisticRating || prev.artisticRating,
+          criticScore: aiData.criticScore || prev.criticScore,
+          vinylRecommendation: aiData.vinylRecommendation || prev.vinylRecommendation,
+          recommendationReason: aiData.recommendationReason || prev.recommendationReason,
           recommendations: aiData.recommendations || prev.recommendations,
         }));
 
@@ -310,6 +313,9 @@ export default function AddRecord() {
           recordingQuality: aiData.recordingQuality,
           masteringQuality: aiData.masteringQuality,
           artisticRating: aiData.artisticRating,
+          criticScore: aiData.criticScore,
+          vinylRecommendation: aiData.vinylRecommendation,
+          recommendationReason: aiData.recommendationReason,
           recommendations: aiData.recommendations,
         });
         
@@ -378,6 +384,9 @@ export default function AddRecord() {
           recordingQuality: aiData.recordingQuality,
           masteringQuality: aiData.masteringQuality,
           artisticRating: aiData.artisticRating,
+          criticScore: aiData.criticScore,
+          vinylRecommendation: aiData.vinylRecommendation,
+          recommendationReason: aiData.recommendationReason,
           recommendations: aiData.recommendations,
         });
         
@@ -425,6 +434,9 @@ export default function AddRecord() {
         recordingQuality: pendingBarcodeData.recordingQuality || prev.recordingQuality,
         masteringQuality: pendingBarcodeData.masteringQuality || prev.masteringQuality,
         artisticRating: pendingBarcodeData.artisticRating || prev.artisticRating,
+        criticScore: pendingBarcodeData.criticScore || prev.criticScore,
+        vinylRecommendation: pendingBarcodeData.vinylRecommendation || prev.vinylRecommendation,
+        recommendationReason: pendingBarcodeData.recommendationReason || prev.recommendationReason,
         recommendations: pendingBarcodeData.recommendations || prev.recommendations,
         status: status,
       }));

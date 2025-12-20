@@ -1120,6 +1120,10 @@ Liefere ein JSON-Objekt mit folgender Struktur:
   "recordingQuality": number 1-5,
   "masteringQuality": number 1-5,
   "artisticRating": number 1-5,
+  "criticScore": number 0-100 - Kritiker-Score basierend auf Rezensionen und historischer Bedeutung (z.B. 95 für ein Meisterwerk, 70-80 für ein gutes Album),
+  
+  "vinylRecommendation": "must-have" | "nice-to-have" | "stream-instead" - Empfehlung ob sich die Vinyl-Anschaffung lohnt,
+  "recommendationReason": "Begründung für die Vinyl-Empfehlung (2-3 Sätze): Erkläre warum sich Vinyl lohnt oder nicht, basierend auf Aufnahmequalität, verfügbaren Pressungen und klanglichem Mehrwert gegenüber Digital",
   
   "recommendations": [
     {
