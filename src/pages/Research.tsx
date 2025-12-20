@@ -731,13 +731,13 @@ export default function Research() {
                                             ) : priceData ? (
                                               <div className="flex items-center justify-between flex-wrap gap-2">
                                                 <div className="flex items-center gap-3">
-                                                  {priceData.lowestPrice !== undefined && (
+                                                  {priceData.lowestPrice != null && (
                                                     <div className="flex items-center gap-1.5">
                                                       <DollarSign className="w-4 h-4 text-green-500" />
                                                       <span className="font-semibold text-green-500">
                                                         ab {priceData.lowestPrice.toFixed(0)} {priceData.currency}
                                                       </span>
-                                                      {priceData.lowestTotalPrice && priceData.lowestTotalPrice !== priceData.lowestPrice && (
+                                                      {priceData.lowestTotalPrice != null && priceData.lowestTotalPrice !== priceData.lowestPrice && (
                                                         <span className="text-xs text-muted-foreground">
                                                           (inkl. Versand ~{priceData.lowestTotalPrice.toFixed(0)} {priceData.currency})
                                                         </span>
