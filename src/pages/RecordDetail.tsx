@@ -407,6 +407,27 @@ export default function RecordDetail() {
         </Card>
       )}
 
+      {/* Stimmungen - volle Breite */}
+      {record.moods && record.moods.length > 0 && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Heart className="w-5 h-5 text-primary" />
+              Stimmungen
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {record.moods.map((mood) => (
+                <Badge key={mood} variant="secondary" className="text-sm">
+                  {mood}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Kaufinformationen - volle Breite (ganz unten) */}
       <PurchaseInfoCard record={record} updateRecord={updateRecord} />
 
