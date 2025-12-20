@@ -25,10 +25,11 @@ interface RecordCardProps {
   onCoverUpdate?: (coverArt: string) => void;
   onDelete?: () => void;
   onToggleFavorite?: () => void;
+  onRatingChange?: (rating: number) => void;
   className?: string;
 }
 
-export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleFavorite, className }: RecordCardProps) {
+export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleFavorite, onRatingChange, className }: RecordCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -111,8 +112,16 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
         />
       )}
 
-      {/* Cover Image */}
-      <div className="aspect-square relative overflow-hidden">
+      {/* Cover Image - Click to toggle favorite */}
+      <div 
+        className="aspect-square relative overflow-hidden"
+        onClick={(e) => {
+          if (onToggleFavorite) {
+            e.stopPropagation();
+            onToggleFavorite();
+          }
+        }}
+      >
         {record.coverArt ? (
           <img
             src={record.coverArt}
@@ -125,6 +134,13 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
           </div>
         )}
         
+        {/* Favorite indicator on cover */}
+        {record.isFavorite && (
+          <div className="absolute top-3 left-3 p-2 rounded-full bg-background/90 backdrop-blur-sm">
+            <Heart className="w-4 h-4 heart-favorite fill-current" />
+          </div>
+        )}
+        
         {/* Overlay on hover */}
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
@@ -132,7 +148,10 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
         {onCoverUpdate && (
           <button
             onClick={handleUploadClick}
-            className="absolute top-3 left-3 p-2 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-background hover:scale-110"
+            className={cn(
+              "absolute p-2 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-background hover:scale-110",
+              record.isFavorite ? "top-3 left-14" : "top-3 left-3"
+            )}
             title="Cover hochladen"
           >
             <Camera className="w-4 h-4 text-foreground" />
@@ -168,27 +187,6 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
           </AlertDialog>
         )}
 
-        {/* Favorite Button */}
-        {onToggleFavorite && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite();
-            }}
-            className={cn(
-              "absolute bottom-3 right-3 p-2 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110",
-              record.isFavorite 
-                ? "bg-background/90 opacity-100" 
-                : "bg-background/80 opacity-0 group-hover:opacity-100"
-            )}
-            title={record.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
-          >
-            <Heart className={cn(
-              "w-4 h-4 transition-all duration-300",
-              record.isFavorite ? "heart-favorite fill-current" : "heart-inactive"
-            )} />
-          </button>
-        )}
         
         {/* Format Badge */}
         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -222,8 +220,13 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
             </>
           )}
         </div>
-        <div className="flex items-center justify-between pt-1">
-          <StarRating rating={record.myRating} size="sm" />
+        <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
+          <StarRating 
+            rating={record.myRating} 
+            size="sm" 
+            interactive={!!onRatingChange}
+            onChange={onRatingChange}
+          />
           {record.recordingQuality && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <span className="text-primary">♪</span>

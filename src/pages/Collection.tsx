@@ -494,6 +494,7 @@ export default function Collection() {
                   onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
                   onDelete={() => deleteRecord(record.id)}
                   onToggleFavorite={() => toggleFavorite(record.id)}
+                  onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
                   className={cn(
                     isSelectMode && selectedRecords.has(record.id) && "ring-2 ring-primary"
                   )}

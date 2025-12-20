@@ -18,7 +18,7 @@ const CHART_COLORS = [
 ];
 
 export default function Dashboard() {
-  const { records, getOwnedRecords, getWishlistRecords, getFavoriteRecords, toggleFavorite } = useRecords();
+  const { records, getOwnedRecords, getWishlistRecords, getFavoriteRecords, toggleFavorite, updateRecord } = useRecords();
   const navigate = useNavigate();
 
   const ownedRecords = getOwnedRecords();
@@ -310,6 +310,7 @@ export default function Dashboard() {
                 record={record}
                 onClick={() => navigate(`/sammlung/${record.id}`)}
                 onToggleFavorite={() => toggleFavorite(record.id)}
+                onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
               />
             ))}
           </div>
@@ -338,6 +339,7 @@ export default function Dashboard() {
                 record={record}
                 onClick={() => navigate(`/sammlung/${record.id}`)}
                 onToggleFavorite={() => toggleFavorite(record.id)}
+                onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
               />
             ))}
           </div>
@@ -360,6 +362,7 @@ export default function Dashboard() {
                 record={record}
                 onClick={() => navigate(`/sammlung/${record.id}`)}
                 onToggleFavorite={() => toggleFavorite(record.id)}
+                onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
               />
             ))}
           </div>
