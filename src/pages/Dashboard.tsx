@@ -1,5 +1,5 @@
 import { useRecords } from "@/context/RecordContext";
-import { Disc3, Disc, Music, TrendingUp, Tag, Sparkles, Heart } from "lucide-react";
+import { Disc3, Disc, Music, TrendingUp, Tag, Sparkles, Heart, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -184,6 +184,7 @@ export default function Dashboard() {
         >
           <Heart className="w-5 h-5 text-red-500 fill-red-500" />
           Favoriten
+          <span className="text-sm text-muted-foreground">({favoriteRecords.length})</span>
           <span className="text-sm text-muted-foreground">→</span>
         </button>
 
@@ -223,6 +224,52 @@ export default function Dashboard() {
         ) : (
           <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
             Noch keine Favoriten – gehe in die Sammlung und tippe auf ein Cover, um es als Favorit zu markieren.
+          </div>
+        )}
+      </motion.div>
+
+      {/* Wishlist - Horizontal Scroll */}
+      <motion.div variants={itemVariants}>
+        <button
+          onClick={() => navigate("/wunschliste")}
+          className="flex items-center gap-2 mb-4 text-lg font-medium text-foreground hover:text-primary transition-colors"
+        >
+          <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+          Wunschliste
+          <span className="text-sm text-muted-foreground">({wishlistRecords.length})</span>
+          <span className="text-sm text-muted-foreground">→</span>
+        </button>
+
+        {wishlistRecords.length > 0 ? (
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-4 pb-4">
+              {wishlistRecords.map((record) => (
+                <div
+                  key={record.id}
+                  className="flex-shrink-0 w-32 cursor-pointer group"
+                  onClick={() => navigate(`/sammlung/${record.id}`)}
+                >
+                  <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                    <img
+                      src={record.coverArt || "/placeholder.svg"}
+                      alt={record.album}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 backdrop-blur-sm">
+                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs font-medium text-foreground truncate">{record.album}</p>
+                  <p className="text-xs text-muted-foreground truncate">{record.artist}</p>
+                </div>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        ) : (
+          <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+            Noch keine Einträge auf der Wunschliste.
           </div>
         )}
       </motion.div>
