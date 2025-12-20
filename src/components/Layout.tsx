@@ -23,7 +23,7 @@ const navItems = [
   { to: "/sammlung", label: "Sammlung", icon: Library },
   { to: "/wunschliste", label: "Wunschliste", icon: Heart },
   { to: "/recherche", label: "Recherche", icon: Search },
-  { to: "/export", label: "Export", icon: Download },
+  { to: "/export", label: "Speichern", icon: Download },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
