@@ -3,9 +3,16 @@ import { Disc3, Disc, Music, TrendingUp, Tag, Sparkles, Heart } from "lucide-rea
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Dashboard() {
-  const { records, getWishlistRecords, getFavoriteRecords, toggleFavorite, updateRecord } = useRecords();
+  const { records, getWishlistRecords, getFavoriteRecords, toggleFavorite } = useRecords();
   const navigate = useNavigate();
 
   const wishlistRecords = getWishlistRecords();
@@ -23,7 +30,7 @@ export default function Dashboard() {
 
   const topGenres = Object.entries(genreCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 8);
+    .slice(0, 20);
 
   // Calculate tag distribution
   const tagCount = records.reduce((acc, record) => {
@@ -35,7 +42,7 @@ export default function Dashboard() {
 
   const topTags = Object.entries(tagCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
+    .slice(0, 20);
 
   // Calculate mood distribution
   const moodCount = records.reduce((acc, record) => {
@@ -47,7 +54,7 @@ export default function Dashboard() {
 
   const topMoods = Object.entries(moodCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 12);
+    .slice(0, 20);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -62,15 +69,15 @@ export default function Dashboard() {
     visible: { opacity: 1, y: 0 },
   };
 
-  const handleGenreClick = (genre: string) => {
+  const handleGenreSelect = (genre: string) => {
     navigate(`/sammlung?genre=${encodeURIComponent(genre)}`);
   };
 
-  const handleTagClick = (tag: string) => {
+  const handleTagSelect = (tag: string) => {
     navigate(`/sammlung?tag=${encodeURIComponent(tag)}`);
   };
 
-  const handleMoodClick = (mood: string) => {
+  const handleMoodSelect = (mood: string) => {
     navigate(`/sammlung?mood=${encodeURIComponent(mood)}`);
   };
 
@@ -115,69 +122,57 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* Filter Section */}
-      <motion.div variants={itemVariants} className="space-y-4">
-        {/* Genres */}
+      {/* Filter Dropdowns */}
+      <motion.div variants={itemVariants} className="flex flex-wrap gap-4">
+        {/* Genres Dropdown */}
         {topGenres.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Music className="w-4 h-4" />
-              <span>Genres</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
+          <Select onValueChange={handleGenreSelect}>
+            <SelectTrigger className="w-[180px] bg-card border-border">
+              <Music className="w-4 h-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Genre wählen" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border z-50">
               {topGenres.map(([genre, count]) => (
-                <button
-                  key={genre}
-                  onClick={() => handleGenreClick(genre)}
-                  className="px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium border border-transparent hover:bg-primary/10 hover:text-foreground hover:border-primary/30 transition-all duration-200"
-                >
-                  {genre} <span className="opacity-60">({count})</span>
-                </button>
+                <SelectItem key={genre} value={genre}>
+                  {genre} ({count})
+                </SelectItem>
               ))}
-            </div>
-          </div>
+            </SelectContent>
+          </Select>
         )}
 
-        {/* Tags */}
+        {/* Tags Dropdown */}
         {topTags.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Tag className="w-4 h-4" />
-              <span>Stichworte</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
+          <Select onValueChange={handleTagSelect}>
+            <SelectTrigger className="w-[180px] bg-card border-border">
+              <Tag className="w-4 h-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Stichwort wählen" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border z-50">
               {topTags.map(([tag, count]) => (
-                <button
-                  key={tag}
-                  onClick={() => handleTagClick(tag)}
-                  className="px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium border border-transparent hover:bg-primary/10 hover:text-foreground hover:border-primary/30 transition-all duration-200"
-                >
-                  {tag} <span className="opacity-60">({count})</span>
-                </button>
+                <SelectItem key={tag} value={tag}>
+                  {tag} ({count})
+                </SelectItem>
               ))}
-            </div>
-          </div>
+            </SelectContent>
+          </Select>
         )}
 
-        {/* Moods */}
+        {/* Moods Dropdown */}
         {topMoods.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Sparkles className="w-4 h-4" />
-              <span>Stimmungen</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
+          <Select onValueChange={handleMoodSelect}>
+            <SelectTrigger className="w-[180px] bg-card border-border">
+              <Sparkles className="w-4 h-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Stimmung wählen" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border z-50">
               {topMoods.map(([mood, count]) => (
-                <button
-                  key={mood}
-                  onClick={() => handleMoodClick(mood)}
-                  className="px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium border border-transparent hover:bg-primary/10 hover:text-foreground hover:border-primary/30 transition-all duration-200"
-                >
-                  {mood} <span className="opacity-60">({count})</span>
-                </button>
+                <SelectItem key={mood} value={mood}>
+                  {mood} ({count})
+                </SelectItem>
               ))}
-            </div>
-          </div>
+            </SelectContent>
+          </Select>
         )}
       </motion.div>
 
