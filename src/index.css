@@ -11,140 +11,139 @@
 @tailwind components;
 @tailwind utilities;
 
-/* SONORIUM Design System - Dark Purple/Navy Theme */
+/* SONORIUM Design System - Refined Dark Audiophile */
 
 @layer base {
   :root {
-    /* Dark purple/navy backgrounds */
-    --background: 250 30% 8%;
-    --foreground: 0 0% 95%;
+    /* Dark backgrounds - slightly warmer */
+    --background: 225 12% 7%;
+    --foreground: 220 15% 92%;
 
-    /* Card surfaces - subtle purple tint */
-    --card: 250 25% 12%;
-    --card-foreground: 0 0% 95%;
+    /* Card surfaces - better separation */
+    --card: 225 12% 10%;
+    --card-foreground: 220 15% 92%;
 
     /* Popover */
-    --popover: 250 25% 14%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 225 12% 12%;
+    --popover-foreground: 220 15% 92%;
 
-    /* Primary - Violet/Purple accent */
-    --primary: 258 75% 58%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary - Warm cream white */
+    --primary: 35 20% 90%;
+    --primary-foreground: 225 12% 7%;
 
-    /* Secondary - Subtle purple */
-    --secondary: 250 20% 18%;
-    --secondary-foreground: 0 0% 85%;
+    /* Secondary - Subtle cool accent */
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 220 15% 85%;
 
-    /* Muted - Darker purple */
-    --muted: 250 20% 15%;
-    --muted-foreground: 250 10% 55%;
+    /* Muted - Better contrast */
+    --muted: 225 10% 15%;
+    --muted-foreground: 220 12% 62%;
 
-    /* Accent - Bright violet */
-    --accent: 258 85% 65%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent - Refined warm gold */
+    --accent: 40 65% 52%;
+    --accent-foreground: 225 12% 7%;
 
-    /* Secondary accent - Warm cream for contrast */
-    --accent-secondary: 35 80% 75%;
-    --accent-secondary-foreground: 250 30% 8%;
+    /* Secondary accent - Cool blue for actions */
+    --accent-secondary: 210 55% 55%;
+    --accent-secondary-foreground: 220 15% 92%;
 
     /* Destructive */
-    --destructive: 0 65% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 60% 48%;
+    --destructive-foreground: 220 15% 92%;
 
-    /* Borders */
-    --border: 250 20% 20%;
-    --border-strong: 250 20% 28%;
-    --input: 250 20% 18%;
-    --ring: 258 75% 58%;
+    /* Borders - More visible */
+    --border: 225 10% 20%;
+    --border-strong: 225 10% 25%;
+    --input: 225 10% 18%;
+    --ring: 40 50% 45%;
 
-    --radius: 0.875rem;
+    --radius: 0.625rem;
 
-    /* Custom tokens - vinyl themed */
+    /* Custom tokens */
     --vinyl-black: 0 0% 4%;
     --vinyl-groove: 0 0% 10%;
-    --vinyl-label: 250 20% 25%;
-    --vinyl-gold: 40 75% 55%;
-    --vinyl-cream: 35 40% 88%;
-    --vinyl-cognac: 25 35% 28%;
-    --vinyl-amber: 35 70% 55%;
-    --vinyl-warm-gray: 250 8% 45%;
-    --vinyl-purple: 258 75% 58%;
+    --vinyl-label: 225 10% 28%;
+    --vinyl-gold: 40 65% 52%;
+    --vinyl-cream: 35 20% 90%;
+    --vinyl-cognac: 25 30% 25%;
+    --vinyl-amber: 35 60% 50%;
+    --vinyl-warm-gray: 220 8% 45%;
 
     /* Gradients */
-    --gradient-vinyl: linear-gradient(135deg, hsl(250 25% 18%), hsl(250 25% 25%));
-    --gradient-gold: linear-gradient(135deg, hsl(40 75% 55%), hsl(35 60% 48%));
-    --gradient-warm: linear-gradient(180deg, hsl(250 30% 8%), hsl(250 30% 5%));
-    --gradient-card: linear-gradient(160deg, hsl(250 25% 14%), hsl(250 25% 10%));
-    --gradient-card-hover: linear-gradient(160deg, hsl(250 25% 16%), hsl(250 25% 12%));
-    --gradient-purple: linear-gradient(135deg, hsl(258 75% 58%), hsl(280 70% 55%));
-    --gradient-cta: linear-gradient(135deg, hsl(258 75% 55%), hsl(240 65% 50%));
+    --gradient-vinyl: linear-gradient(135deg, hsl(225 10% 18%), hsl(225 10% 25%));
+    --gradient-gold: linear-gradient(135deg, hsl(40 65% 52%), hsl(35 55% 45%));
+    --gradient-warm: linear-gradient(180deg, hsl(225 12% 7%), hsl(225 12% 5%));
+    --gradient-card: linear-gradient(160deg, hsl(225 12% 11%), hsl(225 12% 8%));
+    --gradient-card-hover: linear-gradient(160deg, hsl(225 12% 13%), hsl(225 12% 10%));
 
-    /* Shadows */
-    --shadow-vinyl: 0 4px 24px -4px hsl(250 50% 5% / 0.6);
-    --shadow-card: 0 2px 16px -4px hsl(250 50% 5% / 0.45);
-    --shadow-cover: 0 12px 48px -12px hsl(250 50% 5% / 0.65);
-    --shadow-hover: 0 20px 60px -15px hsl(250 50% 5% / 0.75);
-    --shadow-glow: 0 0 30px -5px hsl(258 75% 58% / 0.25);
-    --shadow-purple: 0 8px 32px -8px hsl(258 75% 58% / 0.35);
+    /* Shadows - Warmer */
+    --shadow-vinyl: 0 4px 24px -4px hsl(25 20% 5% / 0.5);
+    --shadow-card: 0 2px 16px -4px hsl(25 20% 5% / 0.35);
+    --shadow-cover: 0 10px 40px -10px hsl(25 20% 5% / 0.55);
+    --shadow-hover: 0 16px 50px -12px hsl(25 20% 5% / 0.65);
+    --shadow-glow: 0 0 20px -5px hsl(40 65% 52% / 0.15);
 
     /* Sidebar */
-    --sidebar-background: 250 30% 6%;
-    --sidebar-foreground: 0 0% 80%;
-    --sidebar-primary: 258 75% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 20% 14%;
-    --sidebar-accent-foreground: 0 0% 85%;
-    --sidebar-border: 250 20% 16%;
-    --sidebar-ring: 258 75% 58%;
+    --sidebar-background: 225 12% 5%;
+    --sidebar-foreground: 220 12% 80%;
+    --sidebar-primary: 35 20% 90%;
+    --sidebar-primary-foreground: 225 12% 5%;
+    --sidebar-accent: 225 10% 12%;
+    --sidebar-accent-foreground: 220 12% 85%;
+    --sidebar-border: 225 10% 14%;
+    --sidebar-ring: 40 50% 45%;
   }
 
   .dark {
-    --background: 250 35% 6%;
-    --foreground: 0 0% 95%;
+    --background: 225 12% 6%;
+    --foreground: 220 15% 92%;
 
-    --card: 250 28% 10%;
-    --card-foreground: 0 0% 95%;
+    --card: 225 12% 9%;
+    --card-foreground: 220 15% 92%;
 
-    --popover: 250 28% 12%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 225 12% 11%;
+    --popover-foreground: 220 15% 92%;
 
-    --primary: 258 80% 60%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 35 20% 90%;
+    --primary-foreground: 225 12% 6%;
 
-    --secondary: 250 22% 16%;
-    --secondary-foreground: 0 0% 85%;
+    --secondary: 220 15% 16%;
+    --secondary-foreground: 220 15% 85%;
 
-    --muted: 250 22% 13%;
-    --muted-foreground: 250 10% 52%;
+    --muted: 225 10% 14%;
+    --muted-foreground: 220 12% 60%;
 
-    --accent: 258 85% 68%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 40 65% 52%;
+    --accent-foreground: 225 12% 6%;
 
-    --accent-secondary: 35 85% 78%;
-    --accent-secondary-foreground: 250 35% 6%;
+    --accent-secondary: 210 55% 55%;
+    --accent-secondary-foreground: 220 15% 92%;
 
-    --destructive: 0 62% 48%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 220 15% 92%;
 
-    --border: 250 22% 18%;
-    --border-strong: 250 22% 25%;
-    --input: 250 22% 15%;
-    --ring: 258 80% 60%;
+    --border: 225 10% 18%;
+    --border-strong: 225 10% 23%;
+    --input: 225 10% 16%;
+    --ring: 40 50% 45%;
 
-    --gradient-card: linear-gradient(160deg, hsl(250 28% 12%), hsl(250 28% 8%));
-    --gradient-card-hover: linear-gradient(160deg, hsl(250 28% 14%), hsl(250 28% 10%));
+    --vinyl-black: 0 0% 3%;
+    --vinyl-groove: 0 0% 8%;
 
-    --shadow-vinyl: 0 4px 24px -4px hsl(0 0% 0% / 0.7);
-    --shadow-card: 0 2px 16px -4px hsl(0 0% 0% / 0.55);
-    --shadow-cover: 0 12px 48px -12px hsl(0 0% 0% / 0.75);
+    --gradient-card: linear-gradient(160deg, hsl(225 12% 10%), hsl(225 12% 7%));
+    --gradient-card-hover: linear-gradient(160deg, hsl(225 12% 12%), hsl(225 12% 9%));
 
-    --sidebar-background: 250 35% 5%;
-    --sidebar-foreground: 0 0% 80%;
-    --sidebar-primary: 258 80% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 22% 12%;
-    --sidebar-accent-foreground: 0 0% 85%;
-    --sidebar-border: 250 22% 14%;
+    --shadow-vinyl: 0 4px 24px -4px hsl(0 0% 0% / 0.6);
+    --shadow-card: 0 2px 16px -4px hsl(0 0% 0% / 0.45);
+    --shadow-cover: 0 10px 40px -10px hsl(0 0% 0% / 0.65);
+
+    --sidebar-background: 225 12% 4%;
+    --sidebar-foreground: 220 12% 80%;
+    --sidebar-primary: 35 20% 90%;
+    --sidebar-primary-foreground: 225 12% 4%;
+    --sidebar-accent: 225 10% 10%;
+    --sidebar-accent-foreground: 220 12% 85%;
+    --sidebar-border: 225 10% 12%;
   }
 }
 
@@ -210,7 +209,7 @@
 
   /* Refined card styles */
   .card-refined {
-    @apply bg-gradient-card border border-border rounded-2xl;
+    @apply bg-gradient-card border border-border rounded-xl;
     box-shadow: var(--shadow-card);
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -219,37 +218,6 @@
     @apply border-border-strong;
     background: var(--gradient-card-hover);
     box-shadow: var(--shadow-hover);
-  }
-
-  /* Quick Access Card - Image background style */
-  .quick-card {
-    @apply relative rounded-2xl overflow-hidden;
-    min-height: 140px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .quick-card::before {
-    content: "";
-    @apply absolute inset-0;
-    background: linear-gradient(180deg, transparent 30%, hsl(0 0% 0% / 0.7) 100%);
-  }
-
-  .quick-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-hover);
-  }
-
-  /* Stats card */
-  .stats-card {
-    @apply rounded-2xl p-5 relative overflow-hidden;
-    background: hsl(var(--secondary));
-    border: 1px solid hsl(var(--border));
-  }
-
-  .stats-card-icon {
-    @apply absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center;
-    background: hsl(var(--primary) / 0.15);
-    color: hsl(var(--primary));
   }
 
   /* Cover card hover effect */
@@ -263,34 +231,10 @@
     box-shadow: var(--shadow-hover), var(--shadow-glow);
   }
 
-  /* Album frame effect - like the detail screenshot */
-  .album-frame {
-    @apply relative p-6 rounded-2xl;
-    background: hsl(var(--vinyl-cream));
-    box-shadow: var(--shadow-cover);
-  }
-
-  .album-frame::after {
-    content: "";
-    @apply absolute bottom-4 left-1/2 -translate-x-1/2 h-2 w-24 rounded-full;
-    background: hsl(var(--border));
-  }
-
-  /* CTA Banner */
-  .cta-banner {
-    @apply rounded-2xl p-5 relative overflow-hidden;
-    background: var(--gradient-cta);
-  }
-
   /* Warm gradient text */
   .gradient-text {
     @apply bg-clip-text text-transparent;
     background-image: var(--gradient-gold);
-  }
-
-  .gradient-text-purple {
-    @apply bg-clip-text text-transparent;
-    background-image: var(--gradient-purple);
   }
 
   /* Texture overlay for retro feel */
@@ -300,17 +244,17 @@
 
   .texture-overlay::after {
     content: "";
-    @apply absolute inset-0 pointer-events-none opacity-[0.015];
+    @apply absolute inset-0 pointer-events-none opacity-[0.02];
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   }
 
   /* Status badges - refined */
   .status-owned {
-    @apply bg-primary/10 text-primary border-primary/20;
+    @apply bg-primary/8 text-primary border-primary/20;
   }
 
   .status-wishlist {
-    @apply bg-accent/15 text-accent border-accent/25;
+    @apply bg-accent/12 text-accent border-accent/25;
   }
 
   .status-checked {
@@ -319,7 +263,7 @@
 
   /* Format badges */
   .format-vinyl {
-    @apply bg-vinyl-cognac/20 text-vinyl-cream border-vinyl-cognac/30;
+    @apply bg-vinyl-cognac/15 text-primary border-vinyl-cognac/20;
   }
 
   .format-cd {
@@ -329,18 +273,18 @@
   /* Star rating - refined gold */
   .star-filled {
     @apply text-vinyl-gold fill-vinyl-gold;
-    filter: drop-shadow(0 0 3px hsl(var(--vinyl-gold) / 0.4));
+    filter: drop-shadow(0 0 2px hsl(var(--vinyl-gold) / 0.3));
   }
 
   .star-empty {
-    @apply text-muted-foreground/30;
+    @apply text-muted-foreground/25;
   }
 
-  /* Favorite heart - purple glow */
+  /* Favorite heart - gold glow */
   .heart-favorite {
-    @apply text-primary fill-primary;
-    filter: drop-shadow(0 0 8px hsl(var(--primary) / 0.5)) 
-            drop-shadow(0 0 16px hsl(var(--primary) / 0.3));
+    @apply text-vinyl-gold fill-vinyl-gold;
+    filter: drop-shadow(0 0 6px hsl(var(--vinyl-gold) / 0.5)) 
+            drop-shadow(0 0 12px hsl(var(--vinyl-gold) / 0.3));
     animation: heart-pulse 2s ease-in-out infinite;
   }
 
@@ -350,18 +294,18 @@
   }
 
   .heart-inactive:hover {
-    @apply text-primary/60;
-    filter: drop-shadow(0 0 4px hsl(var(--primary) / 0.3));
+    @apply text-vinyl-gold/60;
+    filter: drop-shadow(0 0 4px hsl(var(--vinyl-gold) / 0.3));
   }
 
   @keyframes heart-pulse {
     0%, 100% {
-      filter: drop-shadow(0 0 8px hsl(var(--primary) / 0.5)) 
-              drop-shadow(0 0 16px hsl(var(--primary) / 0.3));
+      filter: drop-shadow(0 0 6px hsl(var(--vinyl-gold) / 0.5)) 
+              drop-shadow(0 0 12px hsl(var(--vinyl-gold) / 0.3));
     }
     50% {
-      filter: drop-shadow(0 0 12px hsl(var(--primary) / 0.6)) 
-              drop-shadow(0 0 24px hsl(var(--primary) / 0.4));
+      filter: drop-shadow(0 0 8px hsl(var(--vinyl-gold) / 0.6)) 
+              drop-shadow(0 0 16px hsl(var(--vinyl-gold) / 0.4));
     }
   }
 
@@ -374,39 +318,7 @@
   /* Label text */
   .label-text {
     @apply text-sm font-normal text-muted-foreground tracking-wide uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  /* Bottom Navigation */
-  .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-md;
-    border-color: hsl(var(--border));
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  .bottom-nav-item {
-    @apply flex flex-col items-center gap-1 py-2 px-3 text-xs font-medium transition-colors;
-  }
-
-  .bottom-nav-item.active {
-    @apply text-primary;
-  }
-
-  .bottom-nav-item:not(.active) {
-    @apply text-muted-foreground;
-  }
-
-  /* Track list item */
-  .track-item {
-    @apply flex items-center justify-between py-3 border-b border-border/50 last:border-b-0;
-  }
-
-  .track-item.active {
-    @apply bg-primary/10 -mx-4 px-4 rounded-lg border-transparent;
-  }
-
-  .track-item.active .track-title {
-    @apply text-primary font-medium;
+    letter-spacing: 0.05em;
   }
 }
 
@@ -446,10 +358,5 @@
   /* Border utilities */
   .border-strong {
     border-color: hsl(var(--border-strong));
-  }
-
-  /* Safe area padding for mobile */
-  .pb-safe {
-    padding-bottom: calc(env(safe-area-inset-bottom) + 5rem);
   }
 }

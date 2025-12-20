@@ -10,11 +10,7 @@ import {
   Menu,
   X,
   Star,
-  Search,
-  User,
-  Bell,
-  Grid3X3,
-  Settings
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -30,14 +26,6 @@ const navItems = [
   { to: "/export", label: "Speichern", icon: Save },
 ];
 
-// Bottom nav items for mobile
-const bottomNavItems = [
-  { to: "/", label: "Home", icon: Grid3X3 },
-  { to: "/recherche", label: "Suche", icon: Search },
-  { to: "/sammlung", label: "Sammlung", icon: Library },
-  { to: "/export", label: "Profil", icon: Settings },
-];
-
 export function Layout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
@@ -47,20 +35,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background texture-overlay">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/30 bg-background/90 backdrop-blur-lg">
-        <div className="container flex h-14 items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+        <div className="container flex h-16 items-center justify-between">
           {/* Logo */}
-          <NavLink to="/" className="flex items-center gap-2.5 group">
-            <div className="relative w-9 h-9 flex-shrink-0 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/15 transition-all duration-300">
-              <Disc3 className="w-4.5 h-4.5 text-primary group-hover:animate-spin-slow" />
+          <NavLink to="/" className="flex items-center gap-3 group">
+            <div className="relative w-10 h-10 flex-shrink-0 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/10 transition-all duration-300">
+              <Disc3 className="w-5 h-5 text-primary group-hover:animate-spin-slow" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="font-sans text-lg font-bold tracking-widest text-foreground">SONORIUM</h1>
+              <h1 className="font-sans text-xl font-bold tracking-widest text-foreground">SONORIUM</h1>
+              <p className="text-[10px] text-muted-foreground -mt-0.5 tracking-widest uppercase">A place for your music</p>
             </div>
           </NavLink>
 
-          {/* Quick Search - Desktop */}
-          <div className="hidden md:block flex-1 max-w-sm mx-6">
+          {/* Quick Search */}
+          <div className="hidden md:block flex-1 max-w-xs mx-4">
             <QuickSearch />
           </div>
 
@@ -74,9 +63,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   key={item.to}
                   to={item.to}
                   className={cn(
-                    "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all",
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-purple"
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   )}
                 >
@@ -90,32 +79,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavLink
               to="/sammlung?favorites=true"
               className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all relative",
+                "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all relative",
                 location.search.includes("favorites=true")
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-red-500 text-white"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               )}
               title="Favoriten anzeigen"
             >
               <Star className={cn("w-4 h-4", location.search.includes("favorites=true") && "fill-current")} />
               {favoriteCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center font-semibold">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                   {favoriteCount}
                 </span>
               )}
             </NavLink>
           </nav>
 
-          {/* Right Actions */}
+          {/* Add Button */}
           <div className="flex items-center gap-2">
-            {/* Notification Bell - Desktop */}
-            <Button variant="ghost" size="icon" className="hidden md:flex text-muted-foreground hover:text-foreground">
-              <Bell className="w-5 h-5" />
-            </Button>
-
-            {/* Add Button */}
             <NavLink to="/hinzufuegen">
-              <Button size="sm" className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-purple">
+              <Button className="gap-2 bg-gradient-vinyl hover:opacity-90 text-primary-foreground shadow-vinyl">
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Hinzufügen</span>
               </Button>
@@ -125,7 +108,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-muted-foreground"
+              className="md:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -133,14 +116,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* Mobile Navigation Dropdown */}
+        {/* Mobile Navigation */}
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.nav
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="md:hidden border-t border-border/30 bg-card/95 backdrop-blur-lg overflow-hidden"
+              className="md:hidden border-t border-border/50 bg-background overflow-hidden"
             >
               <div className="container py-4 space-y-3">
                 {/* Mobile Search */}
@@ -157,7 +140,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         to={item.to}
                         onClick={() => setMobileMenuOpen(false)}
                         className={cn(
-                          "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                          "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
                           isActive
                             ? "bg-primary text-primary-foreground"
                             : "text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -174,16 +157,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     to="/sammlung?favorites=true"
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                      "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
                       location.search.includes("favorites=true")
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-red-500 text-white"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                     )}
                   >
                     <Star className={cn("w-5 h-5", location.search.includes("favorites=true") && "fill-current")} />
                     Favoriten
                     {favoriteCount > 0 && (
-                      <span className="ml-auto w-6 h-6 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-semibold">
+                      <span className="ml-auto w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                         {favoriteCount}
                       </span>
                     )}
@@ -196,29 +179,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content */}
-      <main className="container py-6 md:py-8 pb-safe">
+      <main className="container py-6 md:py-8">
         {children}
       </main>
-
-      {/* Bottom Navigation - Mobile Only */}
-      <nav className="bottom-nav md:hidden">
-        <div className="flex items-center justify-around py-1">
-          {bottomNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.to;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={cn("bottom-nav-item", isActive && "active")}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </NavLink>
-            );
-          })}
-        </div>
-      </nav>
     </div>
   );
 }

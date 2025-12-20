@@ -171,39 +171,27 @@ export default function RecordDetail() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-3xl mx-auto space-y-6"
+      className="max-w-4xl mx-auto space-y-6"
     >
-      {/* Header Bar */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <span className="text-sm text-muted-foreground uppercase tracking-wider font-medium">
-          ALBUM DETAILS
-        </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <Edit className="w-5 h-5" onClick={() => navigate(`/bearbeiten/${record.id}`)} />
-        </Button>
-      </div>
-
-      {/* Cover Art with Frame Effect */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.1 }}
-        className="flex justify-center"
+      {/* Back Button */}
+      <Button
+        variant="ghost"
+        onClick={() => navigate(-1)}
+        className="gap-2 text-muted-foreground hover:text-foreground"
       >
-        <div className="album-frame max-w-[280px] md:max-w-[320px]">
-          <div className="aspect-square rounded-lg overflow-hidden">
+        <ArrowLeft className="w-4 h-4" />
+        Zurück
+      </Button>
+
+      {/* Main Content */}
+      <div className="grid md:grid-cols-[300px_1fr] gap-6 md:gap-8">
+        {/* Cover Art */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div className="aspect-square rounded-xl overflow-hidden shadow-cover">
             {record.coverArt ? (
               <img
                 src={record.coverArt}
@@ -211,165 +199,152 @@ export default function RecordDetail() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-card flex items-center justify-center">
+              <div className="w-full h-full bg-gradient-vinyl flex items-center justify-center">
                 <div className="w-1/2 h-1/2 vinyl-disc" />
               </div>
             )}
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
 
-      {/* Album Info - Centered */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="text-center space-y-3"
-      >
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-          {record.album}
-        </h1>
-        <p className="text-lg text-primary font-medium">{record.artist}</p>
-        
-        {/* Tags/Badges */}
-        <div className="flex flex-wrap justify-center gap-2">
-          <Badge variant="outline" className="text-muted-foreground border-border">
-            {record.year}
-          </Badge>
-          {record.genre.map((g) => (
-            <Badge key={g} variant="outline" className="text-muted-foreground border-border">
-              {g}
-            </Badge>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Action Buttons */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className="grid grid-cols-2 gap-3"
-      >
-        <Button
-          onClick={() => toggleFavorite(record.id)}
-          variant={record.isFavorite ? "default" : "outline"}
-          className={cn(
-            "gap-2 py-6",
-            record.isFavorite 
-              ? "bg-primary hover:bg-primary/90" 
-              : "border-border hover:bg-secondary"
-          )}
+        {/* Info */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-4"
         >
-          <Heart className={cn(
-            "w-5 h-5",
-            record.isFavorite ? "fill-current" : ""
-          )} />
-          {record.isFavorite ? "Favorit" : "Collect"}
-        </Button>
-        <Button
-          asChild
-          variant="secondary"
-          className="gap-2 py-6 border border-border"
-        >
-          <a
-            href={`https://tidal.com/search?q=${encodeURIComponent(`${record.artist} ${record.album}`)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Heart className="w-5 h-5" />
-            Wishlist
-          </a>
-        </Button>
-      </motion.div>
-
-      {/* My Rating */}
-      <Card className="bg-card border-border/50">
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Deine Bewertung</span>
-            <StarRating rating={record.myRating} size="md" />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Meta Info */}
-      <Card className="bg-card border-border/50">
-        <CardContent className="py-4 space-y-3">
-          <div className="flex items-center gap-3 text-sm">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Jahr:</span>
-            <span className="text-foreground ml-auto">{record.year}</span>
-          </div>
-          {record.label && (
-            <div className="flex items-center gap-3 text-sm border-t border-border/50 pt-3">
-              <Building2 className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Label:</span>
-              <span className="text-foreground ml-auto">{record.label}</span>
-            </div>
-          )}
-          {record.catalogNumber && (
-            <div className="flex items-center gap-3 text-sm border-t border-border/50 pt-3">
-              <Barcode className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Katalognr.:</span>
-              <span className="text-foreground ml-auto">{record.catalogNumber}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-3 text-sm border-t border-border/50 pt-3">
+          {/* Badges */}
+          <div className="flex flex-wrap gap-2">
             <FormatBadge format={record.format} />
             <StatusBadge status={record.status} />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Actions Bar */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          onClick={handleEnrichWithAI}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          disabled={isEnriching}
-        >
-          {isEnriching ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Sparkles className="w-4 h-4" />
+          {/* Title */}
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+              {record.album}
+            </h1>
+            <p className="text-xl text-muted-foreground mt-1">{record.artist}</p>
+          </div>
+
+          {/* Rating */}
+          <div className="flex items-center gap-3">
+            <StarRating rating={record.myRating} size="lg" />
+            <span className="text-sm text-muted-foreground">
+              Deine Bewertung
+            </span>
+          </div>
+
+          {/* Meta Info */}
+          <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="w-4 h-4" />
+              {record.year}
+            </div>
+            {record.label && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Building2 className="w-4 h-4" />
+                {record.label}
+              </div>
+            )}
+            {record.catalogNumber && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Barcode className="w-4 h-4" />
+                {record.catalogNumber}
+              </div>
+            )}
+          </div>
+
+          {/* Genres */}
+          <div className="flex flex-wrap gap-2">
+            {record.genre.map((g) => (
+              <Badge key={g} variant="secondary" className="gap-1">
+                <Tag className="w-3 h-3" />
+                {g}
+              </Badge>
+            ))}
+          </div>
+
+          {/* Format Details */}
+          {(record.formatDetails || record.pressing) && (
+            <p className="text-sm text-muted-foreground">
+              {[record.formatDetails, record.pressing].filter(Boolean).join(" • ")}
+            </p>
           )}
-          {isEnriching ? "KI arbeitet..." : "KI-Anreicherung"}
-        </Button>
-        <Button
-          onClick={() => navigate(`/bearbeiten/${record.id}`)}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-        >
-          <Edit className="w-4 h-4" />
-          Bearbeiten
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2 text-destructive hover:bg-destructive/10">
-              <Trash2 className="w-4 h-4" />
-              Löschen
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 pt-4">
+            <Button
+              onClick={() => toggleFavorite(record.id)}
+              variant={record.isFavorite ? "accent" : "outline"}
+              className="gap-2"
+            >
+              <Heart className={cn(
+                "w-4 h-4",
+                record.isFavorite ? "heart-favorite fill-current" : "heart-inactive"
+              )} />
+              {record.isFavorite ? "Favorit" : "Favorit hinzufügen"}
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Tonträger löschen?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Möchtest du "{record.album}" von {record.artist} wirklich löschen?
-                Diese Aktion kann nicht rückgängig gemacht werden.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                Löschen
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            <Button
+              asChild
+              variant="outline"
+              className="gap-2"
+            >
+              <a
+                href={`https://tidal.com/search?q=${encodeURIComponent(`${record.artist} ${record.album}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Auf Tidal anhören
+              </a>
+            </Button>
+            <Button
+              onClick={handleEnrichWithAI}
+              variant="outline"
+              className="gap-2"
+              disabled={isEnriching}
+            >
+              {isEnriching ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {isEnriching ? "KI arbeitet..." : "KI-Anreicherung"}
+            </Button>
+            <Button
+              onClick={() => navigate(`/bearbeiten/${record.id}`)}
+              variant="secondary"
+              className="gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              Bearbeiten
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="gap-2 text-destructive hover:bg-destructive/10">
+                  <Trash2 className="w-4 h-4" />
+                  Löschen
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Tonträger löschen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Möchtest du "{record.album}" von {record.artist} wirklich löschen?
+                    Diese Aktion kann nicht rückgängig gemacht werden.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+                    Löschen
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </motion.div>
       </div>
 
       {/* Qualitätsbewertungen - volle Breite */}
