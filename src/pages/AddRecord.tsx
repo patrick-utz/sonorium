@@ -1076,22 +1076,90 @@ export default function AddRecord() {
           {/* Rating */}
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Deine Bewertung</CardTitle>
+              <CardTitle className="text-lg">Bewertungen</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <StarRating
-                  rating={formData.myRating || 0}
-                  size="lg"
-                  interactive
-                  onChange={(rating) => setFormData((prev) => ({ ...prev, myRating: rating }))}
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Deine Bewertung</Label>
+                <div className="flex items-center gap-4">
+                  <StarRating
+                    rating={formData.myRating || 0}
+                    size="lg"
+                    interactive
+                    onChange={(rating) => setFormData((prev) => ({ ...prev, myRating: rating }))}
+                  />
+                  <span className="text-lg font-semibold text-foreground">
+                    {formData.myRating} / 5
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="criticScore">Kritiker-Score (0-100)</Label>
+                <Input
+                  id="criticScore"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="z.B. 85"
+                  value={formData.criticScore ?? ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ 
+                      ...prev, 
+                      criticScore: e.target.value ? parseInt(e.target.value) : undefined 
+                    }))
+                  }
+                  className="bg-card border-border/50 max-w-[150px]"
                 />
-                <span className="text-lg font-semibold text-foreground">
-                  {formData.myRating} / 5
-                </span>
               </div>
             </CardContent>
           </Card>
+
+          {/* Vinyl-Empfehlung */}
+          {formData.format === "vinyl" && (
+            <Card className="bg-gradient-card border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Disc3 className="w-5 h-5 text-primary" />
+                  Vinyl-Empfehlung
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Empfehlung</Label>
+                  <Select
+                    value={formData.vinylRecommendation || ""}
+                    onValueChange={(v) =>
+                      setFormData((prev) => ({ 
+                        ...prev, 
+                        vinylRecommendation: v as "must-have" | "nice-to-have" | "stream-instead" | undefined 
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="bg-card border-border/50">
+                      <SelectValue placeholder="Auswählen..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="must-have">Must-Have</SelectItem>
+                      <SelectItem value="nice-to-have">Nice-to-Have</SelectItem>
+                      <SelectItem value="stream-instead">Streamen reicht</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="recommendationReason">Begründung</Label>
+                  <Textarea
+                    id="recommendationReason"
+                    placeholder="Warum lohnt sich diese Vinyl-Ausgabe?"
+                    value={formData.recommendationReason || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, recommendationReason: e.target.value }))
+                    }
+                    className="bg-card border-border/50 min-h-[80px]"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* KI-Bewertungen */}
           <Card className="bg-gradient-card border-border/50">
