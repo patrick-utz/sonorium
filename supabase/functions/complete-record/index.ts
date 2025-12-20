@@ -1122,6 +1122,16 @@ Liefere ein JSON-Objekt mit folgender Struktur:
   "artisticRating": number 1-5,
   "criticScore": number 0-100 - Kritiker-Score basierend auf Rezensionen und historischer Bedeutung (z.B. 95 für ein Meisterwerk, 70-80 für ein gutes Album),
   
+  "criticReviews": [
+    {
+      "source": "string - Name des Magazins/Portals (z.B. Rolling Stone, Pitchfork, AllMusic, NME, Mojo, Q Magazine, Musikexpress, Laut.de)",
+      "score": number - Bewertung in der Skala des Magazins (z.B. 9.2 für Pitchfork, 4.5 für AllMusic, 4 für Rolling Stone),
+      "maxScore": number - Maximale Punktzahl des Magazins (z.B. 10 für Pitchfork, 5 für AllMusic, 5 für Rolling Stone),
+      "quote": "string - Kurzes, prägnantes Zitat aus der Kritik (1-2 Sätze, auf Deutsch übersetzen falls nötig)",
+      "year": number - Jahr der Kritik (falls bekannt)
+    }
+  ] - Array mit 2-5 echten oder plausiblen Kritiken von renommierten Musik-Magazinen. Priorisiere bekannte Quellen wie Rolling Stone, Pitchfork, AllMusic, NME, Mojo. Bei deutschsprachigen Alben auch Musikexpress, Laut.de, Spex erwähnen.,
+  
   "vinylRecommendation": "must-have" | "nice-to-have" | "stream-instead" - Empfehlung ob sich die Vinyl-Anschaffung lohnt,
   "recommendationReason": "Begründung für die Vinyl-Empfehlung (2-3 Sätze): Erkläre warum sich Vinyl lohnt oder nicht, basierend auf Aufnahmequalität, verfügbaren Pressungen und klanglichem Mehrwert gegenüber Digital",
   

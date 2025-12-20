@@ -2,6 +2,15 @@ export type RecordFormat = "vinyl" | "cd";
 export type RecordStatus = "owned" | "wishlist" | "checked-not-bought";
 export type VinylRecommendation = "must-have" | "nice-to-have" | "stream-instead";
 
+export interface CriticReview {
+  source: string; // z.B. "Rolling Stone", "Pitchfork", "AllMusic"
+  score?: number; // Score in der Skala des Magazins (z.B. 9.2 für Pitchfork)
+  maxScore?: number; // Maximale Punktzahl (z.B. 10)
+  quote?: string; // Kurzes Zitat aus der Kritik
+  year?: number; // Jahr der Kritik
+  url?: string; // Link zur Kritik (falls bekannt)
+}
+
 export interface AlternativeRelease {
   mbid: string;
   title: string;
@@ -53,6 +62,7 @@ export interface Record {
   masteringQuality?: number; // 1-5
   artisticRating?: number; // 1-5
   criticScore?: number; // 0-100
+  criticReviews?: CriticReview[]; // Einzelne Kritiken von Magazinen
   
   // KI-Bewertungen
   audiophileAssessment?: string; // Audiophile Beurteilung
