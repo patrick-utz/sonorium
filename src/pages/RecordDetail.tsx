@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +72,8 @@ export default function RecordDetail() {
   const { id } = useParams<{ id: string }>();
   const { getRecordById, deleteRecord, records, addRecord, toggleFavorite, updateRecord } = useRecords();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isEnriching, setIsEnriching] = useState(false);
 
   const record = getRecordById(id || "");
 
@@ -87,6 +90,59 @@ export default function RecordDetail() {
   const handleDelete = () => {
     deleteRecord(record.id);
     navigate("/sammlung");
+  };
+
+  const handleEnrichWithAI = async () => {
+    setIsEnriching(true);
+    try {
+      const response = await supabase.functions.invoke('complete-record', {
+        body: {
+          artist: record.artist,
+          album: record.album,
+          year: record.year,
+          format: record.format,
+          label: record.label,
+          catalogNumber: record.catalogNumber,
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const aiData = response.data?.data;
+      if (aiData) {
+        updateRecord(record.id, {
+          ...record,
+          audiophileAssessment: aiData.audiophileAssessment || record.audiophileAssessment,
+          artisticAssessment: aiData.artisticAssessment || record.artisticAssessment,
+          recordingQuality: aiData.recordingQuality || record.recordingQuality,
+          masteringQuality: aiData.masteringQuality || record.masteringQuality,
+          artisticRating: aiData.artisticRating || record.artisticRating,
+          criticScore: aiData.criticScore || record.criticScore,
+          criticReviews: aiData.criticReviews || record.criticReviews,
+          vinylRecommendation: aiData.vinylRecommendation || record.vinylRecommendation,
+          recommendationReason: aiData.recommendationReason || record.recommendationReason,
+          recommendations: aiData.recommendations || record.recommendations,
+          tags: aiData.tags?.length ? aiData.tags : record.tags,
+          personalNotes: aiData.personalNotes || record.personalNotes,
+        });
+
+        toast({
+          title: "KI-Anreicherung abgeschlossen",
+          description: `Kritiken und Bewertungen wurden für "${record.album}" ergänzt.`,
+        });
+      }
+    } catch (error) {
+      console.error('AI enrichment error:', error);
+      toast({
+        title: "Fehler",
+        description: error instanceof Error ? error.message : "KI-Anreicherung fehlgeschlagen",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEnriching(false);
+    }
   };
 
   const recommendationConfig = {
@@ -242,6 +298,19 @@ export default function RecordDetail() {
                 <ExternalLink className="w-4 h-4" />
                 Auf Tidal anhören
               </a>
+            </Button>
+            <Button
+              onClick={handleEnrichWithAI}
+              variant="outline"
+              className="gap-2"
+              disabled={isEnriching}
+            >
+              {isEnriching ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {isEnriching ? "KI arbeitet..." : "KI-Anreicherung"}
             </Button>
             <Button
               onClick={() => navigate(`/bearbeiten/${record.id}`)}
