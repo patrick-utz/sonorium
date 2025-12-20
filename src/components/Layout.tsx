@@ -5,7 +5,7 @@ import {
   Library, 
   Heart, 
   Plus,
-  Download,
+  Save,
   Disc3,
   Menu,
   X,
@@ -23,7 +23,7 @@ const navItems = [
   { to: "/sammlung", label: "Sammlung", icon: Library },
   { to: "/wunschliste", label: "Wunschliste", icon: Heart },
   { to: "/recherche", label: "Recherche", icon: Search },
-  { to: "/export", label: "Speichern", icon: Download },
+  { to: "/export", label: "Speichern", icon: Save },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
