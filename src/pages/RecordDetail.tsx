@@ -384,42 +384,6 @@ export default function RecordDetail() {
         </CardContent>
       </Card>
 
-      {/* Kritiken von Fachmagazinen */}
-      {record.criticReviews && record.criticReviews.length > 0 && (
-        <Card className="bg-gradient-card border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Newspaper className="w-5 h-5 text-primary" />
-              Kritiken
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {record.criticReviews.map((review, index) => (
-                <div key={index} className="bg-muted/50 rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-foreground">{review.source}</span>
-                    {review.score !== undefined && review.maxScore && (
-                      <Badge variant="secondary" className="font-mono">
-                        {review.score}/{review.maxScore}
-                      </Badge>
-                    )}
-                  </div>
-                  {review.quote && (
-                    <blockquote className="text-sm text-muted-foreground italic border-l-2 border-primary/30 pl-3">
-                      <Quote className="w-3 h-3 inline mr-1 opacity-50" />
-                      {review.quote}
-                    </blockquote>
-                  )}
-                  {review.year && (
-                    <p className="text-xs text-muted-foreground/70">{review.year}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Vinyl Recommendation - volle Breite falls vorhanden */}
       {record.format === "vinyl" && recConfig && (
@@ -530,6 +494,43 @@ export default function RecordDetail() {
                 <Badge key={mood} variant="secondary" className="text-sm">
                   {mood}
                 </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Kritiken von Fachmagazinen */}
+      {record.criticReviews && record.criticReviews.length > 0 && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Newspaper className="w-5 h-5 text-primary" />
+              Kritiken
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {record.criticReviews.map((review, index) => (
+                <div key={index} className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-foreground">{review.source}</span>
+                    {review.score !== undefined && review.maxScore && (
+                      <Badge variant="secondary" className="font-mono">
+                        {review.score}/{review.maxScore}
+                      </Badge>
+                    )}
+                  </div>
+                  {review.quote && (
+                    <blockquote className="text-sm text-muted-foreground italic border-l-2 border-primary/30 pl-3">
+                      <Quote className="w-3 h-3 inline mr-1 opacity-50" />
+                      {review.quote}
+                    </blockquote>
+                  )}
+                  {review.year && (
+                    <p className="text-xs text-muted-foreground/70">{review.year}</p>
+                  )}
+                </div>
               ))}
             </div>
           </CardContent>
