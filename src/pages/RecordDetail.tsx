@@ -372,6 +372,20 @@ export default function RecordDetail() {
         </div>
       )}
 
+      {/* Persönliche Notizen - volle Breite */}
+      {record.personalNotes && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Persönliche Notizen</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {record.personalNotes}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stichworte - volle Breite */}
       {record.tags && record.tags.length > 0 && (
         <Card className="bg-gradient-card border-border/50">
@@ -393,21 +407,7 @@ export default function RecordDetail() {
         </Card>
       )}
 
-      {/* Persönliche Notizen - volle Breite */}
-      {record.personalNotes && (
-        <Card className="bg-gradient-card border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Persönliche Notizen</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {record.personalNotes}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Kaufinformationen - volle Breite */}
+      {/* Kaufinformationen - volle Breite (ganz unten) */}
       <PurchaseInfoCard record={record} updateRecord={updateRecord} />
 
       {/* Recommendations - Full Width */}
