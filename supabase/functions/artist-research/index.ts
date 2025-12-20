@@ -77,67 +77,37 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = `Du bist ein erfahrener Musikexperte und Vinyl-Spezialist mit tiefem Wissen über Vinyl-Pressungen, Labels und Klangqualität. 
-Du gibst ausschliesslich Empfehlungen für VINYL/LP-Pressungen - keine CDs oder digitale Formate.${equipmentContext}${preferencesContext}
+    const systemPrompt = `Du bist ein Vinyl-Spezialist. Antworte KURZ und PRÄZISE auf Deutsch.${equipmentContext}${preferencesContext}
 
-WICHTIG: Bewerte und empfehle NUR Vinyl-Pressungen. Gib für JEDES Album konkrete Katalognummern der besten Pressungen an.
-
-Antworte IMMER im folgenden JSON-Format (ohne Markdown-Codeblöcke):
+Antworte NUR mit validem JSON (ohne Markdown):
 {
-  "artist": "Künstlername",
-  "overview": "Kurze Übersicht über den Künstler und seine Bedeutung für Vinyl-Sammler",
-  "phases": [
-    {
-      "name": "Name der Phase",
-      "period": "Zeitraum (z.B. 1959-1963)",
-      "description": "Beschreibung der Phase",
-      "audioQuality": "Beschreibung der typischen Vinyl-Klangqualität dieser Phase"
-    }
-  ],
+  "artist": "Name",
+  "overview": "Max 2-3 Sätze über den Künstler",
+  "phases": [{"name": "Phase", "period": "1959-63", "description": "Kurz", "audioQuality": "Kurz"}],
   "topRecommendations": [
     {
       "rank": 1,
-      "album": "Albumtitel",
+      "album": "Titel",
       "artist": "Künstler",
-      "year": "Erscheinungsjahr",
-      "label": "Originallabel",
+      "year": "Jahr",
+      "label": "Label",
       "musicalRating": 5,
       "soundRating": 5,
-      "description": "Kurze Beschreibung warum dieses Album wichtig ist",
-      "phase": "Name der Phase (optional)",
-      "notes": "Spezielle Hinweise für den Vinyl-Sammler",
+      "description": "1-2 Sätze",
+      "phase": "Phase",
+      "notes": "Kurzer Hinweis",
       "bestPressings": [
-        {
-          "label": "Label der Pressung",
-          "catalogNumber": "KONKRETE Katalognummer (z.B. BLP 4085, V6-8456, ABC-123)",
-          "year": "Jahr der Pressung",
-          "country": "Land (USA, Japan, UK, Deutschland, etc.)",
-          "quality": "reference|excellent|good|acceptable",
-          "notes": "Detaillierte Beschreibung der Vinyl-Pressung und warum sie empfohlen wird",
-          "matrixInfo": "Matrix-/Runout-Informationen falls bekannt (z.B. RVG, Van Gelder)",
-          "avoid": false
-        }
+        {"label": "Label", "catalogNumber": "ABC-123", "year": "1960", "country": "USA", "quality": "excellent", "notes": "Kurz", "matrixInfo": "RVG", "avoid": false}
       ]
     }
   ],
-  "buyingTips": ["Vinyl-spezifische Kauftipps"],
-  "avoidLabels": ["Zu vermeidende Labels/Pressungen für Vinyl"]
+  "buyingTips": ["Tipp 1", "Tipp 2"],
+  "avoidLabels": ["Label 1"]
 }
 
-KRITISCH: Gib für JEDES Album mindestens 2-3 konkrete Vinyl-Pressungen mit echten Katalognummern an. 
-Sortiere die Pressungen nach Klangqualität (beste zuerst).
-Gib die TOP 3 bis 5 Alben, sortiert nach audiophiler Vinyl-Relevanz.`;
+WICHTIG: Maximal 3 Alben, je 2 Pressungen. Halte ALLE Texte SEHR KURZ (max 1-2 Sätze).`;
 
-    const userPrompt = `Gib mir eine detaillierte Vinyl-Analyse und Kaufempfehlung für: ${artist}
-
-Strukturiere die Antwort wie folgt:
-1. Kurze Übersicht über den Künstler aus Vinyl-Sammler-Perspektive
-2. Wichtige Schaffensphasen (falls zutreffend)
-3. Die 3-5 wichtigsten Alben mit KONKRETEN VINYL-Pressungsempfehlungen inkl. Katalognummern
-4. Kauftipps für Vinyl-Käufe und zu vermeidende Labels/Pressungen
-
-WICHTIG: Gib für jedes Album echte Katalognummern an (z.B. Blue Note BLP 4085, Riverside RLP 12-269).
-Fokussiere ausschliesslich auf Vinyl-Pressungen, keine CDs. Gib konkrete Matrix-Nummern und Runout-Infos wo bekannt.`;
+    const userPrompt = `Vinyl-Empfehlung für: ${artist}. Gib die TOP 3 Alben mit je 2 besten Vinyl-Pressungen (mit Katalognummern). Halte dich KURZ.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -151,8 +121,8 @@ Fokussiere ausschliesslich auf Vinyl-Pressungen, keine CDs. Gib konkrete Matrix-
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 4000,
+        temperature: 0.5,
+        max_tokens: 8000,
       }),
     });
 
