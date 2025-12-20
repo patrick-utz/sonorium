@@ -19,7 +19,10 @@ import {
   Album as AlbumIcon,
   Lightbulb,
   XCircle,
-  FileDown
+  FileDown,
+  DollarSign,
+  ExternalLink,
+  RefreshCw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
@@ -30,12 +33,24 @@ import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
 
+interface PressingPrice {
+  releaseId?: number;
+  lowestPrice?: number;
+  lowestTotalPrice?: number;
+  numForSale: number;
+  currency: string;
+  releaseUrl?: string;
+  loading: boolean;
+  error?: string;
+}
+
 export default function Research() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<ArtistResearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [pressingPrices, setPressingPrices] = useState<Record<string, PressingPrice>>({});
   const { profile, hasProfile } = useAudiophileProfile();
   const { addRecord } = useRecords();
 
@@ -80,6 +95,21 @@ export default function Research() {
       if (data.error) throw new Error(data.error);
 
       setResult(data);
+      
+      // Reset prices and fetch for all pressings
+      setPressingPrices({});
+      
+      // Auto-fetch prices for all recommended pressings
+      if (data.topRecommendations) {
+        data.topRecommendations.forEach((album: AlbumRecommendation) => {
+          album.bestPressings?.forEach((pressing, pIdx) => {
+            if (!pressing.avoid && pressing.catalogNumber) {
+              const key = `${album.rank}-${pIdx}`;
+              fetchPressingPrice(album.artist, album.album, pressing.catalogNumber, pressing.label, key);
+            }
+          });
+        });
+      }
     } catch (err: any) {
       console.error("Research error:", err);
       if (err.name === 'AbortError') {
@@ -89,6 +119,69 @@ export default function Research() {
       }
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const fetchPressingPrice = async (artist: string, album: string, catalogNumber: string, label: string, key: string) => {
+    setPressingPrices(prev => ({
+      ...prev,
+      [key]: { loading: true, numForSale: 0, currency: 'CHF' }
+    }));
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/discogs-marketplace`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ 
+            artist, 
+            album, 
+            catalogNumber 
+          }),
+        }
+      );
+
+      const result = await response.json();
+      
+      if (result.data) {
+        setPressingPrices(prev => ({
+          ...prev,
+          [key]: {
+            releaseId: result.data.releaseId,
+            lowestPrice: result.data.lowestPrice,
+            lowestTotalPrice: result.data.lowestTotalPrice,
+            numForSale: result.data.numForSale || 0,
+            currency: result.data.currency || 'CHF',
+            releaseUrl: result.data.releaseUrl,
+            loading: false
+          }
+        }));
+      } else {
+        setPressingPrices(prev => ({
+          ...prev,
+          [key]: {
+            loading: false,
+            numForSale: 0,
+            currency: 'CHF',
+            error: 'Nicht gefunden'
+          }
+        }));
+      }
+    } catch (err) {
+      console.error('Price fetch error:', err);
+      setPressingPrices(prev => ({
+        ...prev,
+        [key]: {
+          loading: false,
+          numForSale: 0,
+          currency: 'CHF',
+          error: 'Fehler'
+        }
+      }));
     }
   };
 
@@ -556,51 +649,139 @@ export default function Research() {
                           {album.bestPressings && album.bestPressings.length > 0 && (
                             <div className="space-y-3">
                               <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                                Empfohlene Pressungen
+                                Empfohlene Pressungen mit Discogs-Preisen
                               </h4>
-                              <ScrollArea className="max-h-[300px]">
-                                <div className="space-y-2">
-                                  {album.bestPressings.map((pressing, pIdx) => (
-                                    <div 
-                                      key={pIdx} 
-                                      className={`p-3 rounded-lg border ${
-                                        pressing.avoid 
-                                          ? 'bg-destructive/5 border-destructive/30' 
-                                          : 'bg-secondary/30 border-border'
-                                      }`}
-                                    >
-                                      <div className="flex items-start justify-between gap-2 mb-2">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="font-medium">{pressing.label}</span>
-                                          {pressing.catalogNumber && (
-                                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                                              {pressing.catalogNumber}
-                                            </code>
-                                          )}
-                                          {pressing.year && (
-                                            <span className="text-xs text-muted-foreground">{pressing.year}</span>
-                                          )}
-                                          {pressing.country && (
-                                            <span className="text-xs text-muted-foreground">({pressing.country})</span>
+                              <ScrollArea className="max-h-[400px]">
+                                <div className="space-y-3">
+                                  {album.bestPressings.map((pressing, pIdx) => {
+                                    const priceKey = `${album.rank}-${pIdx}`;
+                                    const priceData = pressingPrices[priceKey];
+                                    
+                                    return (
+                                      <div 
+                                        key={pIdx} 
+                                        className={`p-4 rounded-lg border ${
+                                          pressing.avoid 
+                                            ? 'bg-destructive/5 border-destructive/30' 
+                                            : 'bg-secondary/30 border-border'
+                                        }`}
+                                      >
+                                        <div className="flex items-start justify-between gap-2 mb-2">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-medium">{pressing.label}</span>
+                                            {pressing.catalogNumber && (
+                                              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                                                {pressing.catalogNumber}
+                                              </code>
+                                            )}
+                                            {pressing.year && (
+                                              <span className="text-xs text-muted-foreground">{pressing.year}</span>
+                                            )}
+                                            {pressing.country && (
+                                              <span className="text-xs text-muted-foreground">({pressing.country})</span>
+                                            )}
+                                          </div>
+                                          {pressing.avoid ? (
+                                            <Badge variant="outline" className="border-destructive/50 text-destructive gap-1">
+                                              <XCircle className="w-3 h-3" />
+                                              Vermeiden
+                                            </Badge>
+                                          ) : (
+                                            getQualityBadge(pressing.quality)
                                           )}
                                         </div>
-                                        {pressing.avoid ? (
-                                          <Badge variant="outline" className="border-destructive/50 text-destructive gap-1">
-                                            <XCircle className="w-3 h-3" />
-                                            Vermeiden
-                                          </Badge>
-                                        ) : (
-                                          getQualityBadge(pressing.quality)
+                                        
+                                        <p className="text-sm text-muted-foreground">{pressing.notes}</p>
+                                        
+                                        {pressing.matrixInfo && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Matrix: <code className="bg-muted px-1 rounded">{pressing.matrixInfo}</code>
+                                          </p>
+                                        )}
+                                        
+                                        {/* Discogs Price Section */}
+                                        {!pressing.avoid && pressing.catalogNumber && (
+                                          <div className="mt-3 pt-3 border-t border-border/50">
+                                            {priceData?.loading ? (
+                                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                                Preise werden geladen...
+                                              </div>
+                                            ) : priceData?.error ? (
+                                              <div className="flex items-center justify-between">
+                                                <span className="text-xs text-muted-foreground">
+                                                  Preis nicht verfügbar
+                                                </span>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-6 px-2 text-xs"
+                                                  onClick={() => fetchPressingPrice(
+                                                    album.artist, 
+                                                    album.album, 
+                                                    pressing.catalogNumber!, 
+                                                    pressing.label,
+                                                    priceKey
+                                                  )}
+                                                >
+                                                  <RefreshCw className="w-3 h-3 mr-1" />
+                                                  Erneut suchen
+                                                </Button>
+                                              </div>
+                                            ) : priceData ? (
+                                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                                <div className="flex items-center gap-3">
+                                                  {priceData.lowestPrice !== undefined && (
+                                                    <div className="flex items-center gap-1.5">
+                                                      <DollarSign className="w-4 h-4 text-green-500" />
+                                                      <span className="font-semibold text-green-500">
+                                                        ab {priceData.lowestPrice.toFixed(0)} {priceData.currency}
+                                                      </span>
+                                                      {priceData.lowestTotalPrice && priceData.lowestTotalPrice !== priceData.lowestPrice && (
+                                                        <span className="text-xs text-muted-foreground">
+                                                          (inkl. Versand ~{priceData.lowestTotalPrice.toFixed(0)} {priceData.currency})
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                  <Badge variant="secondary" className="text-xs">
+                                                    {priceData.numForSale} verfügbar
+                                                  </Badge>
+                                                </div>
+                                                {priceData.releaseUrl && (
+                                                  <a
+                                                    href={priceData.releaseUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 text-xs text-accent hover:underline"
+                                                  >
+                                                    Auf Discogs ansehen
+                                                    <ExternalLink className="w-3 h-3" />
+                                                  </a>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 px-2 text-xs"
+                                                onClick={() => fetchPressingPrice(
+                                                  album.artist, 
+                                                  album.album, 
+                                                  pressing.catalogNumber!, 
+                                                  pressing.label,
+                                                  priceKey
+                                                )}
+                                              >
+                                                <DollarSign className="w-3 h-3 mr-1" />
+                                                Preis abrufen
+                                              </Button>
+                                            )}
+                                          </div>
                                         )}
                                       </div>
-                                      <p className="text-sm text-muted-foreground">{pressing.notes}</p>
-                                      {pressing.matrixInfo && (
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          Matrix: <code className="bg-muted px-1 rounded">{pressing.matrixInfo}</code>
-                                        </p>
-                                      )}
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </ScrollArea>
                             </div>
