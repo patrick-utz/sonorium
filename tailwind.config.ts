@@ -74,6 +74,7 @@ export default {
           cognac: "hsl(var(--vinyl-cognac))",
           amber: "hsl(var(--vinyl-amber))",
           "warm-gray": "hsl(var(--vinyl-warm-gray))",
+          purple: "hsl(var(--vinyl-purple))",
         },
       },
       borderRadius: {
