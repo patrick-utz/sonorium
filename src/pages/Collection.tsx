@@ -4,6 +4,7 @@ import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -11,12 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Camera, Sparkles, Heart } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Camera, Sparkles, Heart, Loader2, CheckSquare, Square } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Record, RecordFormat } from "@/types/record";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 type SortOption = "artist" | "album" | "year" | "dateAdded" | "rating";
 type ViewMode = "grid" | "list";
@@ -35,6 +37,12 @@ export default function Collection() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  
+  // Batch selection state
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
+  const [isBatchEnriching, setIsBatchEnriching] = useState(false);
+  const [enrichProgress, setEnrichProgress] = useState({ current: 0, total: 0 });
 
   // Read filters from URL params on mount
   useEffect(() => {
@@ -70,6 +78,105 @@ export default function Collection() {
     if (searchParams.has("tag")) {
       searchParams.delete("tag");
       setSearchParams(searchParams);
+    }
+  };
+
+  // Toggle selection for a record
+  const toggleRecordSelection = (recordId: string) => {
+    setSelectedRecords(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(recordId)) {
+        newSet.delete(recordId);
+      } else {
+        newSet.add(recordId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select/deselect all filtered records
+  const toggleSelectAll = () => {
+    if (selectedRecords.size === filteredRecords.length) {
+      setSelectedRecords(new Set());
+    } else {
+      setSelectedRecords(new Set(filteredRecords.map(r => r.id)));
+    }
+  };
+
+  // Exit selection mode
+  const exitSelectMode = () => {
+    setIsSelectMode(false);
+    setSelectedRecords(new Set());
+  };
+
+  // Batch AI enrichment
+  const handleBatchEnrich = async () => {
+    if (selectedRecords.size === 0) {
+      toast.error("Bitte wähle mindestens ein Album aus");
+      return;
+    }
+
+    const recordsToEnrich = records.filter(r => selectedRecords.has(r.id));
+    setIsBatchEnriching(true);
+    setEnrichProgress({ current: 0, total: recordsToEnrich.length });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < recordsToEnrich.length; i++) {
+      const record = recordsToEnrich[i];
+      setEnrichProgress({ current: i + 1, total: recordsToEnrich.length });
+
+      try {
+        const response = await supabase.functions.invoke('complete-record', {
+          body: {
+            artist: record.artist,
+            album: record.album,
+            year: record.year,
+            format: record.format,
+            label: record.label,
+            catalogNumber: record.catalogNumber,
+          }
+        });
+
+        if (response.error) {
+          throw new Error(response.error.message);
+        }
+
+        const aiData = response.data?.data;
+        if (aiData) {
+          updateRecord(record.id, {
+            audiophileAssessment: aiData.audiophileAssessment || record.audiophileAssessment,
+            artisticAssessment: aiData.artisticAssessment || record.artisticAssessment,
+            recordingQuality: aiData.recordingQuality || record.recordingQuality,
+            masteringQuality: aiData.masteringQuality || record.masteringQuality,
+            artisticRating: aiData.artisticRating || record.artisticRating,
+            criticScore: aiData.criticScore || record.criticScore,
+            criticReviews: aiData.criticReviews || record.criticReviews,
+            vinylRecommendation: aiData.vinylRecommendation || record.vinylRecommendation,
+            recommendationReason: aiData.recommendationReason || record.recommendationReason,
+            recommendations: aiData.recommendations || record.recommendations,
+            tags: aiData.tags?.length ? aiData.tags : record.tags,
+            personalNotes: aiData.personalNotes || record.personalNotes,
+          });
+          successCount++;
+        }
+      } catch (error) {
+        console.error(`AI enrichment error for ${record.album}:`, error);
+        errorCount++;
+      }
+    }
+
+    setIsBatchEnriching(false);
+    setEnrichProgress({ current: 0, total: 0 });
+    exitSelectMode();
+
+    if (successCount > 0 && errorCount === 0) {
+      toast.success(`${successCount} Alben erfolgreich mit KI angereichert`);
+    } else if (successCount > 0 && errorCount > 0) {
+      toast.warning(`${successCount} Alben angereichert, ${errorCount} fehlgeschlagen`);
+    } else {
+      toast.error("KI-Anreicherung fehlgeschlagen");
     }
   };
 
@@ -154,6 +261,61 @@ export default function Collection() {
           </div>
 
           <div className="flex gap-2 flex-wrap">
+            {/* Batch Selection Mode */}
+            {!isSelectMode ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsSelectMode(true)}
+                className="gap-2"
+              >
+                <CheckSquare className="w-4 h-4" />
+                Auswählen
+              </Button>
+            ) : (
+              <div className="flex gap-2 items-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleSelectAll}
+                  className="gap-2"
+                >
+                  {selectedRecords.size === filteredRecords.length ? (
+                    <CheckSquare className="w-4 h-4" />
+                  ) : (
+                    <Square className="w-4 h-4" />
+                  )}
+                  {selectedRecords.size === filteredRecords.length ? "Keine" : "Alle"}
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleBatchEnrich}
+                  disabled={selectedRecords.size === 0 || isBatchEnriching}
+                  className="gap-2"
+                >
+                  {isBatchEnriching ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {enrichProgress.current}/{enrichProgress.total}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      KI ({selectedRecords.size})
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={exitSelectMode}
+                >
+                  Abbrechen
+                </Button>
+              </div>
+            )}
+
             {/* Favorites Toggle */}
             <Button
               variant={showFavoritesOnly ? "default" : "outline"}
@@ -311,14 +473,32 @@ export default function Collection() {
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
           >
             {filteredRecords.map((record) => (
-              <RecordCard
-                key={record.id}
-                record={record}
-                onClick={() => navigate(`/sammlung/${record.id}`)}
-                onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
-                onDelete={() => deleteRecord(record.id)}
-                onToggleFavorite={() => toggleFavorite(record.id)}
-              />
+              <div key={record.id} className="relative">
+                {isSelectMode && (
+                  <div 
+                    className="absolute top-2 left-2 z-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleRecordSelection(record.id);
+                    }}
+                  >
+                    <Checkbox
+                      checked={selectedRecords.has(record.id)}
+                      className="h-5 w-5 bg-background/80 border-2"
+                    />
+                  </div>
+                )}
+                <RecordCard
+                  record={record}
+                  onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
+                  onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
+                  onDelete={() => deleteRecord(record.id)}
+                  onToggleFavorite={() => toggleFavorite(record.id)}
+                  className={cn(
+                    isSelectMode && selectedRecords.has(record.id) && "ring-2 ring-primary"
+                  )}
+                />
+              </div>
             ))}
           </motion.div>
         ) : (
@@ -332,8 +512,11 @@ export default function Collection() {
               <ListItem
                 key={record.id}
                 record={record}
-                onClick={() => navigate(`/sammlung/${record.id}`)}
+                onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
                 onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
+                isSelectMode={isSelectMode}
+                isSelected={selectedRecords.has(record.id)}
+                onToggleSelect={() => toggleRecordSelection(record.id)}
               />
             ))}
           </motion.div>
@@ -343,7 +526,16 @@ export default function Collection() {
   );
 }
 
-function ListItem({ record, onClick, onCoverUpdate }: { record: Record; onClick: () => void; onCoverUpdate: (coverArt: string) => void }) {
+interface ListItemProps {
+  record: Record;
+  onClick: () => void;
+  onCoverUpdate: (coverArt: string) => void;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
+}
+
+function ListItem({ record, onClick, onCoverUpdate, isSelectMode, isSelected, onToggleSelect }: ListItemProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -380,8 +572,24 @@ function ListItem({ record, onClick, onCoverUpdate }: { record: Record; onClick:
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       onClick={onClick}
-      className="group flex items-center gap-4 p-3 rounded-lg bg-card border border-border/50 cursor-pointer hover:shadow-card transition-all"
+      className={cn(
+        "group flex items-center gap-4 p-3 rounded-lg bg-card border border-border/50 cursor-pointer hover:shadow-card transition-all",
+        isSelectMode && isSelected && "ring-2 ring-primary"
+      )}
     >
+      {isSelectMode && (
+        <div 
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect?.();
+          }}
+        >
+          <Checkbox
+            checked={isSelected}
+            className="h-5 w-5"
+          />
+        </div>
+      )}
       <input
         ref={fileInputRef}
         type="file"
@@ -401,13 +609,15 @@ function ListItem({ record, onClick, onCoverUpdate }: { record: Record; onClick:
             <div className="w-8 h-8 vinyl-disc" />
           </div>
         )}
-        <button
-          onClick={handleUploadClick}
-          className="absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity"
-          title="Cover hochladen"
-        >
-          <Camera className="w-5 h-5 text-foreground" />
-        </button>
+        {!isSelectMode && (
+          <button
+            onClick={handleUploadClick}
+            className="absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Cover hochladen"
+          >
+            <Camera className="w-5 h-5 text-foreground" />
+          </button>
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold text-foreground truncate">{record.album}</h3>
