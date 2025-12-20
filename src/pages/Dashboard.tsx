@@ -177,16 +177,17 @@ export default function Dashboard() {
       </motion.div>
 
       {/* Favorites - Horizontal Scroll */}
-      {favoriteRecords.length > 0 && (
-        <motion.div variants={itemVariants}>
-          <button
-            onClick={() => navigate("/sammlung?favorites=true")}
-            className="flex items-center gap-2 mb-4 text-lg font-medium text-foreground hover:text-primary transition-colors"
-          >
-            <Heart className="w-5 h-5 text-red-500 fill-red-500" />
-            Favoriten
-            <span className="text-sm text-muted-foreground">→</span>
-          </button>
+      <motion.div variants={itemVariants}>
+        <button
+          onClick={() => navigate("/sammlung?favorites=true")}
+          className="flex items-center gap-2 mb-4 text-lg font-medium text-foreground hover:text-primary transition-colors"
+        >
+          <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+          Favoriten
+          <span className="text-sm text-muted-foreground">→</span>
+        </button>
+
+        {favoriteRecords.length > 0 ? (
           <ScrollArea className="w-full whitespace-nowrap">
             <div className="flex gap-4 pb-4">
               {favoriteRecords.map((record) => (
@@ -200,6 +201,7 @@ export default function Dashboard() {
                       src={record.coverArt || "/placeholder.svg"}
                       alt={record.album}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
                     />
                     <div
                       className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 backdrop-blur-sm cursor-pointer hover:bg-background transition-colors"
@@ -218,8 +220,12 @@ export default function Dashboard() {
             </div>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
-        </motion.div>
-      )}
+        ) : (
+          <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+            Noch keine Favoriten – gehe in die Sammlung und tippe auf ein Cover, um es als Favorit zu markieren.
+          </div>
+        )}
+      </motion.div>
     </motion.div>
   );
 }
