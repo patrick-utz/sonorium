@@ -42,6 +42,8 @@ import {
   ThumbsUp,
   ThumbsDown,
   Minus,
+  Quote,
+  Newspaper,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -277,37 +279,74 @@ export default function RecordDetail() {
       </div>
 
       {/* Qualitätsbewertungen - volle Breite */}
-      {(record.recordingQuality || record.masteringQuality || record.artisticRating || record.criticScore) && (
+      <Card className="bg-gradient-card border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Qualitätsbewertungen</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {record.recordingQuality && (
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-sm text-muted-foreground">Aufnahmequalität</span>
+                <StarRating rating={record.recordingQuality} size="sm" />
+              </div>
+            )}
+            {record.masteringQuality && (
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-sm text-muted-foreground">Mastering-Qualität</span>
+                <StarRating rating={record.masteringQuality} size="sm" />
+              </div>
+            )}
+            {record.artisticRating && (
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-sm text-muted-foreground">Künstlerische Bewertung</span>
+                <StarRating rating={record.artisticRating} size="sm" />
+              </div>
+            )}
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-sm text-muted-foreground">Kritiker-Score</span>
+              {record.criticScore ? (
+                <span className="font-semibold text-primary">{record.criticScore}/100</span>
+              ) : (
+                <span className="text-muted-foreground/50">—</span>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Kritiken von Fachmagazinen */}
+      {record.criticReviews && record.criticReviews.length > 0 && (
         <Card className="bg-gradient-card border-border/50">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Qualitätsbewertungen</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Newspaper className="w-5 h-5 text-primary" />
+              Kritiken
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {record.recordingQuality && (
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-sm text-muted-foreground">Aufnahmequalität</span>
-                  <StarRating rating={record.recordingQuality} size="sm" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              {record.criticReviews.map((review, index) => (
+                <div key={index} className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-foreground">{review.source}</span>
+                    {review.score !== undefined && review.maxScore && (
+                      <Badge variant="secondary" className="font-mono">
+                        {review.score}/{review.maxScore}
+                      </Badge>
+                    )}
+                  </div>
+                  {review.quote && (
+                    <blockquote className="text-sm text-muted-foreground italic border-l-2 border-primary/30 pl-3">
+                      <Quote className="w-3 h-3 inline mr-1 opacity-50" />
+                      {review.quote}
+                    </blockquote>
+                  )}
+                  {review.year && (
+                    <p className="text-xs text-muted-foreground/70">{review.year}</p>
+                  )}
                 </div>
-              )}
-              {record.masteringQuality && (
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-sm text-muted-foreground">Mastering-Qualität</span>
-                  <StarRating rating={record.masteringQuality} size="sm" />
-                </div>
-              )}
-              {record.artisticRating && (
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-sm text-muted-foreground">Künstlerische Bewertung</span>
-                  <StarRating rating={record.artisticRating} size="sm" />
-                </div>
-              )}
-              {record.criticScore && (
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-sm text-muted-foreground">Kritiker-Score</span>
-                  <span className="font-semibold text-primary">{record.criticScore}/100</span>
-                </div>
-              )}
+              ))}
             </div>
           </CardContent>
         </Card>
