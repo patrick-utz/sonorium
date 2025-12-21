@@ -1,10 +1,10 @@
-import { Record } from "@/types/record";
+import { Record, VinylRecommendation } from "@/types/record";
 import { FormatBadge } from "./FormatBadge";
 import { StarRating } from "./StarRating";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
 import { motion } from "framer-motion";
-import { Camera, Trash2, Music, Heart } from "lucide-react";
+import { Camera, Trash2, Music, Heart, Star, ThumbsUp, Radio } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -26,10 +26,24 @@ interface RecordCardProps {
   onDelete?: () => void;
   onToggleFavorite?: () => void;
   onRatingChange?: (rating: number) => void;
+  showVinylRecommendation?: boolean;
   className?: string;
 }
 
-export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleFavorite, onRatingChange, className }: RecordCardProps) {
+const getVinylRecommendationLabel = (rec: VinylRecommendation | undefined) => {
+  switch (rec) {
+    case "must-have":
+      return { label: "MUST-HAVE", icon: Star, colorClass: "text-amber-500" };
+    case "nice-to-have":
+      return { label: "NICE TO HAVE", icon: ThumbsUp, colorClass: "text-emerald-500" };
+    case "stream-instead":
+      return { label: "STREAM", icon: Radio, colorClass: "text-blue-400" };
+    default:
+      return null;
+  }
+};
+
+export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleFavorite, onRatingChange, showVinylRecommendation, className }: RecordCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -221,12 +235,26 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
           )}
         </div>
         <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
-          <StarRating 
-            rating={record.myRating} 
-            size="sm" 
-            interactive={!!onRatingChange}
-            onChange={onRatingChange}
-          />
+          {showVinylRecommendation && record.vinylRecommendation ? (
+            (() => {
+              const recInfo = getVinylRecommendationLabel(record.vinylRecommendation);
+              if (!recInfo) return null;
+              const Icon = recInfo.icon;
+              return (
+                <span className={cn("text-xs font-medium flex items-center gap-1", recInfo.colorClass)}>
+                  <Icon className="w-3.5 h-3.5" />
+                  {recInfo.label}
+                </span>
+              );
+            })()
+          ) : (
+            <StarRating 
+              rating={record.myRating} 
+              size="sm" 
+              interactive={!!onRatingChange}
+              onChange={onRatingChange}
+            />
+          )}
           {record.recordingQuality && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <span className="text-primary">♪</span>
