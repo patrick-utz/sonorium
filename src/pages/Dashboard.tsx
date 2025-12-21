@@ -180,10 +180,10 @@ export default function Dashboard() {
       <motion.div variants={itemVariants}>
         <button
           onClick={() => navigate("/sammlung?favorites=true")}
-          className="flex items-center gap-3 mb-4 text-3xl md:text-4xl font-bold text-foreground hover:text-primary transition-colors"
+          className="flex items-center gap-3 mb-4 hover:text-primary transition-colors"
         >
-          <Heart className="w-7 h-7 text-red-500 fill-red-500" />
-          Favoriten
+          <Heart className="w-8 h-8 text-red-500 fill-red-500" />
+          <h1 className="text-3xl md:text-4xl font-bold gradient-text">Favoriten</h1>
           <span className="text-base md:text-lg text-muted-foreground font-normal">({favoriteRecords.length})</span>
           <span className="text-base md:text-lg text-muted-foreground">→</span>
         </button>
@@ -232,10 +232,10 @@ export default function Dashboard() {
       <motion.div variants={itemVariants}>
         <button
           onClick={() => navigate("/wunschliste")}
-          className="flex items-center gap-3 mb-4 text-3xl md:text-4xl font-bold text-foreground hover:text-primary transition-colors"
+          className="flex items-center gap-3 mb-4 hover:text-primary transition-colors"
         >
-          <Star className="w-7 h-7 text-yellow-500 fill-yellow-500" />
-          Wunschliste
+          <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
+          <h1 className="text-3xl md:text-4xl font-bold gradient-text">Wunschliste</h1>
           <span className="text-base md:text-lg text-muted-foreground font-normal">({wishlistRecords.length})</span>
           <span className="text-base md:text-lg text-muted-foreground">→</span>
         </button>
