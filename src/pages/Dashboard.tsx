@@ -180,12 +180,12 @@ export default function Dashboard() {
       <motion.div variants={itemVariants}>
         <button
           onClick={() => navigate("/sammlung?favorites=true")}
-          className="flex items-center gap-3 mb-4 text-2xl md:text-3xl font-bold text-foreground hover:text-primary transition-colors"
+          className="flex items-center gap-3 mb-4 text-3xl md:text-4xl font-bold text-foreground hover:text-primary transition-colors"
         >
-          <Heart className="w-6 h-6 text-red-500 fill-red-500" />
+          <Heart className="w-7 h-7 text-red-500 fill-red-500" />
           Favoriten
-          <span className="text-base text-muted-foreground font-normal">({favoriteRecords.length})</span>
-          <span className="text-base text-muted-foreground">→</span>
+          <span className="text-base md:text-lg text-muted-foreground font-normal">({favoriteRecords.length})</span>
+          <span className="text-base md:text-lg text-muted-foreground">→</span>
         </button>
 
         {favoriteRecords.length > 0 ? (
@@ -232,12 +232,12 @@ export default function Dashboard() {
       <motion.div variants={itemVariants}>
         <button
           onClick={() => navigate("/wunschliste")}
-          className="flex items-center gap-3 mb-4 text-2xl md:text-3xl font-bold text-foreground hover:text-primary transition-colors"
+          className="flex items-center gap-3 mb-4 text-3xl md:text-4xl font-bold text-foreground hover:text-primary transition-colors"
         >
-          <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+          <Star className="w-7 h-7 text-yellow-500 fill-yellow-500" />
           Wunschliste
-          <span className="text-base text-muted-foreground font-normal">({wishlistRecords.length})</span>
-          <span className="text-base text-muted-foreground">→</span>
+          <span className="text-base md:text-lg text-muted-foreground font-normal">({wishlistRecords.length})</span>
+          <span className="text-base md:text-lg text-muted-foreground">→</span>
         </button>
 
         {wishlistRecords.length > 0 ? (
