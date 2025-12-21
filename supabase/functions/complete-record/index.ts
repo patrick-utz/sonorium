@@ -598,6 +598,42 @@ async function searchDiscogsByCatalogNumber(catalogNumber: string): Promise<Disc
   }
 }
 
+// Search Discogs by label and catalog number combined
+async function searchDiscogsByLabelAndCatalog(label: string, catalogNumber: string): Promise<DiscogsRelease | null> {
+  if (!DISCOGS_API_KEY) {
+    return null;
+  }
+  
+  try {
+    console.log('Searching Discogs by label + catalog:', label, catalogNumber);
+    const url = `https://api.discogs.com/database/search?label=${encodeURIComponent(label)}&catno=${encodeURIComponent(catalogNumber)}&type=release`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': DISCOGS_USER_AGENT,
+        'Authorization': `Discogs token=${DISCOGS_API_KEY}`
+      }
+    });
+    
+    if (!response.ok) {
+      console.log('Discogs label+catalog search failed:', response.status);
+      return null;
+    }
+    
+    const data: DiscogsSearchResult = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      console.log('Found Discogs release by label+catalog:', data.results[0].title);
+      return data.results[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Discogs label+catalog search error:', error);
+    return null;
+  }
+}
+
 // Search Discogs by artist and album
 async function searchDiscogsByArtistAlbum(artist: string, album: string): Promise<DiscogsRelease | null> {
   if (!DISCOGS_API_KEY) {
@@ -628,9 +664,63 @@ async function searchDiscogsByArtistAlbum(artist: string, album: string): Promis
       return data.results[0];
     }
     
+    // Try without vinyl format restriction
+    const url2 = `https://api.discogs.com/database/search?artist=${encodeURIComponent(artist)}&release_title=${encodeURIComponent(album)}&type=release`;
+    
+    const response2 = await fetch(url2, {
+      headers: {
+        'User-Agent': DISCOGS_USER_AGENT,
+        'Authorization': `Discogs token=${DISCOGS_API_KEY}`
+      }
+    });
+    
+    if (response2.ok) {
+      const data2: DiscogsSearchResult = await response2.json();
+      if (data2.results && data2.results.length > 0) {
+        console.log('Found Discogs release (any format):', data2.results[0].title);
+        return data2.results[0];
+      }
+    }
+    
     return null;
   } catch (error) {
     console.error('Discogs artist/album search error:', error);
+    return null;
+  }
+}
+
+// Generic Discogs query search
+async function searchDiscogsQuery(query: string): Promise<DiscogsRelease | null> {
+  if (!DISCOGS_API_KEY) {
+    return null;
+  }
+  
+  try {
+    console.log('Searching Discogs with query:', query);
+    const url = `https://api.discogs.com/database/search?q=${encodeURIComponent(query)}&type=release`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': DISCOGS_USER_AGENT,
+        'Authorization': `Discogs token=${DISCOGS_API_KEY}`
+      }
+    });
+    
+    if (!response.ok) {
+      console.log('Discogs query search failed:', response.status);
+      return null;
+    }
+    
+    const data: DiscogsSearchResult = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      console.log('Found Discogs release by query:', data.results[0].title);
+      return data.results[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Discogs query search error:', error);
     return null;
   }
 }
@@ -666,8 +756,8 @@ async function getDiscogsReleaseDetails(releaseId: number): Promise<DiscogsRelea
   }
 }
 
-// Get cover art from Discogs
-async function searchDiscogsCover(artist: string, album: string, barcode?: string, catalogNumber?: string): Promise<string | null> {
+// Get cover art from Discogs with improved multi-strategy search
+async function searchDiscogsCover(artist: string, album: string, barcode?: string, catalogNumber?: string, label?: string): Promise<string | null> {
   if (!DISCOGS_API_KEY) {
     console.log('Discogs API key not configured, skipping Discogs cover search');
     return null;
@@ -676,29 +766,77 @@ async function searchDiscogsCover(artist: string, album: string, barcode?: strin
   try {
     let release: DiscogsRelease | null = null;
     
-    // Try barcode first
+    // Strategy 1: Try barcode first (most precise)
     if (barcode) {
+      console.log('Strategy 1: Searching by barcode:', barcode);
       release = await searchDiscogsByBarcode(barcode);
       if (release) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Rate limiting
-      }
-    }
-    
-    // Try catalog number
-    if (!release && catalogNumber) {
-      release = await searchDiscogsByCatalogNumber(catalogNumber);
-      if (release) {
+        console.log('Found release via barcode');
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
     
-    // Try artist/album
+    // Strategy 2: Try label + catalog number combined (very precise for vinyl)
+    if (!release && label && catalogNumber) {
+      console.log('Strategy 2: Searching by label + catalog:', label, catalogNumber);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      release = await searchDiscogsByLabelAndCatalog(label, catalogNumber);
+      if (release) {
+        console.log('Found release via label+catalog');
+      }
+    }
+    
+    // Strategy 3: Try catalog number alone
+    if (!release && catalogNumber) {
+      console.log('Strategy 3: Searching by catalog number:', catalogNumber);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      release = await searchDiscogsByCatalogNumber(catalogNumber);
+      if (release) {
+        console.log('Found release via catalog number');
+      }
+    }
+    
+    // Strategy 4: Try artist + album
     if (!release && artist && album) {
+      console.log('Strategy 4: Searching by artist/album:', artist, album);
+      await new Promise(resolve => setTimeout(resolve, 1000));
       release = await searchDiscogsByArtistAlbum(artist, album);
+      if (release) {
+        console.log('Found release via artist/album');
+      }
+    }
+    
+    // Strategy 5: Try combined query search (album + label or catalog)
+    if (!release && album && (label || catalogNumber)) {
+      const queryTerms = [album, label, catalogNumber].filter(Boolean).join(' ');
+      console.log('Strategy 5: Searching with combined query:', queryTerms);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      release = await searchDiscogsQuery(queryTerms);
+      if (release) {
+        console.log('Found release via combined query');
+      }
+    }
+    
+    // Strategy 6: Try just album name if still nothing
+    if (!release && album) {
+      console.log('Strategy 6: Searching with album name only:', album);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      release = await searchDiscogsQuery(album);
+      if (release) {
+        // Validate that artist matches (if we have one)
+        if (artist) {
+          const releaseArtist = release.title?.split(' - ')[0] || '';
+          const similarity = stringSimilarity(releaseArtist, artist);
+          if (similarity < 0.4) {
+            console.log('Artist mismatch, skipping result. Expected:', artist, 'Got:', releaseArtist);
+            release = null;
+          }
+        }
+      }
     }
     
     if (!release) {
-      console.log('No Discogs release found');
+      console.log('No Discogs release found after all strategies');
       return null;
     }
     
@@ -838,14 +976,14 @@ async function getDiscogsPressInfo(artist: string, album: string, barcode?: stri
 }
 
 // Multi-source cover art search (parallel with fallbacks)
-async function searchCoverArtMultiSource(artist: string, album: string, mbid?: string, barcode?: string, catalogNumber?: string): Promise<string | null> {
-  console.log('Starting multi-source cover art search for:', artist, album);
+async function searchCoverArtMultiSource(artist: string, album: string, mbid?: string, barcode?: string, catalogNumber?: string, label?: string): Promise<string | null> {
+  console.log('Starting multi-source cover art search for:', artist, album, 'label:', label, 'catalog:', catalogNumber);
   
   // Strategy: Try Discogs first (most reliable for vinyl), then try others in parallel
   
-  // Try Discogs first if we have specific identifiers
-  if (DISCOGS_API_KEY && (barcode || catalogNumber)) {
-    const discogsCover = await searchDiscogsCover(artist, album, barcode, catalogNumber);
+  // Try Discogs first if we have specific identifiers (barcode, catalog, or label)
+  if (DISCOGS_API_KEY && (barcode || catalogNumber || label)) {
+    const discogsCover = await searchDiscogsCover(artist, album, barcode, catalogNumber, label);
     if (discogsCover) {
       console.log('Found cover via Discogs (with identifiers)');
       return discogsCover;
@@ -856,7 +994,7 @@ async function searchCoverArtMultiSource(artist: string, album: string, mbid?: s
   const searchPromises: Promise<{ source: string; cover: string | null }>[] = [];
   
   // Discogs by artist/album (if not tried above)
-  if (DISCOGS_API_KEY && !barcode && !catalogNumber) {
+  if (DISCOGS_API_KEY && !barcode && !catalogNumber && !label) {
     searchPromises.push(
       searchDiscogsCover(artist, album).then(cover => ({ source: 'Discogs', cover }))
     );
@@ -1124,9 +1262,10 @@ Wichtige Hinweise:
           alternativeReleases = await getAlternativeReleases(releaseGroupId, 15);
         }
         
-        // Multi-source cover art search (with Discogs priority)
+        // Multi-source cover art search (with Discogs priority, including label)
         await new Promise(resolve => setTimeout(resolve, 500));
-        foundCoverArt = await searchCoverArtMultiSource(mbData.artist, mbData.album, mbData.mbid, effectiveBarcode, effectiveCatalogNumber);
+        const effectiveLabel = label || discogsPressInfo?.label || mbData.label;
+        foundCoverArt = await searchCoverArtMultiSource(mbData.artist, mbData.album, mbData.mbid, effectiveBarcode, effectiveCatalogNumber, effectiveLabel);
       }
     }
     
@@ -1146,24 +1285,28 @@ Wichtige Hinweise:
           }
         }
         
-        // Multi-source cover art search (with Discogs priority)
+        // Multi-source cover art search (with Discogs priority, including label)
         await new Promise(resolve => setTimeout(resolve, 500));
-        foundCoverArt = await searchCoverArtMultiSource(artist, album, mbid, effectiveBarcode, effectiveCatalogNumber);
+        const effectiveLabel = label || discogsPressInfo?.label;
+        foundCoverArt = await searchCoverArtMultiSource(artist, album, mbid, effectiveBarcode, effectiveCatalogNumber, effectiveLabel);
       } else {
         // No MusicBrainz match, still try cover art sources
-        foundCoverArt = await searchCoverArtMultiSource(artist, album, undefined, effectiveBarcode, effectiveCatalogNumber);
+        const effectiveLabel = label || discogsPressInfo?.label;
+        foundCoverArt = await searchCoverArtMultiSource(artist, album, undefined, effectiveBarcode, effectiveCatalogNumber, effectiveLabel);
       }
     }
     
     // Step 3: If still no cover but we have artist/album info, try multi-source without MBID
     if (!foundCoverArt && (artist || mbData?.artist) && (album || mbData?.album)) {
       await new Promise(resolve => setTimeout(resolve, 500));
+      const effectiveLabel = label || discogsPressInfo?.label || mbData?.label;
       foundCoverArt = await searchCoverArtMultiSource(
         artist || mbData?.artist || '', 
         album || mbData?.album || '',
         undefined,
         effectiveBarcode,
-        effectiveCatalogNumber
+        effectiveCatalogNumber,
+        effectiveLabel
       );
     }
     
