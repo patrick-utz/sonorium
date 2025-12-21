@@ -990,7 +990,7 @@ function PurchaseInfoCard({ record, updateRecord }: PurchaseInfoCardProps) {
                   </span>
                   {marketplaceData.lowestTotalPrice && (
                     <span className="text-xs text-muted-foreground">
-                      inkl. Porto: ~CHF {marketplaceData.lowestTotalPrice.toFixed(2)}
+                      + Porto = ~CHF {marketplaceData.lowestTotalPrice.toFixed(2)}
                     </span>
                   )}
                 </div>

@@ -739,7 +739,7 @@ export default function Research() {
                                                       </span>
                                                       {priceData.lowestTotalPrice != null && priceData.lowestTotalPrice !== priceData.lowestPrice && (
                                                         <span className="text-xs text-muted-foreground">
-                                                          (inkl. Versand ~{priceData.lowestTotalPrice.toFixed(0)} {priceData.currency})
+                                                          (+ Versand = ~{priceData.lowestTotalPrice.toFixed(0)} {priceData.currency})
                                                         </span>
                                                       )}
                                                     </div>
