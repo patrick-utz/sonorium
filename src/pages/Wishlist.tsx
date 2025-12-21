@@ -264,7 +264,7 @@ export default function Wishlist() {
                   onClick={() => navigate(`/sammlung/${record.id}`)}
                   onDelete={() => deleteRecord(record.id)}
                   onToggleFavorite={() => toggleFavorite(record.id)}
-                  onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
+                  showVinylRecommendation={true}
                 />
                 <Button
                   size="sm"
