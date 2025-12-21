@@ -183,7 +183,7 @@ export default function Dashboard() {
           className="flex items-center gap-3 mb-4 hover:text-primary transition-colors"
         >
           <Heart className="w-8 h-8 text-red-500 fill-red-500" />
-          <h1 className="text-3xl md:text-4xl font-bold gradient-text">Favoriten</h1>
+          <h2 className="text-3xl md:text-4xl font-bold gradient-text">Favoriten</h2>
           <span className="text-base md:text-lg text-muted-foreground font-normal">({favoriteRecords.length})</span>
           <span className="text-base md:text-lg text-muted-foreground">→</span>
         </button>
@@ -194,7 +194,7 @@ export default function Dashboard() {
               {favoriteRecords.map((record) => (
                 <div
                   key={record.id}
-                  className="flex-shrink-0 w-32 cursor-pointer group"
+                  className="flex-shrink-0 w-56 sm:w-60 md:w-64 cursor-pointer group"
                   onClick={() => navigate(`/sammlung/${record.id}`)}
                 >
                   <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
@@ -235,7 +235,7 @@ export default function Dashboard() {
           className="flex items-center gap-3 mb-4 hover:text-primary transition-colors"
         >
           <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
-          <h1 className="text-3xl md:text-4xl font-bold gradient-text">Wunschliste</h1>
+          <h2 className="text-3xl md:text-4xl font-bold gradient-text">Wunschliste</h2>
           <span className="text-base md:text-lg text-muted-foreground font-normal">({wishlistRecords.length})</span>
           <span className="text-base md:text-lg text-muted-foreground">→</span>
         </button>
@@ -246,7 +246,7 @@ export default function Dashboard() {
               {wishlistRecords.map((record) => (
                 <div
                   key={record.id}
-                  className="flex-shrink-0 w-32 cursor-pointer group"
+                  className="flex-shrink-0 w-56 sm:w-60 md:w-64 cursor-pointer group"
                   onClick={() => navigate(`/sammlung/${record.id}`)}
                 >
                   <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
