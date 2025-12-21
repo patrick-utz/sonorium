@@ -22,7 +22,12 @@ import {
   FileDown,
   DollarSign,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  User,
+  Award,
+  Headphones,
+  ThumbsUp,
+  BookOpen
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
@@ -32,6 +37,8 @@ import { useRecords } from "@/context/RecordContext";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
+import { AlternativeReleases } from "@/components/AlternativeReleases";
+import { AlternativeRelease, CriticReview, RecordRecommendation } from "@/types/record";
 
 interface PressingPrice {
   releaseId?: number;
@@ -44,10 +51,40 @@ interface PressingPrice {
   error?: string;
 }
 
+interface AlbumSearchResult {
+  artist: string;
+  album: string;
+  year: number;
+  genre: string[];
+  label: string;
+  catalogNumber: string;
+  formatDetails: string;
+  pressing: string;
+  tags: string[];
+  personalNotes: string;
+  audiophileAssessment: string;
+  artisticAssessment: string;
+  recordingQuality: number;
+  masteringQuality: number;
+  artisticRating: number;
+  criticScore: number;
+  criticReviews: CriticReview[];
+  vinylRecommendation: "must-have" | "nice-to-have" | "stream-instead";
+  recommendationReason: string;
+  recommendations: RecordRecommendation[];
+  alternativeReleases?: AlternativeRelease[];
+  coverArt?: string;
+}
+
 export default function Research() {
+  const [searchMode, setSearchMode] = useState<"artist" | "album">("artist");
   const [searchQuery, setSearchQuery] = useState("");
+  const [albumQuery, setAlbumQuery] = useState("");
+  const [labelQuery, setLabelQuery] = useState("");
+  const [catalogQuery, setCatalogQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<ArtistResearchResult | null>(null);
+  const [albumResult, setAlbumResult] = useState<AlbumSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [pressingPrices, setPressingPrices] = useState<Record<string, PressingPrice>>({});
@@ -120,6 +157,117 @@ export default function Research() {
     } finally {
       setIsSearching(false);
     }
+  };
+
+  // Album/Pressing Search
+  const handleAlbumSearch = async () => {
+    if (!albumQuery.trim()) return;
+
+    setIsSearching(true);
+    setError(null);
+    setAlbumResult(null);
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+      const searchText = `${searchQuery.trim()} ${albumQuery.trim()}`.trim();
+      const requestBody: any = {
+        searchText,
+        format: profile?.mediaFormat === 'cd' ? 'cd' : 'vinyl',
+      };
+
+      if (labelQuery.trim()) {
+        requestBody.label = labelQuery.trim();
+      }
+      if (catalogQuery.trim()) {
+        requestBody.catalogNumber = catalogQuery.trim();
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/complete-record`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 429) {
+          throw new Error("Rate-Limit erreicht. Bitte versuche es in einer Minute erneut.");
+        }
+        if (response.status === 402) {
+          throw new Error("Credits aufgebraucht. Bitte Workspace aufladen.");
+        }
+        throw new Error(errorData.error || `Fehler: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      setAlbumResult(data);
+    } catch (err: any) {
+      console.error("Album search error:", err);
+      if (err.name === 'AbortError') {
+        setError("Zeitüberschreitung - die KI-Anfrage hat zu lange gedauert. Bitte erneut versuchen.");
+      } else {
+        setError(err.message || "Ein Fehler ist aufgetreten");
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const addAlbumToWishlist = (result: AlbumSearchResult) => {
+    addRecord({
+      artist: result.artist,
+      album: result.album,
+      year: result.year,
+      genre: result.genre,
+      label: result.label,
+      catalogNumber: result.catalogNumber,
+      format: profile?.mediaFormat === 'cd' ? 'cd' : 'vinyl',
+      status: "wishlist",
+      myRating: result.artisticRating || 0,
+      personalNotes: result.personalNotes,
+      tags: result.tags,
+      isFavorite: false,
+      coverArt: result.coverArt,
+      vinylRecommendation: result.vinylRecommendation,
+      recommendationReason: result.recommendationReason,
+      audiophileAssessment: result.audiophileAssessment,
+      artisticAssessment: result.artisticAssessment,
+      recordingQuality: result.recordingQuality,
+      masteringQuality: result.masteringQuality,
+      criticScore: result.criticScore,
+      criticReviews: result.criticReviews,
+    });
+
+    toast({
+      title: "Zur Wunschliste hinzugefügt",
+      description: `${result.artist} - ${result.album}`,
+    });
+  };
+
+  const handleSelectAlternative = (release: AlternativeRelease) => {
+    if (!albumResult) return;
+    
+    // Update search fields with alternative release info
+    if (release.label) setLabelQuery(release.label);
+    if (release.catalogNumber) setCatalogQuery(release.catalogNumber);
+    
+    toast({
+      title: "Pressung ausgewählt",
+      description: `${release.label || ''} ${release.catalogNumber ? `[${release.catalogNumber}]` : ''} ${release.year || ''}`,
+    });
   };
 
   const fetchPressingPrice = async (artist: string, album: string, catalogNumber: string, label: string, key: string) => {
@@ -487,38 +635,125 @@ export default function Research() {
           </Card>
         )}
 
-        {/* Search */}
+        {/* Search Mode Tabs */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  placeholder="Künstler eingeben, z.B. Wes Montgomery, Miles Davis..."
-                  className="pl-10 h-12 text-lg"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-              </div>
-              <Button 
-                onClick={handleSearch} 
-                disabled={isSearching || !searchQuery.trim()}
-                className="h-12 px-6 gap-2"
-              >
-                {isSearching ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Suche...
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-5 h-5" />
-                    Recherchieren
-                  </>
-                )}
-              </Button>
-            </div>
+            <Tabs value={searchMode} onValueChange={(v) => setSearchMode(v as "artist" | "album")} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="artist" className="gap-2">
+                  <User className="w-4 h-4" />
+                  Künstler-Recherche
+                </TabsTrigger>
+                <TabsTrigger value="album" className="gap-2">
+                  <Disc3 className="w-4 h-4" />
+                  Album/Pressung prüfen
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Artist Search */}
+              <TabsContent value="artist" className="mt-0">
+                <div className="flex gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      placeholder="Künstler eingeben, z.B. Wes Montgomery, Miles Davis..."
+                      className="pl-10 h-12 text-lg"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleSearch} 
+                    disabled={isSearching || !searchQuery.trim()}
+                    className="h-12 px-6 gap-2"
+                  >
+                    {isSearching && searchMode === "artist" ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Suche...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-5 h-5" />
+                        Recherchieren
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Suche nach einem Künstler, um eine umfassende Übersicht über die besten Alben und Pressungen zu erhalten.
+                </p>
+              </TabsContent>
+
+              {/* Album/Pressing Search */}
+              <TabsContent value="album" className="mt-0 space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Künstler (optional)"
+                      className="pl-10"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <div className="relative">
+                    <AlbumIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Album *"
+                      className="pl-10"
+                      value={albumQuery}
+                      onChange={(e) => setAlbumQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAlbumSearch()}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="relative">
+                    <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Label (optional)"
+                      className="pl-10"
+                      value={labelQuery}
+                      onChange={(e) => setLabelQuery(e.target.value)}
+                    />
+                  </div>
+                  <div className="relative">
+                    <Disc3 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Katalognummer (optional)"
+                      className="pl-10"
+                      value={catalogQuery}
+                      onChange={(e) => setCatalogQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAlbumSearch()}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleAlbumSearch} 
+                    disabled={isSearching || !albumQuery.trim()}
+                    className="h-10 px-6 gap-2"
+                  >
+                    {isSearching && searchMode === "album" ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Analysiere...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-5 h-5" />
+                        Pressung prüfen
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Gib Album-Details ein, um eine vollständige audiophile Beurteilung inkl. alternativer Pressungen zu erhalten.
+                </p>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -840,14 +1075,312 @@ export default function Research() {
           )}
         </AnimatePresence>
 
+        {/* Album Search Results */}
+        <AnimatePresence mode="wait">
+          {albumResult && searchMode === "album" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-6"
+            >
+              {/* Album Header */}
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                    {albumResult.coverArt ? (
+                      <img 
+                        src={albumResult.coverArt} 
+                        alt={albumResult.album} 
+                        className="w-32 h-32 rounded-lg object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-32 h-32 rounded-lg bg-gradient-to-br from-secondary to-muted flex items-center justify-center flex-shrink-0">
+                        <Disc3 className="w-16 h-16 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-2xl">{albumResult.album}</CardTitle>
+                          <p className="text-lg text-muted-foreground">{albumResult.artist}</p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <Badge variant="outline">{albumResult.year}</Badge>
+                            {albumResult.label && <Badge variant="secondary">{albumResult.label}</Badge>}
+                            {albumResult.catalogNumber && (
+                              <Badge variant="outline" className="font-mono">
+                                {albumResult.catalogNumber}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <Button onClick={() => addAlbumToWishlist(albumResult)} className="gap-2 flex-shrink-0">
+                          <Plus className="w-4 h-4" />
+                          Wunschliste
+                        </Button>
+                      </div>
+                      {albumResult.genre && albumResult.genre.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-3">
+                          {albumResult.genre.map((g, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">
+                              {g}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+
+              {/* Vinyl Recommendation */}
+              <Card className={
+                albumResult.vinylRecommendation === 'must-have' 
+                  ? 'border-green-500/50 bg-green-500/5' 
+                  : albumResult.vinylRecommendation === 'nice-to-have'
+                    ? 'border-amber-500/50 bg-amber-500/5'
+                    : 'border-muted'
+              }>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {albumResult.vinylRecommendation === 'must-have' ? (
+                      <>
+                        <Award className="w-5 h-5 text-green-500" />
+                        <span className="text-green-500">Must-Have auf Vinyl</span>
+                      </>
+                    ) : albumResult.vinylRecommendation === 'nice-to-have' ? (
+                      <>
+                        <ThumbsUp className="w-5 h-5 text-amber-500" />
+                        <span className="text-amber-500">Nice-to-Have auf Vinyl</span>
+                      </>
+                    ) : (
+                      <>
+                        <Headphones className="w-5 h-5 text-muted-foreground" />
+                        <span>Streaming empfohlen</span>
+                      </>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm">{albumResult.recommendationReason}</p>
+                </CardContent>
+              </Card>
+
+              {/* Ratings */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-accent">{albumResult.artisticRating}/5</div>
+                      <div className="flex justify-center mt-2">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`w-4 h-4 ${i < albumResult.artisticRating ? 'fill-accent text-accent' : 'text-muted-foreground/30'}`} 
+                          />
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">Künstlerische Bewertung</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold">{albumResult.recordingQuality}/5</div>
+                      <div className="flex justify-center mt-2">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`w-4 h-4 ${i < albumResult.recordingQuality ? 'fill-blue-400 text-blue-400' : 'text-muted-foreground/30'}`} 
+                          />
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">Aufnahmequalität</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold">{albumResult.masteringQuality}/5</div>
+                      <div className="flex justify-center mt-2">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`w-4 h-4 ${i < albumResult.masteringQuality ? 'fill-violet-400 text-violet-400' : 'text-muted-foreground/30'}`} 
+                          />
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">Mastering-Qualität</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-green-500">{albumResult.criticScore}</div>
+                      <div className="text-xs text-muted-foreground mt-2">Kritiker-Score</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Assessments */}
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Headphones className="w-5 h-5" />
+                      Audiophile Beurteilung
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-64">
+                      <p className="text-sm whitespace-pre-wrap">{albumResult.audiophileAssessment}</p>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Music className="w-5 h-5" />
+                      Künstlerische Beurteilung
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-64">
+                      <p className="text-sm whitespace-pre-wrap">{albumResult.artisticAssessment}</p>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Critic Reviews */}
+              {albumResult.criticReviews && albumResult.criticReviews.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Kritiken</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {albumResult.criticReviews.map((review, idx) => (
+                        <div key={idx} className="p-3 rounded-lg bg-secondary/30 border border-border">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-sm">{review.source}</span>
+                            {review.score != null && review.maxScore != null && (
+                              <Badge variant="secondary">
+                                {review.score}/{review.maxScore}
+                              </Badge>
+                            )}
+                          </div>
+                          {review.quote && (
+                            <p className="text-xs text-muted-foreground italic">"{review.quote}"</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Alternative Releases */}
+              {albumResult.alternativeReleases && albumResult.alternativeReleases.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Disc3 className="w-5 h-5" />
+                      Alternative Pressungen
+                    </CardTitle>
+                    <CardDescription>
+                      Wähle eine alternative Pressung aus, um sie zu übernehmen
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AlternativeReleases
+                      releases={albumResult.alternativeReleases}
+                      onSelect={handleSelectAlternative}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Pressing Details */}
+              {albumResult.formatDetails && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Pressungs-Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <span className="text-xs text-muted-foreground">Format</span>
+                        <p className="text-sm font-medium">{albumResult.formatDetails}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Pressung</span>
+                        <p className="text-sm font-medium">{albumResult.pressing}</p>
+                      </div>
+                    </div>
+                    {albumResult.personalNotes && (
+                      <div>
+                        <span className="text-xs text-muted-foreground">Notizen</span>
+                        <p className="text-sm">{albumResult.personalNotes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Recommendations */}
+              {albumResult.recommendations && albumResult.recommendations.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Lightbulb className="w-5 h-5" />
+                      Ähnliche Empfehlungen
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {albumResult.recommendations.map((rec, idx) => (
+                        <div key={idx} className="p-3 rounded-lg bg-secondary/30 border border-border">
+                          <div className="font-medium text-sm">{rec.album}</div>
+                          <div className="text-xs text-muted-foreground">{rec.artist} • {rec.year}</div>
+                          <p className="text-xs text-muted-foreground mt-2">{rec.reason}</p>
+                          {rec.qualityScore && (
+                            <div className="flex gap-0.5 mt-2">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star 
+                                  key={i} 
+                                  className={`w-3 h-3 ${i < rec.qualityScore! ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} 
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Empty State */}
-        {!result && !isSearching && !error && (
+        {!result && !albumResult && !isSearching && !error && (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <Search className="w-12 h-12 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">Künstler recherchieren</h3>
+              <h3 className="text-lg font-medium mb-2">
+                {searchMode === "artist" ? "Künstler recherchieren" : "Album/Pressung prüfen"}
+              </h3>
               <p className="text-sm text-muted-foreground max-w-md">
-                Gib den Namen eines Künstlers ein, um audiophile Empfehlungen mit den besten Pressungen zu erhalten.
+                {searchMode === "artist" 
+                  ? "Gib den Namen eines Künstlers ein, um audiophile Empfehlungen mit den besten Pressungen zu erhalten."
+                  : "Gib Album-Details ein, um eine vollständige audiophile Beurteilung inkl. Pressung-Infos und Alternativen zu erhalten."
+                }
               </p>
             </CardContent>
           </Card>
