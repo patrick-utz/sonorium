@@ -313,94 +313,177 @@ async function getCoverArt(mbid: string): Promise<string | null> {
   }
 }
 
-// Search iTunes for cover art
-async function searchITunesCover(artist: string, album: string): Promise<string | null> {
-  try {
-    console.log('Searching iTunes for cover:', artist, album);
-    const query = encodeURIComponent(`${artist} ${album}`);
-    const url = `https://itunes.apple.com/search?term=${query}&media=music&entity=album&limit=5`;
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.log('iTunes search failed:', response.status);
-      return null;
-    }
-    
-    const data = await response.json();
-    const results = data.results || [];
-    
-    // Find best match
-    const artistLower = artist.toLowerCase();
-    const albumLower = album.toLowerCase();
-    
-    let bestMatch = results.find((r: any) => 
-      r.artistName?.toLowerCase().includes(artistLower) && 
-      r.collectionName?.toLowerCase().includes(albumLower)
-    );
-    
-    if (!bestMatch && results.length > 0) {
-      bestMatch = results[0];
-    }
-    
-    if (bestMatch?.artworkUrl100) {
-      // Get higher resolution (600x600)
-      const artworkUrl = bestMatch.artworkUrl100.replace('100x100', '600x600');
-      console.log('Found iTunes artwork:', artworkUrl);
-      
-      const imageResponse = await fetch(artworkUrl);
-      if (!imageResponse.ok) return null;
-      
-      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-      const arrayBuffer = await imageResponse.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      
-      console.log('iTunes cover converted to base64');
-      return `data:${contentType};base64,${base64}`;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('iTunes search error:', error);
-    return null;
-  }
+// Normalize search string for better matching
+function normalizeSearchString(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/^the\s+/i, '') // Remove leading "The"
+    .replace(/[''`´]/g, "'") // Normalize apostrophes
+    .replace(/[^\w\s'-]/g, '') // Remove special chars except apostrophe and hyphen
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim();
 }
 
-// Search Deezer for cover art
-async function searchDeezerCover(artist: string, album: string): Promise<string | null> {
-  try {
-    console.log('Searching Deezer for cover:', artist, album);
-    const query = encodeURIComponent(`artist:"${artist}" album:"${album}"`);
-    const url = `https://api.deezer.com/search/album?q=${query}&limit=5`;
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.log('Deezer search failed:', response.status);
-      return null;
+// Calculate similarity between two strings (0-1)
+function stringSimilarity(s1: string, s2: string): number {
+  const n1 = normalizeSearchString(s1);
+  const n2 = normalizeSearchString(s2);
+  
+  if (n1 === n2) return 1;
+  if (n1.includes(n2) || n2.includes(n1)) return 0.9;
+  
+  // Simple word overlap scoring
+  const words1 = new Set(n1.split(' '));
+  const words2 = new Set(n2.split(' '));
+  const intersection = [...words1].filter(w => words2.has(w)).length;
+  const union = new Set([...words1, ...words2]).size;
+  
+  return union > 0 ? intersection / union : 0;
+}
+
+// Search iTunes for cover art with improved matching
+async function searchITunesCover(artist: string, album: string): Promise<string | null> {
+  const searchVariants = [
+    `${artist} ${album}`,
+    `${normalizeSearchString(artist)} ${normalizeSearchString(album)}`,
+    album, // Sometimes just album name works better
+  ];
+  
+  for (const searchTerm of searchVariants) {
+    try {
+      console.log('Searching iTunes for cover:', searchTerm);
+      const query = encodeURIComponent(searchTerm);
+      const url = `https://itunes.apple.com/search?term=${query}&media=music&entity=album&limit=10`;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.log('iTunes search failed:', response.status);
+        continue;
+      }
+      
+      const data = await response.json();
+      const results = data.results || [];
+      
+      if (results.length === 0) continue;
+      
+      // Score all results and find best match
+      const artistNorm = normalizeSearchString(artist);
+      const albumNorm = normalizeSearchString(album);
+      
+      let bestMatch: any = null;
+      let bestScore = 0;
+      
+      for (const r of results) {
+        const artistSim = stringSimilarity(r.artistName || '', artist);
+        const albumSim = stringSimilarity(r.collectionName || '', album);
+        const score = (artistSim * 0.4) + (albumSim * 0.6); // Album match is more important
+        
+        if (score > bestScore && score > 0.5) {
+          bestScore = score;
+          bestMatch = r;
+        }
+      }
+      
+      // If no good match, take first result if album name is somewhat similar
+      if (!bestMatch && results.length > 0) {
+        const firstAlbumSim = stringSimilarity(results[0].collectionName || '', album);
+        if (firstAlbumSim > 0.4) {
+          bestMatch = results[0];
+        }
+      }
+      
+      if (bestMatch?.artworkUrl100) {
+        // Get higher resolution (600x600)
+        const artworkUrl = bestMatch.artworkUrl100.replace('100x100', '600x600');
+        console.log('Found iTunes artwork:', artworkUrl, 'score:', bestScore);
+        
+        const imageResponse = await fetch(artworkUrl);
+        if (!imageResponse.ok) continue;
+        
+        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        
+        console.log('iTunes cover converted to base64');
+        return `data:${contentType};base64,${base64}`;
+      }
+    } catch (error) {
+      console.error('iTunes search error:', error);
     }
-    
-    const data = await response.json();
-    const results = data.data || [];
-    
-    if (results.length > 0 && results[0].cover_xl) {
-      const artworkUrl = results[0].cover_xl; // 1000x1000
-      console.log('Found Deezer artwork:', artworkUrl);
-      
-      const imageResponse = await fetch(artworkUrl);
-      if (!imageResponse.ok) return null;
-      
-      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-      const arrayBuffer = await imageResponse.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      
-      console.log('Deezer cover converted to base64');
-      return `data:${contentType};base64,${base64}`;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Deezer search error:', error);
-    return null;
   }
+  
+  return null;
+}
+
+// Search Deezer for cover art with improved matching
+async function searchDeezerCover(artist: string, album: string): Promise<string | null> {
+  const searchQueries = [
+    `artist:"${artist}" album:"${album}"`,
+    `${artist} ${album}`,
+    `${normalizeSearchString(artist)} ${normalizeSearchString(album)}`,
+    album, // Sometimes just album works
+  ];
+  
+  for (const searchQuery of searchQueries) {
+    try {
+      console.log('Searching Deezer for cover:', searchQuery);
+      const query = encodeURIComponent(searchQuery);
+      const url = `https://api.deezer.com/search/album?q=${query}&limit=10`;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.log('Deezer search failed:', response.status);
+        continue;
+      }
+      
+      const data = await response.json();
+      const results = data.data || [];
+      
+      if (results.length === 0) continue;
+      
+      // Score results
+      let bestMatch: any = null;
+      let bestScore = 0;
+      
+      for (const r of results) {
+        const artistSim = stringSimilarity(r.artist?.name || '', artist);
+        const albumSim = stringSimilarity(r.title || '', album);
+        const score = (artistSim * 0.4) + (albumSim * 0.6);
+        
+        if (score > bestScore && score > 0.5) {
+          bestScore = score;
+          bestMatch = r;
+        }
+      }
+      
+      // Fallback to first result if album similar
+      if (!bestMatch && results.length > 0) {
+        const firstAlbumSim = stringSimilarity(results[0].title || '', album);
+        if (firstAlbumSim > 0.4) {
+          bestMatch = results[0];
+        }
+      }
+      
+      if (bestMatch?.cover_xl) {
+        const artworkUrl = bestMatch.cover_xl; // 1000x1000
+        console.log('Found Deezer artwork:', artworkUrl, 'score:', bestScore);
+        
+        const imageResponse = await fetch(artworkUrl);
+        if (!imageResponse.ok) continue;
+        
+        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        
+        console.log('Deezer cover converted to base64');
+        return `data:${contentType};base64,${base64}`;
+      }
+    } catch (error) {
+      console.error('Deezer search error:', error);
+    }
+  }
+  
+  return null;
 }
 
 // Discogs API configuration
@@ -754,43 +837,83 @@ async function getDiscogsPressInfo(artist: string, album: string, barcode?: stri
   }
 }
 
-// Multi-source cover art search (with Discogs priority)
+// Multi-source cover art search (parallel with fallbacks)
 async function searchCoverArtMultiSource(artist: string, album: string, mbid?: string, barcode?: string, catalogNumber?: string): Promise<string | null> {
   console.log('Starting multi-source cover art search for:', artist, album);
   
-  // Try Discogs first (best quality, most comprehensive)
-  if (DISCOGS_API_KEY) {
+  // Strategy: Try Discogs first (most reliable for vinyl), then try others in parallel
+  
+  // Try Discogs first if we have specific identifiers
+  if (DISCOGS_API_KEY && (barcode || catalogNumber)) {
     const discogsCover = await searchDiscogsCover(artist, album, barcode, catalogNumber);
     if (discogsCover) {
-      console.log('Found cover via Discogs');
+      console.log('Found cover via Discogs (with identifiers)');
       return discogsCover;
     }
-    await new Promise(resolve => setTimeout(resolve, 500));
   }
   
-  // Try Cover Art Archive (if we have MBID)
+  // Try multiple sources in parallel for better success rate
+  const searchPromises: Promise<{ source: string; cover: string | null }>[] = [];
+  
+  // Discogs by artist/album (if not tried above)
+  if (DISCOGS_API_KEY && !barcode && !catalogNumber) {
+    searchPromises.push(
+      searchDiscogsCover(artist, album).then(cover => ({ source: 'Discogs', cover }))
+    );
+  }
+  
+  // Cover Art Archive (if we have MBID)
   if (mbid) {
-    const coverArt = await getCoverArt(mbid);
-    if (coverArt) {
-      console.log('Found cover via Cover Art Archive');
-      return coverArt;
+    searchPromises.push(
+      getCoverArt(mbid).then(cover => ({ source: 'CoverArtArchive', cover }))
+    );
+  }
+  
+  // iTunes
+  searchPromises.push(
+    searchITunesCover(artist, album).then(cover => ({ source: 'iTunes', cover }))
+  );
+  
+  // Deezer
+  searchPromises.push(
+    searchDeezerCover(artist, album).then(cover => ({ source: 'Deezer', cover }))
+  );
+  
+  // Wait for all and take first successful result (prioritize by order)
+  const results = await Promise.allSettled(searchPromises);
+  
+  // Priority order: Discogs > CoverArtArchive > iTunes > Deezer
+  const priorityOrder = ['Discogs', 'CoverArtArchive', 'iTunes', 'Deezer'];
+  
+  for (const source of priorityOrder) {
+    const result = results.find(r => 
+      r.status === 'fulfilled' && r.value.source === source && r.value.cover
+    );
+    if (result && result.status === 'fulfilled' && result.value.cover) {
+      console.log(`Found cover via ${result.value.source}`);
+      return result.value.cover;
     }
-    await new Promise(resolve => setTimeout(resolve, 500));
   }
   
-  // Try iTunes
-  const itunesCover = await searchITunesCover(artist, album);
-  if (itunesCover) {
-    console.log('Found cover via iTunes');
-    return itunesCover;
-  }
-  await new Promise(resolve => setTimeout(resolve, 500));
+  // If still nothing, try with normalized/simplified search terms
+  console.log('No cover found with exact match, trying simplified search...');
   
-  // Try Deezer
-  const deezerCover = await searchDeezerCover(artist, album);
-  if (deezerCover) {
-    console.log('Found cover via Deezer');
-    return deezerCover;
+  const simplifiedAlbum = normalizeSearchString(album);
+  const simplifiedArtist = normalizeSearchString(artist);
+  
+  // Try iTunes and Deezer with simplified terms
+  const fallbackPromises = [
+    searchITunesCover(simplifiedArtist, simplifiedAlbum).then(cover => ({ source: 'iTunes-fallback', cover })),
+    searchDeezerCover(simplifiedArtist, simplifiedAlbum).then(cover => ({ source: 'Deezer-fallback', cover })),
+  ];
+  
+  const fallbackResults = await Promise.allSettled(fallbackPromises);
+  
+  for (const result of fallbackResults) {
+    if (result.status === 'fulfilled' && result.value.cover) {
+      console.log(`Found cover via ${result.value.source} (simplified search)`);
+      return result.value.cover;
+    }
   }
   
   console.log('No cover found in any source');
