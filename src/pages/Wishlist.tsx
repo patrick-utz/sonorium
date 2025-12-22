@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { RecordFormat } from "@/types/record";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 type SortOption = "artist" | "album" | "year" | "dateAdded" | "rating";
 type ViewMode = "grid" | "list";
@@ -81,6 +83,38 @@ export default function Wishlist() {
   const handleMarkAsOwned = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     updateRecord(id, { status: "owned" });
+  };
+
+  const handleReloadCover = async (record: { id: string; artist: string; album: string; year: number; format: string; label?: string; catalogNumber?: string }) => {
+    try {
+      const response = await supabase.functions.invoke('complete-record', {
+        body: {
+          artist: record.artist,
+          album: record.album,
+          year: record.year,
+          format: record.format,
+          label: record.label,
+          catalogNumber: record.catalogNumber,
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data?.data || response.data;
+      const coverArt = data?.coverArtBase64 || data?.coverArt;
+
+      if (coverArt) {
+        updateRecord(record.id, { coverArt });
+        toast.success("Cover erfolgreich geladen");
+      } else {
+        toast.error("Kein Cover gefunden");
+      }
+    } catch (error) {
+      console.error("Cover reload error:", error);
+      toast.error("Fehler beim Laden des Covers");
+    }
   };
 
   return (
@@ -264,6 +298,8 @@ export default function Wishlist() {
                   onClick={() => navigate(`/sammlung/${record.id}`)}
                   onDelete={() => deleteRecord(record.id)}
                   onToggleFavorite={() => toggleFavorite(record.id)}
+                  onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
+                  onReloadCover={() => handleReloadCover(record)}
                   showVinylRecommendation={true}
                 />
                 <Button
