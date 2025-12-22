@@ -188,6 +188,38 @@ export default function Collection() {
     }
   };
 
+  const handleReloadCover = async (record: { id: string; artist: string; album: string; year: number; format: string; label?: string; catalogNumber?: string }) => {
+    try {
+      const response = await supabase.functions.invoke('complete-record', {
+        body: {
+          artist: record.artist,
+          album: record.album,
+          year: record.year,
+          format: record.format,
+          label: record.label,
+          catalogNumber: record.catalogNumber,
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data?.data || response.data;
+      const coverArt = data?.coverArtBase64 || data?.coverArt;
+
+      if (coverArt) {
+        updateRecord(record.id, { coverArt });
+        toast.success("Cover erfolgreich geladen");
+      } else {
+        toast.error("Kein Cover gefunden");
+      }
+    } catch (error) {
+      console.error("Cover reload error:", error);
+      toast.error("Fehler beim Laden des Covers");
+    }
+  };
+
   // Extract all unique genres from records
   const allGenres = Array.from(
     new Set(records.flatMap((record) => record.genre))
@@ -492,6 +524,7 @@ export default function Collection() {
                   record={record}
                   onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
                   onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
+                  onReloadCover={() => handleReloadCover(record)}
                   onDelete={() => deleteRecord(record.id)}
                   onToggleFavorite={() => toggleFavorite(record.id)}
                   onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}

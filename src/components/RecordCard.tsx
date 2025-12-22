@@ -4,7 +4,7 @@ import { StarRating } from "./StarRating";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
 import { motion } from "framer-motion";
-import { Camera, Trash2, Music, Heart, Star, ThumbsUp, Radio } from "lucide-react";
+import { Camera, Trash2, Music, Heart, Star, ThumbsUp, Radio, RefreshCw } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -27,6 +27,7 @@ interface RecordCardProps {
   onToggleFavorite?: () => void;
   onRatingChange?: (rating: number) => void;
   showVinylRecommendation?: boolean;
+  onReloadCover?: () => Promise<void>;
   className?: string;
 }
 
@@ -43,9 +44,22 @@ const getVinylRecommendationLabel = (rec: VinylRecommendation | undefined) => {
   }
 };
 
-export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleFavorite, onRatingChange, showVinylRecommendation, className }: RecordCardProps) {
+export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleFavorite, onRatingChange, showVinylRecommendation, onReloadCover, className }: RecordCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isReloadingCover, setIsReloadingCover] = useState(false);
+
+  const handleReloadCover = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onReloadCover || isReloadingCover) return;
+    
+    setIsReloadingCover(true);
+    try {
+      await onReloadCover();
+    } finally {
+      setIsReloadingCover(false);
+    }
+  };
 
   const processFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -169,6 +183,21 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
             title="Cover hochladen"
           >
             <Camera className="w-4 h-4 text-foreground" />
+          </button>
+        )}
+
+        {/* Reload Cover Button - nur wenn kein Cover vorhanden */}
+        {onReloadCover && !record.coverArt && (
+          <button
+            onClick={handleReloadCover}
+            disabled={isReloadingCover}
+            className={cn(
+              "absolute p-2 rounded-full bg-primary/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-primary hover:scale-110",
+              record.isFavorite && onCoverUpdate ? "top-3 left-24" : onCoverUpdate ? "top-3 left-14" : record.isFavorite ? "top-3 left-14" : "top-3 left-3"
+            )}
+            title="Cover nachladen"
+          >
+            <RefreshCw className={cn("w-4 h-4 text-primary-foreground", isReloadingCover && "animate-spin")} />
           </button>
         )}
 
