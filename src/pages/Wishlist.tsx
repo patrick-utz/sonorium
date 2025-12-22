@@ -3,6 +3,7 @@ import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -10,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Heart, ShoppingCart, Music, Tag, Sparkles, SlidersHorizontal, Grid3X3, List } from "lucide-react";
+import { Search, Heart, ShoppingCart, Music, Tag, Sparkles, SlidersHorizontal, Grid3X3, List, CheckSquare, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { RecordFormat } from "@/types/record";
@@ -33,6 +34,10 @@ export default function Wishlist() {
   const [moodFilter, setMoodFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
+  const [isBatchEnriching, setIsBatchEnriching] = useState(false);
 
   // Extract all unique genres from records
   const allGenres = Array.from(
@@ -62,7 +67,8 @@ export default function Wishlist() {
       const matchesGenre = genreFilter === "all" || record.genre.includes(genreFilter);
       const matchesTag = tagFilter === "all" || record.tags?.includes(tagFilter);
       const matchesMood = moodFilter === "all" || record.moods?.includes(moodFilter);
-      return matchesSearch && matchesFormat && matchesGenre && matchesTag && matchesMood;
+      const matchesFavorite = !showFavoritesOnly || record.isFavorite;
+      return matchesSearch && matchesFormat && matchesGenre && matchesTag && matchesMood && matchesFavorite;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -83,6 +89,75 @@ export default function Wishlist() {
   const handleMarkAsOwned = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     updateRecord(id, { status: "owned" });
+  };
+
+  const handleToggleSelect = (id: string) => {
+    const newSelected = new Set(selectedRecords);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedRecords(newSelected);
+  };
+
+  const handleBatchEnrich = async () => {
+    if (selectedRecords.size === 0) return;
+
+    setIsBatchEnriching(true);
+    const selectedIds = Array.from(selectedRecords);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const id of selectedIds) {
+      const record = records.find((r) => r.id === id);
+      if (!record) continue;
+
+      try {
+        const response = await supabase.functions.invoke("complete-record", {
+          body: {
+            artist: record.artist,
+            album: record.album,
+            year: record.year,
+            format: record.format,
+            label: record.label,
+            catalogNumber: record.catalogNumber,
+          },
+        });
+
+        if (response.error) {
+          errorCount++;
+          continue;
+        }
+
+        const data = response.data?.data || response.data;
+        if (data) {
+          updateRecord(id, {
+            coverArt: data.coverArtBase64 || data.coverArt || record.coverArt,
+            genre: data.genres?.length > 0 ? data.genres : record.genre,
+            tags: data.tags?.length > 0 ? data.tags : record.tags,
+            moods: data.moods?.length > 0 ? data.moods : record.moods,
+            label: data.label || record.label,
+            catalogNumber: data.catalogNumber || record.catalogNumber,
+          });
+          successCount++;
+        }
+      } catch (error) {
+        console.error("Batch enrich error for record:", id, error);
+        errorCount++;
+      }
+    }
+
+    setIsBatchEnriching(false);
+    setSelectedRecords(new Set());
+    setIsSelectMode(false);
+
+    if (successCount > 0) {
+      toast.success(`${successCount} Einträge erfolgreich angereichert`);
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} Einträge konnten nicht angereichert werden`);
+    }
   };
 
   const handleReloadCover = async (record: { id: string; artist: string; album: string; year: number; format: string; label?: string; catalogNumber?: string }) => {
@@ -144,6 +219,50 @@ export default function Wishlist() {
           </div>
 
           <div className="flex gap-2 flex-wrap">
+            {/* Auswählen Button */}
+            <Button
+              variant={isSelectMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                if (isSelectMode) {
+                  setSelectedRecords(new Set());
+                }
+                setIsSelectMode(!isSelectMode);
+              }}
+              className="gap-2"
+            >
+              <CheckSquare className="w-4 h-4" />
+              Auswählen
+            </Button>
+
+            {/* Batch Enrich Button - nur sichtbar wenn im Select Mode */}
+            {isSelectMode && selectedRecords.size > 0 && (
+              <Button
+                size="sm"
+                onClick={handleBatchEnrich}
+                disabled={isBatchEnriching}
+                className="gap-2"
+              >
+                {isBatchEnriching ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                KI-Anreicherung ({selectedRecords.size})
+              </Button>
+            )}
+
+            {/* Favoriten Filter */}
+            <Button
+              variant={showFavoritesOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              className="gap-2"
+            >
+              <Heart className={cn("w-4 h-4", showFavoritesOnly && "fill-current")} />
+              Favoriten
+            </Button>
+
             <Select
               value={formatFilter}
               onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
@@ -293,9 +412,24 @@ export default function Wishlist() {
           >
             {filteredRecords.map((record) => (
               <div key={record.id} className="relative group">
+                {isSelectMode && (
+                  <div
+                    className="absolute top-2 left-2 z-20"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleSelect(record.id);
+                    }}
+                  >
+                    <Checkbox
+                      checked={selectedRecords.has(record.id)}
+                      onCheckedChange={() => handleToggleSelect(record.id)}
+                      className="bg-background/80 border-primary"
+                    />
+                  </div>
+                )}
                 <RecordCard
                   record={record}
-                  onClick={() => navigate(`/sammlung/${record.id}`)}
+                  onClick={() => isSelectMode ? handleToggleSelect(record.id) : navigate(`/sammlung/${record.id}`)}
                   onDelete={() => deleteRecord(record.id)}
                   onToggleFavorite={() => toggleFavorite(record.id)}
                   onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
@@ -323,9 +457,17 @@ export default function Wishlist() {
             {filteredRecords.map((record) => (
               <div
                 key={record.id}
-                onClick={() => navigate(`/sammlung/${record.id}`)}
+                onClick={() => isSelectMode ? handleToggleSelect(record.id) : navigate(`/sammlung/${record.id}`)}
                 className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border/50 cursor-pointer hover:bg-card/80 transition-colors group"
               >
+                {isSelectMode && (
+                  <Checkbox
+                    checked={selectedRecords.has(record.id)}
+                    onCheckedChange={() => handleToggleSelect(record.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-shrink-0"
+                  />
+                )}
                 <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
                   {record.coverArt ? (
                     <img
