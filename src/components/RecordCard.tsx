@@ -186,8 +186,8 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
           </button>
         )}
 
-        {/* Reload Cover Button - nur wenn kein Cover vorhanden */}
-        {onReloadCover && !record.coverArt && (
+        {/* Reload Cover Button */}
+        {onReloadCover && (
           <button
             onClick={handleReloadCover}
             disabled={isReloadingCover}
