@@ -332,9 +332,9 @@ export default function Collection() {
     });
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col h-[calc(100vh-6rem)]">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-30 bg-background pb-4 space-y-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold gradient-text">
             Deine Sammlung
@@ -659,8 +659,10 @@ export default function Collection() {
           </div>
         )}
       </div>
-      {/* Records Grid/List */}
-      <AnimatePresence mode="wait">
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto pt-4">
+        <AnimatePresence mode="wait">
         {filteredRecords.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
@@ -737,6 +739,7 @@ export default function Collection() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

@@ -194,9 +194,9 @@ export default function Wishlist() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col h-[calc(100vh-6rem)]">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-30 bg-background pb-4 space-y-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold gradient-text flex items-center gap-3">
             <Heart className="w-8 h-8 text-accent fill-accent" />
@@ -384,7 +384,8 @@ export default function Wishlist() {
         </div>
       </div>
 
-      {/* Records Grid/List */}
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto pt-4">
       <AnimatePresence mode="wait">
         {filteredRecords.length === 0 ? (
           <motion.div
@@ -537,6 +538,7 @@ export default function Wishlist() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }
