@@ -432,9 +432,7 @@ export default function Wishlist() {
                   onClick={() => isSelectMode ? handleToggleSelect(record.id) : navigate(`/sammlung/${record.id}`)}
                   onDelete={() => deleteRecord(record.id)}
                   onToggleFavorite={() => toggleFavorite(record.id)}
-                  onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
                   onReloadCover={() => handleReloadCover(record)}
-                  showVinylRecommendation={true}
                 />
                 <Button
                   size="sm"
