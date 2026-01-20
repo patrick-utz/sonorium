@@ -122,16 +122,16 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* Filter Dropdowns */}
-      <motion.div variants={itemVariants} className="flex flex-wrap gap-4">
+      {/* Filter Dropdowns - Grid Layout */}
+      <motion.div variants={itemVariants} className="grid grid-cols-3 gap-3 max-w-xl">
         {/* Genres Dropdown */}
         {topGenres.length > 0 && (
           <Select onValueChange={handleGenreSelect}>
-            <SelectTrigger className="w-[180px] bg-card border-border">
-              <Music className="w-4 h-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="Genre wählen" />
+            <SelectTrigger className="w-full bg-card border-border">
+              <Music className="w-4 h-4 mr-2 text-muted-foreground flex-shrink-0" />
+              <SelectValue placeholder="Genre" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border z-50">
+            <SelectContent className="bg-card border-border z-50 max-h-[300px]">
               {topGenres.map(([genre, count]) => (
                 <SelectItem key={genre} value={genre}>
                   {genre} ({count})
@@ -144,11 +144,11 @@ export default function Dashboard() {
         {/* Tags Dropdown */}
         {topTags.length > 0 && (
           <Select onValueChange={handleTagSelect}>
-            <SelectTrigger className="w-[180px] bg-card border-border">
-              <Tag className="w-4 h-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="Stichwort wählen" />
+            <SelectTrigger className="w-full bg-card border-border">
+              <Tag className="w-4 h-4 mr-2 text-muted-foreground flex-shrink-0" />
+              <SelectValue placeholder="Stichwort" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border z-50">
+            <SelectContent className="bg-card border-border z-50 max-h-[300px]">
               {topTags.map(([tag, count]) => (
                 <SelectItem key={tag} value={tag}>
                   {tag} ({count})
@@ -161,11 +161,11 @@ export default function Dashboard() {
         {/* Moods Dropdown */}
         {topMoods.length > 0 && (
           <Select onValueChange={handleMoodSelect}>
-            <SelectTrigger className="w-[180px] bg-card border-border">
-              <Sparkles className="w-4 h-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="Stimmung wählen" />
+            <SelectTrigger className="w-full bg-card border-border">
+              <Sparkles className="w-4 h-4 mr-2 text-muted-foreground flex-shrink-0" />
+              <SelectValue placeholder="Stimmung" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border z-50">
+            <SelectContent className="bg-card border-border z-50 max-h-[300px]">
               {topMoods.map(([mood, count]) => (
                 <SelectItem key={mood} value={mood}>
                   {mood} ({count})
