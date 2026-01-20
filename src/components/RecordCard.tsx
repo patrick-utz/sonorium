@@ -140,16 +140,8 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
         />
       )}
 
-      {/* Cover Image - Click to toggle favorite */}
-      <div 
-        className="aspect-square relative overflow-hidden"
-        onClick={(e) => {
-          if (onToggleFavorite) {
-            e.stopPropagation();
-            onToggleFavorite();
-          }
-        }}
-      >
+      {/* Cover Image - Click to open detail */}
+      <div className="aspect-square relative overflow-hidden">
         {record.coverArt ? (
           <img
             src={record.coverArt}
@@ -162,24 +154,34 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
           </div>
         )}
         
-        {/* Favorite indicator on cover */}
-        {record.isFavorite && (
-          <div className="absolute top-3 left-3 p-2 rounded-full bg-background/90 backdrop-blur-sm">
-            <Heart className="w-4 h-4 heart-favorite fill-current" />
-          </div>
-        )}
+        {/* Favorite toggle button - click heart to toggle */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite?.();
+          }}
+          className={cn(
+            "absolute top-3 left-3 p-2 rounded-full backdrop-blur-sm transition-all duration-300",
+            record.isFavorite 
+              ? "bg-background/90" 
+              : "bg-background/60 opacity-0 group-hover:opacity-100 hover:bg-background/90"
+          )}
+          title={record.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+        >
+          <Heart className={cn(
+            "w-4 h-4 transition-colors",
+            record.isFavorite ? "heart-favorite fill-current" : "text-foreground/70 hover:text-foreground"
+          )} />
+        </button>
         
         {/* Overlay on hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
         
         {/* Upload Button */}
         {onCoverUpdate && (
           <button
             onClick={handleUploadClick}
-            className={cn(
-              "absolute p-2 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-background hover:scale-110",
-              record.isFavorite ? "top-3 left-14" : "top-3 left-3"
-            )}
+            className="absolute top-3 left-14 p-2 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-background hover:scale-110"
             title="Cover hochladen"
           >
             <Camera className="w-4 h-4 text-foreground" />
@@ -193,7 +195,7 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
             disabled={isReloadingCover}
             className={cn(
               "absolute p-2 rounded-full bg-primary/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-primary hover:scale-110",
-              record.isFavorite && onCoverUpdate ? "top-3 left-24" : onCoverUpdate ? "top-3 left-14" : record.isFavorite ? "top-3 left-14" : "top-3 left-3"
+              onCoverUpdate ? "top-3 left-24" : "top-3 left-14"
             )}
             title="Cover nachladen"
           >
@@ -237,7 +239,7 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
         </div>
         
         {/* Info on hover */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none">
           <p className="text-primary-foreground/80 text-sm">{record.year}</p>
           <p className="text-primary-foreground/60 text-xs truncate">{record.label}</p>
           <div className="mt-2">
@@ -246,7 +248,7 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
         </div>
       </div>
       
-      {/* Card Footer */}
+      {/* Card Footer - Click to open detail */}
       <div className="p-4 space-y-2">
         <h3 className="font-semibold text-foreground truncate">
           {record.album}
@@ -263,9 +265,19 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
             </>
           )}
         </div>
+        
+        {/* Vinyl Recommendation + Rating Row */}
         <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
-          {showVinylRecommendation && record.vinylRecommendation ? (
-            (() => {
+          <div className="flex items-center gap-3">
+            {/* Star Rating - always show */}
+            <StarRating 
+              rating={record.myRating} 
+              size="sm" 
+              interactive={!!onRatingChange}
+              onChange={onRatingChange}
+            />
+            {/* Vinyl Recommendation - show if available */}
+            {record.vinylRecommendation && (() => {
               const recInfo = getVinylRecommendationLabel(record.vinylRecommendation);
               if (!recInfo) return null;
               const Icon = recInfo.icon;
@@ -275,15 +287,8 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
                   {recInfo.label}
                 </span>
               );
-            })()
-          ) : (
-            <StarRating 
-              rating={record.myRating} 
-              size="sm" 
-              interactive={!!onRatingChange}
-              onChange={onRatingChange}
-            />
-          )}
+            })()}
+          </div>
           {record.recordingQuality && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <span className="text-primary">♪</span>
@@ -291,8 +296,9 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
             </span>
           )}
         </div>
+        
         {/* Streaming Links */}
-        <div className="flex items-center gap-2 pt-2">
+        <div className="flex items-center gap-2 pt-2 flex-wrap">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -316,6 +322,18 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
           >
             <Music className="w-3 h-3" />
             Tidal
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const query = encodeURIComponent(`${record.artist} ${record.album}`);
+              window.open(`https://music.apple.com/search?term=${query}`, '_blank');
+            }}
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-[#FA2D48]/10 text-[#FA2D48] hover:bg-[#FA2D48]/20 transition-colors"
+            title="Auf Apple Music suchen"
+          >
+            <Music className="w-3 h-3" />
+            Apple
           </button>
         </div>
       </div>
