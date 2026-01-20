@@ -10,13 +10,15 @@ import {
   Menu,
   X,
   Star,
-  Search
+  Search,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QuickSearch } from "@/components/QuickSearch";
 import { useRecords } from "@/context/RecordContext";
+import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -30,6 +32,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { getFavoriteRecords } = useRecords();
+  const { signOut } = useAuth();
   const favoriteCount = getFavoriteRecords().length;
 
   return (
@@ -93,6 +96,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </span>
               )}
             </NavLink>
+            
+            {/* Logout Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={signOut}
+              className="text-muted-foreground hover:text-foreground"
+              title="Abmelden"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
           </nav>
 
           {/* Add Button */}
@@ -171,6 +185,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       </span>
                     )}
                   </NavLink>
+                  
+                  {/* Mobile Logout */}
+                  <button
+                    onClick={() => { signOut(); setMobileMenuOpen(false); }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary w-full text-left"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    Abmelden
+                  </button>
                 </div>
               </div>
             </motion.nav>
