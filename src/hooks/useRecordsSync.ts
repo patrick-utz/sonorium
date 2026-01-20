@@ -230,23 +230,40 @@ export function useRecordsSync() {
         await supabase.from("records").delete().eq("user_id", user.id);
       }
 
-      // Insert new records
-      const dbRecords = importedRecords.map((r) => {
-        const dbRecord = recordToDb(r, user.id);
-        // Remove the id if it's a UUID to let the database generate new ones
-        delete dbRecord.id;
-        return dbRecord;
-      });
+      // Validate and prepare records for insert
+      const dbRecords = importedRecords
+        .filter((r) => {
+          // Ensure required fields exist
+          if (!r.artist || !r.album) {
+            console.warn("Skipping record with missing artist or album:", r);
+            return false;
+          }
+          return true;
+        })
+        .map((r) => {
+          // Ensure year is a valid number, default to current year if missing
+          const year = r.year && !isNaN(Number(r.year)) ? Number(r.year) : new Date().getFullYear();
+          
+          const dbRecord = recordToDb({ ...r, year }, user.id);
+          // Remove the id to let the database generate new ones
+          delete dbRecord.id;
+          return dbRecord;
+        });
+
+      if (dbRecords.length === 0) {
+        toast.error("Keine gültigen Alben zum Importieren gefunden");
+        return;
+      }
 
       const { error } = await supabase.from("records").insert(dbRecords);
 
       if (error) throw error;
 
-      toast.success(`${importedRecords.length} Alben importiert`);
+      toast.success(`${dbRecords.length} Alben importiert`);
       await fetchRecords();
     } catch (error) {
       console.error("Error importing records:", error);
-      toast.error("Fehler beim Importieren");
+      toast.error("Fehler beim Importieren: " + (error instanceof Error ? error.message : "Unbekannter Fehler"));
     } finally {
       setSyncing(false);
     }
