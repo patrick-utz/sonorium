@@ -523,7 +523,6 @@ export default function Collection() {
                 <RecordCard
                   record={record}
                   onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
-                  onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
                   onReloadCover={() => handleReloadCover(record)}
                   onDelete={() => deleteRecord(record.id)}
                   onToggleFavorite={() => toggleFavorite(record.id)}

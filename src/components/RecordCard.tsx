@@ -2,11 +2,9 @@ import { Record, VinylRecommendation } from "@/types/record";
 import { FormatBadge } from "./FormatBadge";
 import { StarRating } from "./StarRating";
 import { cn } from "@/lib/utils";
-import { compressImage } from "@/lib/imageUtils";
 import { motion } from "framer-motion";
-import { Camera, Trash2, Music, Heart, Star, ThumbsUp, Radio, RefreshCw } from "lucide-react";
-import { useRef, useState } from "react";
-import { toast } from "sonner";
+import { Trash2, Music, Heart, Star, ThumbsUp, Radio, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,11 +20,9 @@ import {
 interface RecordCardProps {
   record: Record;
   onClick?: () => void;
-  onCoverUpdate?: (coverArt: string) => void;
   onDelete?: () => void;
   onToggleFavorite?: () => void;
   onRatingChange?: (rating: number) => void;
-  showVinylRecommendation?: boolean;
   onReloadCover?: () => Promise<void>;
   className?: string;
 }
@@ -44,9 +40,7 @@ const getVinylRecommendationLabel = (rec: VinylRecommendation | undefined) => {
   }
 };
 
-export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleFavorite, onRatingChange, showVinylRecommendation, onReloadCover, className }: RecordCardProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
+export function RecordCard({ record, onClick, onDelete, onToggleFavorite, onRatingChange, onReloadCover, className }: RecordCardProps) {
   const [isReloadingCover, setIsReloadingCover] = useState(false);
 
   const handleReloadCover = async (e: React.MouseEvent) => {
@@ -61,57 +55,6 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
     }
   };
 
-  const processFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Bitte wähle eine Bilddatei");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const result = event.target?.result as string;
-      try {
-        const compressed = await compressImage(result);
-        onCoverUpdate?.(compressed);
-        toast.success("Cover aktualisiert");
-      } catch {
-        toast.error("Fehler beim Komprimieren");
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onCoverUpdate) setIsDragOver(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-    if (!onCoverUpdate) return;
-    const file = e.dataTransfer.files?.[0];
-    if (file) processFile(file);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
-    e.target.value = "";
-  };
-
-  const handleUploadClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    fileInputRef.current?.click();
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -119,27 +62,12 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
       whileHover={{ y: -8, scale: 1.02 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
       onClick={onClick}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
       className={cn(
         "group relative cursor-pointer rounded-xl overflow-hidden",
         "bg-card shadow-card hover:shadow-hover transition-shadow duration-300",
-        isDragOver && "ring-2 ring-primary ring-offset-2",
         className
       )}
     >
-      {/* Hidden file input */}
-      {onCoverUpdate && (
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-      )}
-
       {/* Cover Image - Click to open detail */}
       <div className="aspect-square relative overflow-hidden">
         {record.coverArt ? (
@@ -176,27 +104,13 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
         
         {/* Overlay on hover */}
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-        
-        {/* Upload Button */}
-        {onCoverUpdate && (
-          <button
-            onClick={handleUploadClick}
-            className="absolute top-3 left-14 p-2 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-background hover:scale-110"
-            title="Cover hochladen"
-          >
-            <Camera className="w-4 h-4 text-foreground" />
-          </button>
-        )}
 
         {/* Reload Cover Button */}
         {onReloadCover && (
           <button
             onClick={handleReloadCover}
             disabled={isReloadingCover}
-            className={cn(
-              "absolute p-2 rounded-full bg-primary/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-primary hover:scale-110",
-              onCoverUpdate ? "top-3 left-24" : "top-3 left-14"
-            )}
+            className="absolute top-3 left-14 p-2 rounded-full bg-primary/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-primary hover:scale-110"
             title="Cover nachladen"
           >
             <RefreshCw className={cn("w-4 h-4 text-primary-foreground", isReloadingCover && "animate-spin")} />
@@ -238,13 +152,10 @@ export function RecordCard({ record, onClick, onCoverUpdate, onDelete, onToggleF
           <FormatBadge format={record.format} />
         </div>
         
-        {/* Info on hover */}
+        {/* Info on hover - only year and label, no stars */}
         <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none">
           <p className="text-primary-foreground/80 text-sm">{record.year}</p>
           <p className="text-primary-foreground/60 text-xs truncate">{record.label}</p>
-          <div className="mt-2">
-            <StarRating rating={record.myRating} size="sm" />
-          </div>
         </div>
       </div>
       
