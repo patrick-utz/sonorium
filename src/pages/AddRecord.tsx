@@ -208,6 +208,7 @@ export default function AddRecord() {
   const handleAiComplete = async () => {
     setIsAiLoading(true);
     try {
+      // First API call to get metadata (including label and catalogNumber)
       const { data, error } = await supabase.functions.invoke('complete-record', {
         body: {
           artist: formData.artist,
@@ -215,6 +216,7 @@ export default function AddRecord() {
           year: formData.year,
           genre: formData.genre,
           label: formData.label,
+          catalogNumber: formData.catalogNumber,
           coverArt: formData.coverArt
         }
       });
@@ -223,6 +225,35 @@ export default function AddRecord() {
 
       if (data?.success && data?.data) {
         const aiData = data.data;
+        
+        // Get the new label and catalogNumber for potential second cover lookup
+        const newLabel = aiData.label || formData.label;
+        const newCatalogNumber = aiData.catalogNumber || formData.catalogNumber;
+        const newArtist = aiData.artist || formData.artist;
+        const newAlbum = aiData.album || formData.album;
+        
+        let finalCoverArt = formData.coverArt || aiData.coverArtBase64 || aiData.coverArtUrl;
+        
+        // If we got new label/catalogNumber info and still no cover, try a second lookup
+        if (!finalCoverArt && (newLabel || newCatalogNumber)) {
+          console.log('No cover found, trying again with new metadata:', { newLabel, newCatalogNumber });
+          try {
+            const { data: retryData } = await supabase.functions.invoke('complete-record', {
+              body: {
+                artist: newArtist,
+                album: newAlbum,
+                label: newLabel,
+                catalogNumber: newCatalogNumber,
+              }
+            });
+            if (retryData?.data?.coverArtBase64 || retryData?.data?.coverArtUrl) {
+              finalCoverArt = retryData.data.coverArtBase64 || retryData.data.coverArtUrl;
+              console.log('Found cover on retry with metadata');
+            }
+          } catch (retryError) {
+            console.log('Retry cover lookup failed:', retryError);
+          }
+        }
         
         // Only update fields that are empty or not set
         setFormData((prev) => ({
@@ -237,7 +268,7 @@ export default function AddRecord() {
           pressing: prev.pressing || aiData.pressing || prev.pressing,
           tags: prev.tags?.length ? prev.tags : (aiData.tags || prev.tags),
           personalNotes: prev.personalNotes || aiData.personalNotes || prev.personalNotes,
-          coverArt: prev.coverArt || aiData.coverArtBase64 || aiData.coverArtUrl || prev.coverArt,
+          coverArt: finalCoverArt || prev.coverArt,
           // KI-Bewertungen - always update these from AI
           audiophileAssessment: aiData.audiophileAssessment || prev.audiophileAssessment,
           artisticAssessment: aiData.artisticAssessment || prev.artisticAssessment,
@@ -417,8 +448,36 @@ export default function AddRecord() {
     }
   };
 
-  const handleStatusSelection = (status: RecordStatus) => {
+  const handleStatusSelection = async (status: RecordStatus) => {
     if (pendingBarcodeData) {
+      let finalCoverArt = pendingBarcodeData.coverArt;
+      
+      // If no cover was found, try to fetch it with the new metadata
+      if (!finalCoverArt && (pendingBarcodeData.label || pendingBarcodeData.catalogNumber)) {
+        console.log('No cover found, retrying with new metadata:', {
+          label: pendingBarcodeData.label,
+          catalogNumber: pendingBarcodeData.catalogNumber
+        });
+        
+        try {
+          const { data: retryData } = await supabase.functions.invoke('complete-record', {
+            body: {
+              artist: pendingBarcodeData.artist,
+              album: pendingBarcodeData.album,
+              label: pendingBarcodeData.label,
+              catalogNumber: pendingBarcodeData.catalogNumber,
+            }
+          });
+          
+          if (retryData?.data?.coverArtBase64 || retryData?.data?.coverArtUrl) {
+            finalCoverArt = retryData.data.coverArtBase64 || retryData.data.coverArtUrl;
+            console.log('Found cover on retry with metadata');
+          }
+        } catch (retryError) {
+          console.log('Retry cover lookup failed:', retryError);
+        }
+      }
+      
       setFormData((prev) => ({
         ...prev,
         artist: pendingBarcodeData.artist || prev.artist,
@@ -431,7 +490,7 @@ export default function AddRecord() {
         pressing: pendingBarcodeData.pressing || prev.pressing,
         tags: pendingBarcodeData.tags?.length ? pendingBarcodeData.tags : prev.tags,
         personalNotes: pendingBarcodeData.personalNotes || prev.personalNotes,
-        coverArt: pendingBarcodeData.coverArt || prev.coverArt,
+        coverArt: finalCoverArt || prev.coverArt,
         audiophileAssessment: pendingBarcodeData.audiophileAssessment || prev.audiophileAssessment,
         artisticAssessment: pendingBarcodeData.artisticAssessment || prev.artisticAssessment,
         recordingQuality: pendingBarcodeData.recordingQuality || prev.recordingQuality,
