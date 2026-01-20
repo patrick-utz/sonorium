@@ -88,44 +88,44 @@ export default function Dashboard() {
       animate="visible"
       className="flex flex-col h-[calc(100vh-6rem)]"
     >
-      {/* Sticky Header Area */}
-      <div className="sticky top-0 z-30 bg-background pb-4 space-y-4">
+      {/* Sticky Header Area with shadow */}
+      <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
         {/* Hero Section */}
-        <motion.div variants={itemVariants} className="text-center py-6 md:py-8">
-          <h1 className="text-4xl md:text-5xl font-semibold text-foreground mb-3">
-            Willkommen bei SONORIUM
+        <motion.div variants={itemVariants} className="text-center py-3 md:py-6">
+          <h1 className="text-2xl md:text-5xl font-semibold text-foreground mb-1 md:mb-3">
+            SONORIUM
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-sm md:text-lg max-w-2xl mx-auto">
             Deine persönliche Tonträger-Sammlung
           </p>
         </motion.div>
 
         {/* Compact Stats Row */}
-        <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-center gap-6 text-sm">
-          <div className="flex items-center gap-2">
-            <Music className="w-4 h-4 text-muted-foreground" />
+        <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-center gap-3 md:gap-6 text-xs md:text-sm">
+          <div className="flex items-center gap-1 md:gap-2">
+            <Music className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
             <span className="font-medium text-foreground">{records.length}</span>
-            <span className="text-muted-foreground">Gesamt</span>
+            <span className="text-muted-foreground hidden sm:inline">Gesamt</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Disc3 className="w-4 h-4 text-muted-foreground" />
+          <div className="flex items-center gap-1 md:gap-2">
+            <Disc3 className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
             <span className="font-medium text-foreground">{vinylCount}</span>
-            <span className="text-muted-foreground">Vinyl</span>
+            <span className="text-muted-foreground hidden sm:inline">Vinyl</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Disc className="w-4 h-4 text-muted-foreground" />
+          <div className="flex items-center gap-1 md:gap-2">
+            <Disc className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
             <span className="font-medium text-foreground">{cdCount}</span>
-            <span className="text-muted-foreground">CDs</span>
+            <span className="text-muted-foreground hidden sm:inline">CDs</span>
           </div>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+          <div className="flex items-center gap-1 md:gap-2">
+            <TrendingUp className="w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
             <span className="font-medium text-foreground">{wishlistRecords.length}</span>
-            <span className="text-muted-foreground">Wunschliste</span>
+            <span className="text-muted-foreground hidden sm:inline">Wunschliste</span>
           </div>
         </motion.div>
 
         {/* Filter Dropdowns - Grid Layout */}
-        <motion.div variants={itemVariants} className="grid grid-cols-3 gap-3 max-w-xl mx-auto">
+        <motion.div variants={itemVariants} className="grid grid-cols-3 gap-1.5 md:gap-3 max-w-xl mx-auto px-1">
         {/* Genres Dropdown */}
         {topGenres.length > 0 && (
           <Select onValueChange={handleGenreSelect}>
