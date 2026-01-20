@@ -1,9 +1,39 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.88.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Validate authentication
+async function validateAuth(req: Request): Promise<{ userId: string } | Response> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data, error } = await supabase.auth.getClaims(token);
+  
+  if (error || !data?.claims?.sub) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  return { userId: data.claims.sub as string };
+}
 
 const DISCOGS_API_KEY = Deno.env.get('DISCOGS_API_KEY');
 const DISCOGS_USER_AGENT = 'Sonorium/1.0';
@@ -359,6 +389,12 @@ serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const authResult = await validateAuth(req);
+    if (authResult instanceof Response) {
+      return authResult;
+    }
+
     const { artist, album, catalogNumber, barcode, releaseId, year, action } = await req.json();
     
     console.log('Marketplace request:', { artist, album, catalogNumber, barcode, releaseId, year, action });
