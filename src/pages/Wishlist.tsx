@@ -206,7 +206,7 @@ export default function Wishlist() {
           </p>
         </div>
 
-        {/* Filters */}
+        {/* Filters - Row 1: Search + Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -235,7 +235,7 @@ export default function Wishlist() {
               Auswählen
             </Button>
 
-            {/* Batch Enrich Button - nur sichtbar wenn im Select Mode */}
+            {/* Batch Enrich Button */}
             {isSelectMode && selectedRecords.size > 0 && (
               <Button
                 size="sm"
@@ -263,94 +263,7 @@ export default function Wishlist() {
               Favoriten
             </Button>
 
-            <Select
-              value={formatFilter}
-              onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
-            >
-              <SelectTrigger className="w-[110px] bg-card border-border/50">
-                <SelectValue placeholder="Format" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="all">Alle Formate</SelectItem>
-                <SelectItem value="vinyl">Vinyl</SelectItem>
-                <SelectItem value="cd">CD</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {allGenres.length > 0 && (
-              <Select
-                value={genreFilter}
-                onValueChange={(v) => setGenreFilter(v)}
-              >
-                <SelectTrigger className="w-[140px] bg-card border-border/50">
-                  <Music className="w-4 h-4 mr-2 flex-shrink-0" />
-                  <SelectValue placeholder="Genre" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover max-h-[300px]">
-                  <SelectItem value="all">Alle Genres</SelectItem>
-                  {allGenres.map((genre) => (
-                    <SelectItem key={genre} value={genre}>
-                      {genre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            {allTags.length > 0 && (
-              <Select
-                value={tagFilter}
-                onValueChange={(v) => setTagFilter(v)}
-              >
-                <SelectTrigger className="w-[140px] bg-card border-border/50">
-                  <Tag className="w-4 h-4 mr-2 flex-shrink-0" />
-                  <SelectValue placeholder="Stichwort" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover max-h-[300px]">
-                  <SelectItem value="all">Alle Stichworte</SelectItem>
-                  {allTags.map((tag) => (
-                    <SelectItem key={tag} value={tag}>
-                      {tag}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            {allMoods.length > 0 && (
-              <Select
-                value={moodFilter}
-                onValueChange={(v) => setMoodFilter(v)}
-              >
-                <SelectTrigger className="w-[140px] bg-card border-border/50">
-                  <Sparkles className="w-4 h-4 mr-2 flex-shrink-0" />
-                  <SelectValue placeholder="Stimmung" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover max-h-[300px]">
-                  <SelectItem value="all">Alle Stimmungen</SelectItem>
-                  {allMoods.map((mood) => (
-                    <SelectItem key={mood} value={mood}>
-                      {mood}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-              <SelectTrigger className="w-[140px] bg-card border-border/50">
-                <SlidersHorizontal className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Sortieren" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="dateAdded">Zuletzt hinzugefügt</SelectItem>
-                <SelectItem value="artist">Künstler</SelectItem>
-                <SelectItem value="album">Album</SelectItem>
-                <SelectItem value="year">Jahr</SelectItem>
-                <SelectItem value="rating">Bewertung</SelectItem>
-              </SelectContent>
-            </Select>
-
+            {/* View Mode Toggle */}
             <div className="hidden sm:flex border border-border/50 rounded-lg overflow-hidden">
               <Button
                 variant="ghost"
@@ -376,6 +289,97 @@ export default function Wishlist() {
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Filters - Row 2: Filter Dropdowns */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <Select
+            value={formatFilter}
+            onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
+          >
+            <SelectTrigger className="w-full bg-card border-border/50">
+              <SelectValue placeholder="Format" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="all">Alle Formate</SelectItem>
+              <SelectItem value="vinyl">Vinyl</SelectItem>
+              <SelectItem value="cd">CD</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {allGenres.length > 0 && (
+            <Select
+              value={genreFilter}
+              onValueChange={(v) => setGenreFilter(v)}
+            >
+              <SelectTrigger className="w-full bg-card border-border/50">
+                <Music className="w-4 h-4 mr-2 flex-shrink-0" />
+                <SelectValue placeholder="Genre" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover max-h-[300px]">
+                <SelectItem value="all">Alle Genres</SelectItem>
+                {allGenres.map((genre) => (
+                  <SelectItem key={genre} value={genre}>
+                    {genre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {allTags.length > 0 && (
+            <Select
+              value={tagFilter}
+              onValueChange={(v) => setTagFilter(v)}
+            >
+              <SelectTrigger className="w-full bg-card border-border/50">
+                <Tag className="w-4 h-4 mr-2 flex-shrink-0" />
+                <SelectValue placeholder="Stichwort" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover max-h-[300px]">
+                <SelectItem value="all">Alle Stichworte</SelectItem>
+                {allTags.map((tag) => (
+                  <SelectItem key={tag} value={tag}>
+                    {tag}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {allMoods.length > 0 && (
+            <Select
+              value={moodFilter}
+              onValueChange={(v) => setMoodFilter(v)}
+            >
+              <SelectTrigger className="w-full bg-card border-border/50">
+                <Sparkles className="w-4 h-4 mr-2 flex-shrink-0" />
+                <SelectValue placeholder="Stimmung" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover max-h-[300px]">
+                <SelectItem value="all">Alle Stimmungen</SelectItem>
+                {allMoods.map((mood) => (
+                  <SelectItem key={mood} value={mood}>
+                    {mood}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+            <SelectTrigger className="w-full bg-card border-border/50">
+              <SlidersHorizontal className="w-4 h-4 mr-2 flex-shrink-0" />
+              <SelectValue placeholder="Sortieren" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="dateAdded">Zuletzt hinzugefügt</SelectItem>
+              <SelectItem value="artist">Künstler</SelectItem>
+              <SelectItem value="album">Album</SelectItem>
+              <SelectItem value="year">Jahr</SelectItem>
+              <SelectItem value="rating">Bewertung</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
