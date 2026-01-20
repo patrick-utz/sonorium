@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Record } from "@/types/record";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { Json } from "@/integrations/supabase/types";
 
 // Convert from DB snake_case to frontend camelCase
 function dbToRecord(row: any): Record {
@@ -241,19 +242,53 @@ export function useRecordsSync() {
           return true;
         })
         .map((r) => {
-          // Ensure year is a valid number, default to current year if missing
-          const year = r.year && !isNaN(Number(r.year)) ? Number(r.year) : new Date().getFullYear();
+          // Ensure year is a valid positive number, default to current year if missing/invalid/null
+          let year = new Date().getFullYear();
+          if (r.year !== null && r.year !== undefined && !isNaN(Number(r.year)) && Number(r.year) > 0) {
+            year = Number(r.year);
+          }
           
-          const dbRecord = recordToDb({ ...r, year }, user.id);
-          // Remove the id to let the database generate new ones
-          delete dbRecord.id;
-          return dbRecord;
+          // Build the db record directly to ensure year is always set
+          return {
+            user_id: user.id,
+            artist: r.artist,
+            album: r.album,
+            year: year,
+            genre: r.genre || [],
+            label: r.label || null,
+            catalog_number: r.catalogNumber || null,
+            format: r.format || "vinyl",
+            format_details: r.formatDetails || null,
+            pressing: r.pressing || null,
+            cover_art: r.coverArt || null,
+            my_rating: r.myRating || 3,
+            recording_quality: r.recordingQuality || null,
+            mastering_quality: r.masteringQuality || null,
+            artistic_rating: r.artisticRating || null,
+            critic_score: r.criticScore || null,
+            critic_reviews: (r.criticReviews as unknown as Json) || null,
+            status: r.status || "owned",
+            date_added: r.dateAdded || new Date().toISOString().split("T")[0],
+            purchase_price: r.purchasePrice || null,
+            purchase_location: r.purchaseLocation || null,
+            vinyl_recommendation: r.vinylRecommendation || null,
+            recommendation_reason: r.recommendationReason || null,
+            personal_notes: r.personalNotes || null,
+            tags: r.tags || [],
+            moods: r.moods || [],
+            is_favorite: r.isFavorite || false,
+            audiophile_assessment: r.audiophileAssessment || null,
+            artistic_assessment: r.artisticAssessment || null,
+            recommendations: (r.recommendations as unknown as Json) || null,
+          };
         });
 
       if (dbRecords.length === 0) {
         toast.error("Keine gültigen Alben zum Importieren gefunden");
         return;
       }
+
+      console.log("Importing records:", dbRecords.length, "First record year:", dbRecords[0]?.year);
 
       const { error } = await supabase.from("records").insert(dbRecords);
 
