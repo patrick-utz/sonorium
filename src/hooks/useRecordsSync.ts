@@ -1,0 +1,275 @@
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Record } from "@/types/record";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
+
+// Convert from DB snake_case to frontend camelCase
+function dbToRecord(row: any): Record {
+  return {
+    id: row.id,
+    artist: row.artist,
+    album: row.album,
+    year: row.year,
+    genre: row.genre || [],
+    label: row.label,
+    catalogNumber: row.catalog_number,
+    format: row.format,
+    formatDetails: row.format_details,
+    pressing: row.pressing,
+    coverArt: row.cover_art,
+    myRating: row.my_rating || 3,
+    recordingQuality: row.recording_quality,
+    masteringQuality: row.mastering_quality,
+    artisticRating: row.artistic_rating,
+    criticScore: row.critic_score,
+    criticReviews: row.critic_reviews,
+    status: row.status || "owned",
+    dateAdded: row.date_added,
+    purchasePrice: row.purchase_price,
+    purchaseLocation: row.purchase_location,
+    vinylRecommendation: row.vinyl_recommendation,
+    recommendationReason: row.recommendation_reason,
+    personalNotes: row.personal_notes,
+    tags: row.tags || [],
+    moods: row.moods || [],
+    isFavorite: row.is_favorite || false,
+    audiophileAssessment: row.audiophile_assessment,
+    artisticAssessment: row.artistic_assessment,
+    recommendations: row.recommendations,
+  };
+}
+
+// Convert from frontend camelCase to DB snake_case
+function recordToDb(record: Partial<Record>, userId: string): any {
+  return {
+    user_id: userId,
+    artist: record.artist,
+    album: record.album,
+    year: record.year,
+    genre: record.genre || [],
+    label: record.label,
+    catalog_number: record.catalogNumber,
+    format: record.format,
+    format_details: record.formatDetails,
+    pressing: record.pressing,
+    cover_art: record.coverArt,
+    my_rating: record.myRating,
+    recording_quality: record.recordingQuality,
+    mastering_quality: record.masteringQuality,
+    artistic_rating: record.artisticRating,
+    critic_score: record.criticScore,
+    critic_reviews: record.criticReviews,
+    status: record.status,
+    date_added: record.dateAdded || new Date().toISOString().split("T")[0],
+    purchase_price: record.purchasePrice,
+    purchase_location: record.purchaseLocation,
+    vinyl_recommendation: record.vinylRecommendation,
+    recommendation_reason: record.recommendationReason,
+    personal_notes: record.personalNotes,
+    tags: record.tags || [],
+    moods: record.moods || [],
+    is_favorite: record.isFavorite || false,
+    audiophile_assessment: record.audiophileAssessment,
+    artistic_assessment: record.artisticAssessment,
+    recommendations: record.recommendations,
+  };
+}
+
+export function useRecordsSync() {
+  const { user } = useAuth();
+  const [records, setRecords] = useState<Record[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  // Fetch records from database
+  const fetchRecords = useCallback(async () => {
+    if (!user) {
+      setRecords([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("records")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      setRecords((data || []).map(dbToRecord));
+    } catch (error) {
+      console.error("Error fetching records:", error);
+      toast.error("Fehler beim Laden der Sammlung");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Add record
+  const addRecord = async (record: Omit<Record, "id" | "dateAdded">) => {
+    if (!user) return;
+    setSyncing(true);
+
+    try {
+      const dbRecord = recordToDb(record, user.id);
+      const { data, error } = await supabase
+        .from("records")
+        .insert(dbRecord)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setRecords((prev) => [dbToRecord(data), ...prev]);
+      toast.success("Album gespeichert");
+    } catch (error) {
+      console.error("Error adding record:", error);
+      toast.error("Fehler beim Speichern");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Update record
+  const updateRecord = async (id: string, updates: Partial<Record>) => {
+    if (!user) return;
+    setSyncing(true);
+
+    try {
+      const dbUpdates: any = {};
+      if (updates.artist !== undefined) dbUpdates.artist = updates.artist;
+      if (updates.album !== undefined) dbUpdates.album = updates.album;
+      if (updates.year !== undefined) dbUpdates.year = updates.year;
+      if (updates.genre !== undefined) dbUpdates.genre = updates.genre;
+      if (updates.label !== undefined) dbUpdates.label = updates.label;
+      if (updates.catalogNumber !== undefined) dbUpdates.catalog_number = updates.catalogNumber;
+      if (updates.format !== undefined) dbUpdates.format = updates.format;
+      if (updates.formatDetails !== undefined) dbUpdates.format_details = updates.formatDetails;
+      if (updates.pressing !== undefined) dbUpdates.pressing = updates.pressing;
+      if (updates.coverArt !== undefined) dbUpdates.cover_art = updates.coverArt;
+      if (updates.myRating !== undefined) dbUpdates.my_rating = updates.myRating;
+      if (updates.recordingQuality !== undefined) dbUpdates.recording_quality = updates.recordingQuality;
+      if (updates.masteringQuality !== undefined) dbUpdates.mastering_quality = updates.masteringQuality;
+      if (updates.artisticRating !== undefined) dbUpdates.artistic_rating = updates.artisticRating;
+      if (updates.criticScore !== undefined) dbUpdates.critic_score = updates.criticScore;
+      if (updates.criticReviews !== undefined) dbUpdates.critic_reviews = updates.criticReviews;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.purchasePrice !== undefined) dbUpdates.purchase_price = updates.purchasePrice;
+      if (updates.purchaseLocation !== undefined) dbUpdates.purchase_location = updates.purchaseLocation;
+      if (updates.vinylRecommendation !== undefined) dbUpdates.vinyl_recommendation = updates.vinylRecommendation;
+      if (updates.recommendationReason !== undefined) dbUpdates.recommendation_reason = updates.recommendationReason;
+      if (updates.personalNotes !== undefined) dbUpdates.personal_notes = updates.personalNotes;
+      if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+      if (updates.moods !== undefined) dbUpdates.moods = updates.moods;
+      if (updates.isFavorite !== undefined) dbUpdates.is_favorite = updates.isFavorite;
+      if (updates.audiophileAssessment !== undefined) dbUpdates.audiophile_assessment = updates.audiophileAssessment;
+      if (updates.artisticAssessment !== undefined) dbUpdates.artistic_assessment = updates.artisticAssessment;
+      if (updates.recommendations !== undefined) dbUpdates.recommendations = updates.recommendations;
+
+      const { error } = await supabase
+        .from("records")
+        .update(dbUpdates)
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setRecords((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, ...updates } : r))
+      );
+    } catch (error) {
+      console.error("Error updating record:", error);
+      toast.error("Fehler beim Aktualisieren");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Delete record
+  const deleteRecord = async (id: string) => {
+    if (!user) return;
+    setSyncing(true);
+
+    try {
+      const { error } = await supabase.from("records").delete().eq("id", id);
+
+      if (error) throw error;
+
+      setRecords((prev) => prev.filter((r) => r.id !== id));
+      toast.success("Album gelöscht");
+    } catch (error) {
+      console.error("Error deleting record:", error);
+      toast.error("Fehler beim Löschen");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Toggle favorite
+  const toggleFavorite = async (id: string) => {
+    const record = records.find((r) => r.id === id);
+    if (!record) return;
+    await updateRecord(id, { isFavorite: !record.isFavorite });
+  };
+
+  // Get helpers
+  const getRecordById = (id: string) => records.find((r) => r.id === id);
+  const getOwnedRecords = () => records.filter((r) => r.status === "owned");
+  const getWishlistRecords = () => records.filter((r) => r.status === "wishlist");
+  const getFavoriteRecords = () => records.filter((r) => r.isFavorite);
+
+  // Import records (merge or replace)
+  const importRecords = async (importedRecords: Record[], mode: "merge" | "replace") => {
+    if (!user) return;
+    setSyncing(true);
+
+    try {
+      if (mode === "replace") {
+        // Delete all existing records first
+        await supabase.from("records").delete().eq("user_id", user.id);
+      }
+
+      // Insert new records
+      const dbRecords = importedRecords.map((r) => {
+        const dbRecord = recordToDb(r, user.id);
+        // Remove the id if it's a UUID to let the database generate new ones
+        delete dbRecord.id;
+        return dbRecord;
+      });
+
+      const { error } = await supabase.from("records").insert(dbRecords);
+
+      if (error) throw error;
+
+      toast.success(`${importedRecords.length} Alben importiert`);
+      await fetchRecords();
+    } catch (error) {
+      console.error("Error importing records:", error);
+      toast.error("Fehler beim Importieren");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
+
+  return {
+    records,
+    loading,
+    syncing,
+    addRecord,
+    updateRecord,
+    deleteRecord,
+    toggleFavorite,
+    getRecordById,
+    getOwnedRecords,
+    getWishlistRecords,
+    getFavoriteRecords,
+    importRecords,
+    refetch: fetchRecords,
+  };
+}
