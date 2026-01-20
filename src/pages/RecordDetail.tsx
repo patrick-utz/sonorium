@@ -227,9 +227,14 @@ export default function RecordDetail() {
             <p className="text-xl text-muted-foreground mt-1">{record.artist}</p>
           </div>
 
-          {/* Rating */}
+          {/* Rating - Interactive */}
           <div className="flex items-center gap-3">
-            <StarRating rating={record.myRating} size="lg" />
+            <StarRating 
+              rating={record.myRating} 
+              size="lg" 
+              interactive
+              onChange={(rating) => updateRecord(record.id, { myRating: rating })}
+            />
             <span className="text-sm text-muted-foreground">
               Deine Bewertung
             </span>

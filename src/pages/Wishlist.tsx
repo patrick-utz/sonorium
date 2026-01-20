@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
+import { StarRating } from "@/components/StarRating";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -437,6 +438,7 @@ export default function Wishlist() {
                   onDelete={() => deleteRecord(record.id)}
                   onToggleFavorite={() => toggleFavorite(record.id)}
                   onReloadCover={() => handleReloadCover(record)}
+                  onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
                 />
                 <Button
                   size="sm"
@@ -496,6 +498,32 @@ export default function Wishlist() {
                     )}
                   </div>
                 </div>
+                
+                {/* Interactive Star Rating */}
+                <div onClick={(e) => e.stopPropagation()} className="hidden sm:block">
+                  <StarRating 
+                    rating={record.myRating} 
+                    size="sm" 
+                    interactive
+                    onChange={(rating) => updateRecord(record.id, { myRating: rating })}
+                  />
+                </div>
+                
+                {/* Favorite Toggle */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(record.id);
+                  }}
+                  className="p-1.5 rounded-full hover:bg-muted transition-colors"
+                  title={record.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+                >
+                  <Heart className={cn(
+                    "w-4 h-4 transition-colors",
+                    record.isFavorite ? "heart-favorite fill-current" : "text-muted-foreground hover:text-foreground"
+                  )} />
+                </button>
+                
                 <Button
                   size="sm"
                   onClick={(e) => handleMarkAsOwned(record.id, e)}

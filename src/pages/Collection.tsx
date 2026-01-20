@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { compressImage } from "@/lib/imageUtils";
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
+import { StarRating } from "@/components/StarRating";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -729,6 +730,8 @@ export default function Collection() {
                 isSelectMode={isSelectMode}
                 isSelected={selectedRecords.has(record.id)}
                 onToggleSelect={() => toggleRecordSelection(record.id)}
+                onToggleFavorite={() => toggleFavorite(record.id)}
+                onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
               />
             ))}
           </motion.div>
@@ -744,9 +747,11 @@ interface ListItemProps {
   isSelectMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: () => void;
+  onToggleFavorite?: () => void;
+  onRatingChange?: (rating: number) => void;
 }
 
-function ListItem({ record, onClick, isSelectMode, isSelected, onToggleSelect }: ListItemProps) {
+function ListItem({ record, onClick, isSelectMode, isSelected, onToggleSelect, onToggleFavorite, onRatingChange }: ListItemProps) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -787,8 +792,34 @@ function ListItem({ record, onClick, isSelectMode, isSelected, onToggleSelect }:
         <h3 className="font-semibold text-foreground truncate">{record.album}</h3>
         <p className="text-sm text-muted-foreground truncate">{record.artist}</p>
       </div>
-      <div className="text-sm text-muted-foreground hidden sm:block">{record.year}</div>
-      <div className="text-sm text-muted-foreground hidden md:block capitalize">
+      
+      {/* Interactive Star Rating */}
+      <div onClick={(e) => e.stopPropagation()} className="hidden sm:block">
+        <StarRating 
+          rating={record.myRating} 
+          size="sm" 
+          interactive={!!onRatingChange}
+          onChange={onRatingChange}
+        />
+      </div>
+      
+      {/* Favorite Toggle */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite?.();
+        }}
+        className="p-1.5 rounded-full hover:bg-muted transition-colors"
+        title={record.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
+      >
+        <Heart className={cn(
+          "w-4 h-4 transition-colors",
+          record.isFavorite ? "heart-favorite fill-current" : "text-muted-foreground hover:text-foreground"
+        )} />
+      </button>
+      
+      <div className="text-sm text-muted-foreground hidden md:block">{record.year}</div>
+      <div className="text-sm text-muted-foreground hidden lg:block capitalize">
         {record.format}
       </div>
     </motion.div>
