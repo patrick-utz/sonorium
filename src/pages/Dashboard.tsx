@@ -86,44 +86,46 @@ export default function Dashboard() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-8"
+      className="flex flex-col h-[calc(100vh-6rem)]"
     >
-      {/* Hero Section */}
-      <motion.div variants={itemVariants} className="text-center py-6 md:py-10">
-        <h1 className="text-4xl md:text-5xl font-semibold text-foreground mb-3">
-          Willkommen bei SONORIUM
-        </h1>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Deine persönliche Tonträger-Sammlung
-        </p>
-      </motion.div>
+      {/* Sticky Header Area */}
+      <div className="sticky top-0 z-30 bg-background pb-4 space-y-4">
+        {/* Hero Section */}
+        <motion.div variants={itemVariants} className="text-center py-6 md:py-8">
+          <h1 className="text-4xl md:text-5xl font-semibold text-foreground mb-3">
+            Willkommen bei SONORIUM
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Deine persönliche Tonträger-Sammlung
+          </p>
+        </motion.div>
 
-      {/* Compact Stats Row */}
-      <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-6 text-sm">
-        <div className="flex items-center gap-2">
-          <Music className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium text-foreground">{records.length}</span>
-          <span className="text-muted-foreground">Gesamt</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Disc3 className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium text-foreground">{vinylCount}</span>
-          <span className="text-muted-foreground">Vinyl</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Disc className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium text-foreground">{cdCount}</span>
-          <span className="text-muted-foreground">CDs</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          <span className="font-medium text-foreground">{wishlistRecords.length}</span>
-          <span className="text-muted-foreground">Wunschliste</span>
-        </div>
-      </motion.div>
+        {/* Compact Stats Row */}
+        <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-center gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <Music className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium text-foreground">{records.length}</span>
+            <span className="text-muted-foreground">Gesamt</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Disc3 className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium text-foreground">{vinylCount}</span>
+            <span className="text-muted-foreground">Vinyl</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Disc className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium text-foreground">{cdCount}</span>
+            <span className="text-muted-foreground">CDs</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium text-foreground">{wishlistRecords.length}</span>
+            <span className="text-muted-foreground">Wunschliste</span>
+          </div>
+        </motion.div>
 
-      {/* Filter Dropdowns - Grid Layout */}
-      <motion.div variants={itemVariants} className="grid grid-cols-3 gap-3 max-w-xl">
+        {/* Filter Dropdowns - Grid Layout */}
+        <motion.div variants={itemVariants} className="grid grid-cols-3 gap-3 max-w-xl mx-auto">
         {/* Genres Dropdown */}
         {topGenres.length > 0 && (
           <Select onValueChange={handleGenreSelect}>
@@ -175,9 +177,12 @@ export default function Dashboard() {
           </Select>
         )}
       </motion.div>
+      </div>
 
-      {/* Favorites - Horizontal Scroll */}
-      <motion.div variants={itemVariants}>
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto space-y-8 pt-4">
+        {/* Favorites - Horizontal Scroll */}
+        <motion.div variants={itemVariants}>
         <button
           onClick={() => navigate("/sammlung?favorites=true")}
           className="flex items-center gap-3 mb-4 hover:text-primary transition-colors"
@@ -273,6 +278,7 @@ export default function Dashboard() {
           </div>
         )}
       </motion.div>
+      </div>
     </motion.div>
   );
 }
