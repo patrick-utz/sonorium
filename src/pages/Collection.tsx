@@ -333,19 +333,19 @@ export default function Collection() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)]">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-background pb-4 space-y-4">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold gradient-text">
+      {/* Sticky Header with shadow */}
+      <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
+        <div className="pt-2 md:pt-0">
+          <h1 className="text-2xl md:text-4xl font-bold gradient-text">
             Deine Sammlung
           </h1>
-          <p className="text-muted-foreground mt-1">
-            {records.length} Tonträger in deiner Sammlung
+          <p className="text-muted-foreground text-sm md:text-base mt-0.5 md:mt-1">
+            {records.length} Tonträger
           </p>
         </div>
 
         {/* Filters - Row 1: Search + Actions */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -356,7 +356,7 @@ export default function Collection() {
             />
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1.5 md:gap-2 flex-wrap">
             {/* Batch Selection Mode */}
             {!isSelectMode ? (
               <Button
@@ -455,7 +455,7 @@ export default function Collection() {
         </div>
 
         {/* Filters - Row 2: Filter Dropdowns */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5 md:gap-3">
           <Select
             value={formatFilter}
             onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
