@@ -291,12 +291,40 @@ export default function RecordDetail() {
               className="gap-2"
             >
               <a
+                href={`https://open.spotify.com/search/${encodeURIComponent(`${record.artist} ${record.album}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Music className="w-4 h-4" />
+                Spotify
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="gap-2"
+            >
+              <a
                 href={`https://tidal.com/search?q=${encodeURIComponent(`${record.artist} ${record.album}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <ExternalLink className="w-4 h-4" />
-                Auf Tidal anhören
+                <Music className="w-4 h-4" />
+                Tidal
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="gap-2"
+            >
+              <a
+                href={`https://music.apple.com/search?term=${encodeURIComponent(`${record.artist} ${record.album}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Music className="w-4 h-4" />
+                Apple
               </a>
             </Button>
             <Button
