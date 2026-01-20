@@ -12,16 +12,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Camera, Sparkles, Heart, Loader2, CheckSquare, Square } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Sparkles, Heart, Loader2, CheckSquare, Square, ArrowUpDown, X, RotateCcw, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Record, RecordFormat } from "@/types/record";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 type SortOption = "artist" | "album" | "year" | "dateAdded" | "rating";
+type SortDirection = "asc" | "desc";
 type ViewMode = "grid" | "list";
+
+// Helper to extract last name from artist name
+const getLastName = (artist: string): string => {
+  // Handle special cases like "The Beatles", "Van Morrison"
+  const prefixes = ["the", "van", "von", "de", "du", "la", "le"];
+  const parts = artist.trim().split(/\s+/);
+  
+  if (parts.length === 1) return artist;
+  
+  // Check if last part is a common suffix (Jr., Sr., III, etc.)
+  const suffixes = ["jr.", "sr.", "ii", "iii", "iv"];
+  let lastName = parts[parts.length - 1];
+  
+  if (suffixes.includes(lastName.toLowerCase()) && parts.length > 2) {
+    lastName = parts[parts.length - 2];
+  }
+  
+  return lastName;
+};
+
+// Get decade from year
+const getDecade = (year: number): string => {
+  const decade = Math.floor(year / 10) * 10;
+  return `${decade}er`;
+};
 
 export default function Collection() {
   const { getOwnedRecords, updateRecord, deleteRecord, toggleFavorite } = useRecords();
@@ -34,8 +61,10 @@ export default function Collection() {
   const [genreFilter, setGenreFilter] = useState<string>("all");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [moodFilter, setMoodFilter] = useState<string>("all");
+  const [decadeFilter, setDecadeFilter] = useState<string>("all");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   
   // Batch selection state
@@ -43,6 +72,27 @@ export default function Collection() {
   const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
   const [isBatchEnriching, setIsBatchEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState({ current: 0, total: 0 });
+
+  // Check if any filter is active
+  const hasActiveFilters = formatFilter !== "all" || genreFilter !== "all" || tagFilter !== "all" || moodFilter !== "all" || decadeFilter !== "all" || showFavoritesOnly || searchQuery !== "";
+
+  // Reset all filters
+  const resetAllFilters = () => {
+    setSearchQuery("");
+    setFormatFilter("all");
+    setGenreFilter("all");
+    setTagFilter("all");
+    setMoodFilter("all");
+    setDecadeFilter("all");
+    setShowFavoritesOnly(false);
+    // Clear URL params
+    setSearchParams({});
+  };
+
+  // Get available decades from records
+  const allDecades = Array.from(
+    new Set(records.map((record) => getDecade(record.year)))
+  ).sort((a, b) => parseInt(b) - parseInt(a)); // Newest first
 
   // Read filters from URL params on mount
   useEffect(() => {
@@ -81,6 +131,10 @@ export default function Collection() {
     }
   };
 
+  // Toggle sort direction
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+  };
   // Toggle selection for a record
   const toggleRecordSelection = (recordId: string) => {
     setSelectedRecords(prev => {
@@ -248,23 +302,32 @@ export default function Collection() {
       const matchesGenre = genreFilter === "all" || record.genre.includes(genreFilter);
       const matchesTag = tagFilter === "all" || record.tags?.includes(tagFilter);
       const matchesMood = moodFilter === "all" || record.moods?.includes(moodFilter);
+      const matchesDecade = decadeFilter === "all" || getDecade(record.year) === decadeFilter;
       const matchesFavorite = !showFavoritesOnly || record.isFavorite;
-      return matchesSearch && matchesFormat && matchesGenre && matchesTag && matchesMood && matchesFavorite;
+      return matchesSearch && matchesFormat && matchesGenre && matchesTag && matchesMood && matchesDecade && matchesFavorite;
     })
     .sort((a, b) => {
+      let comparison = 0;
       switch (sortBy) {
         case "artist":
-          return a.artist.localeCompare(b.artist);
+          // Sort by last name
+          comparison = getLastName(a.artist).localeCompare(getLastName(b.artist));
+          break;
         case "album":
-          return a.album.localeCompare(b.album);
+          comparison = a.album.localeCompare(b.album);
+          break;
         case "year":
-          return b.year - a.year;
+          comparison = a.year - b.year;
+          break;
         case "rating":
-          return b.myRating - a.myRating;
+          comparison = a.myRating - b.myRating;
+          break;
         case "dateAdded":
         default:
-          return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
+          comparison = new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime();
+          break;
       }
+      return sortDirection === "asc" ? comparison : -comparison;
     });
 
   return (
@@ -436,19 +499,52 @@ export default function Collection() {
               </Select>
             )}
 
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-              <SelectTrigger className="w-[140px] bg-card border-border/50">
-                <SlidersHorizontal className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Sortieren" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="dateAdded">Zuletzt hinzugefügt</SelectItem>
-                <SelectItem value="artist">Künstler</SelectItem>
-                <SelectItem value="album">Album</SelectItem>
-                <SelectItem value="year">Jahr</SelectItem>
-                <SelectItem value="rating">Bewertung</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Decade Filter */}
+            {allDecades.length > 0 && (
+              <Select
+                value={decadeFilter}
+                onValueChange={(v) => setDecadeFilter(v)}
+              >
+                <SelectTrigger className="w-[120px] bg-card border-border/50">
+                  <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <SelectValue placeholder="Dekade" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover max-h-[300px]">
+                  <SelectItem value="all">Alle Dekaden</SelectItem>
+                  {allDecades.map((decade) => (
+                    <SelectItem key={decade} value={decade}>
+                      {decade}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Sort with direction */}
+            <div className="flex">
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                <SelectTrigger className="w-[140px] bg-card border-border/50 rounded-r-none border-r-0">
+                  <SlidersHorizontal className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Sortieren" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="dateAdded">Zuletzt hinzugefügt</SelectItem>
+                  <SelectItem value="artist">Künstler (Nachname)</SelectItem>
+                  <SelectItem value="album">Album</SelectItem>
+                  <SelectItem value="year">Jahr</SelectItem>
+                  <SelectItem value="rating">Bewertung</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleSortDirection}
+                className="rounded-l-none border-border/50"
+                title={sortDirection === "asc" ? "Aufsteigend (A→Z)" : "Absteigend (Z→A)"}
+              >
+                <ArrowUpDown className={cn("w-4 h-4", sortDirection === "desc" && "rotate-180")} />
+              </Button>
+            </div>
 
             <div className="hidden sm:flex border border-border/50 rounded-lg overflow-hidden">
               <Button
@@ -476,8 +572,88 @@ export default function Collection() {
             </div>
           </div>
         </div>
-      </div>
 
+        {/* Active Filters as Badges */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-sm text-muted-foreground">Filter:</span>
+            
+            {searchQuery && (
+              <Badge variant="secondary" className="gap-1 pr-1">
+                Suche: "{searchQuery}"
+                <button onClick={() => setSearchQuery("")} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            
+            {showFavoritesOnly && (
+              <Badge variant="secondary" className="gap-1 pr-1">
+                <Heart className="w-3 h-3 fill-current" />
+                Favoriten
+                <button onClick={() => setShowFavoritesOnly(false)} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            
+            {formatFilter !== "all" && (
+              <Badge variant="secondary" className="gap-1 pr-1">
+                Format: {formatFilter}
+                <button onClick={() => setFormatFilter("all")} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            
+            {genreFilter !== "all" && (
+              <Badge variant="secondary" className="gap-1 pr-1">
+                Genre: {genreFilter}
+                <button onClick={() => handleGenreChange("all")} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            
+            {tagFilter !== "all" && (
+              <Badge variant="secondary" className="gap-1 pr-1">
+                Tag: {tagFilter}
+                <button onClick={() => handleTagChange("all")} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            
+            {moodFilter !== "all" && (
+              <Badge variant="secondary" className="gap-1 pr-1">
+                Stimmung: {moodFilter}
+                <button onClick={() => handleMoodChange("all")} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            
+            {decadeFilter !== "all" && (
+              <Badge variant="secondary" className="gap-1 pr-1">
+                Dekade: {decadeFilter}
+                <button onClick={() => setDecadeFilter("all")} className="ml-1 hover:text-foreground">
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            )}
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetAllFilters}
+              className="gap-1 text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Alle zurücksetzen
+            </Button>
+          </div>
+        )}
+      </div>
       {/* Records Grid/List */}
       <AnimatePresence mode="wait">
         {filteredRecords.length === 0 ? (
@@ -546,7 +722,6 @@ export default function Collection() {
                 key={record.id}
                 record={record}
                 onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
-                onCoverUpdate={(coverArt) => updateRecord(record.id, { coverArt })}
                 isSelectMode={isSelectMode}
                 isSelected={selectedRecords.has(record.id)}
                 onToggleSelect={() => toggleRecordSelection(record.id)}
@@ -562,44 +737,12 @@ export default function Collection() {
 interface ListItemProps {
   record: Record;
   onClick: () => void;
-  onCoverUpdate: (coverArt: string) => void;
   isSelectMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: () => void;
 }
 
-function ListItem({ record, onClick, onCoverUpdate, isSelectMode, isSelected, onToggleSelect }: ListItemProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Bitte wähle eine Bilddatei");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const result = event.target?.result as string;
-      try {
-        const compressed = await compressImage(result);
-        onCoverUpdate(compressed);
-        toast.success("Cover aktualisiert");
-      } catch {
-        toast.error("Fehler beim Komprimieren");
-      }
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  };
-
-  const handleUploadClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    fileInputRef.current?.click();
-  };
-
+function ListItem({ record, onClick, isSelectMode, isSelected, onToggleSelect }: ListItemProps) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -623,13 +766,6 @@ function ListItem({ record, onClick, onCoverUpdate, isSelectMode, isSelected, on
           />
         </div>
       )}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        className="hidden"
-      />
       <div className="relative w-14 h-14 rounded-md overflow-hidden flex-shrink-0">
         {record.coverArt ? (
           <img
@@ -641,15 +777,6 @@ function ListItem({ record, onClick, onCoverUpdate, isSelectMode, isSelected, on
           <div className="w-full h-full bg-gradient-vinyl flex items-center justify-center">
             <div className="w-8 h-8 vinyl-disc" />
           </div>
-        )}
-        {!isSelectMode && (
-          <button
-            onClick={handleUploadClick}
-            className="absolute inset-0 flex items-center justify-center bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Cover hochladen"
-          >
-            <Camera className="w-5 h-5 text-foreground" />
-          </button>
         )}
       </div>
       <div className="flex-1 min-w-0">
