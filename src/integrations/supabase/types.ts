@@ -14,7 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      records: {
+        Row: {
+          album: string
+          alternative_releases: Json | null
+          artist: string
+          artistic_assessment: string | null
+          artistic_rating: number | null
+          audiophile_assessment: string | null
+          catalog_number: string | null
+          cover_art: string | null
+          created_at: string | null
+          critic_reviews: Json | null
+          critic_score: number | null
+          date_added: string
+          format: string
+          format_details: string | null
+          genre: string[]
+          id: string
+          is_favorite: boolean | null
+          label: string | null
+          mastering_quality: number | null
+          moods: string[] | null
+          my_rating: number | null
+          personal_notes: string | null
+          pressing: string | null
+          purchase_location: string | null
+          purchase_price: number | null
+          recommendation_reason: string | null
+          recommendations: Json | null
+          recording_quality: number | null
+          status: string
+          streaming_links: Json | null
+          tags: string[] | null
+          updated_at: string | null
+          user_id: string
+          vinyl_recommendation: string | null
+          year: number
+        }
+        Insert: {
+          album: string
+          alternative_releases?: Json | null
+          artist: string
+          artistic_assessment?: string | null
+          artistic_rating?: number | null
+          audiophile_assessment?: string | null
+          catalog_number?: string | null
+          cover_art?: string | null
+          created_at?: string | null
+          critic_reviews?: Json | null
+          critic_score?: number | null
+          date_added?: string
+          format?: string
+          format_details?: string | null
+          genre?: string[]
+          id?: string
+          is_favorite?: boolean | null
+          label?: string | null
+          mastering_quality?: number | null
+          moods?: string[] | null
+          my_rating?: number | null
+          personal_notes?: string | null
+          pressing?: string | null
+          purchase_location?: string | null
+          purchase_price?: number | null
+          recommendation_reason?: string | null
+          recommendations?: Json | null
+          recording_quality?: number | null
+          status?: string
+          streaming_links?: Json | null
+          tags?: string[] | null
+          updated_at?: string | null
+          user_id: string
+          vinyl_recommendation?: string | null
+          year: number
+        }
+        Update: {
+          album?: string
+          alternative_releases?: Json | null
+          artist?: string
+          artistic_assessment?: string | null
+          artistic_rating?: number | null
+          audiophile_assessment?: string | null
+          catalog_number?: string | null
+          cover_art?: string | null
+          created_at?: string | null
+          critic_reviews?: Json | null
+          critic_score?: number | null
+          date_added?: string
+          format?: string
+          format_details?: string | null
+          genre?: string[]
+          id?: string
+          is_favorite?: boolean | null
+          label?: string | null
+          mastering_quality?: number | null
+          moods?: string[] | null
+          my_rating?: number | null
+          personal_notes?: string | null
+          pressing?: string | null
+          purchase_location?: string | null
+          purchase_price?: number | null
+          recommendation_reason?: string | null
+          recommendations?: Json | null
+          recording_quality?: number | null
+          status?: string
+          streaming_links?: Json | null
+          tags?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+          vinyl_recommendation?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
