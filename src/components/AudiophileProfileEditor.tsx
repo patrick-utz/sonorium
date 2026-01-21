@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { X, Save, Settings2, GripVertical, Store } from "lucide-react";
-import { AudiophileProfile, ShopPreference, DEFAULT_SHOPS } from "@/types/audiophileProfile";
+import { AudiophileProfile, DEFAULT_SHOPS } from "@/types/audiophileProfile";
 import { useAudiophileProfile, defaultProfile } from "@/context/AudiophileProfileContext";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -94,10 +94,21 @@ export function AudiophileProfileEditor({ onClose, compact = false }: Audiophile
       )}
       <CardContent className={compact ? "p-0" : ""}>
         <Tabs defaultValue="equipment" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="equipment">Equipment</TabsTrigger>
-            <TabsTrigger value="preferences">Vorlieben</TabsTrigger>
-            <TabsTrigger value="shops" className="gap-1">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 mb-4 h-auto">
+            <TabsTrigger value="equipment" className={compact ? "text-xs px-2" : ""}>
+              Equipment
+            </TabsTrigger>
+            <TabsTrigger value="preferences" className={compact ? "text-xs px-2" : ""}>
+              Vorlieben
+            </TabsTrigger>
+            <TabsTrigger
+              value="shops"
+              className={
+                compact
+                  ? "col-span-2 sm:col-span-1 gap-1 text-xs px-2"
+                  : "gap-1"
+              }
+            >
               <Store className="w-3.5 h-3.5" />
               Shops
             </TabsTrigger>
