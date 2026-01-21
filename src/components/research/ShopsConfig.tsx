@@ -70,15 +70,41 @@ export function ShopsConfig() {
   const deleteShop = (shopId: string) => {
     if (!profile) return;
     const shop = shops.find(s => s.id === shopId);
-    if (!shop?.isCustom) {
-      toast.error("Standard-Shops können nicht gelöscht werden");
-      return;
-    }
+    if (!shop) return;
+    
     const updatedShops = shops
       .filter(s => s.id !== shopId)
       .map((s, i) => ({ ...s, priority: i + 1 }));
     updateProfile({ ...profile, shops: updatedShops });
-    toast.success("Shop gelöscht");
+    toast.success(`${shop.name} entfernt`);
+  };
+
+  // Get default shops that are not in the current list (for restore)
+  const removedDefaultShops = DEFAULT_SHOPS.filter(
+    defaultShop => !shops.some(s => s.id === defaultShop.id)
+  );
+
+  const restoreDefaultShop = (shopId: string) => {
+    if (!profile) return;
+    const defaultShop = DEFAULT_SHOPS.find(s => s.id === shopId);
+    if (!defaultShop) return;
+    
+    const restoredShop = { ...defaultShop, priority: shops.length + 1 };
+    updateProfile({ ...profile, shops: [...shops, restoredShop] });
+    toast.success(`${defaultShop.name} wiederhergestellt`);
+  };
+
+  const restoreAllDefaults = () => {
+    if (!profile) return;
+    // Keep custom shops, reset default shops
+    const customShops = shops.filter(s => s.isCustom);
+    const allDefaults = DEFAULT_SHOPS.map((s, i) => ({ ...s, priority: i + 1 }));
+    const combined = [
+      ...allDefaults,
+      ...customShops.map((s, i) => ({ ...s, priority: allDefaults.length + i + 1 }))
+    ];
+    updateProfile({ ...profile, shops: combined });
+    toast.success("Standard-Shops wiederhergestellt");
   };
 
   const validateUrl = (url: string): boolean => {
@@ -183,15 +209,14 @@ export function ShopsConfig() {
                 <ExternalLink className="w-3 h-3" />
               </a>
 
-              {shop.isCustom && (
-                <button
-                  type="button"
-                  onClick={() => deleteShop(shop.id)}
-                  className="p-1 text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => deleteShop(shop.id)}
+                className="p-1 text-muted-foreground hover:text-destructive"
+                title={shop.isCustom ? "Shop löschen" : "Shop entfernen"}
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
 
               <Switch
                 checked={shop.enabled}
@@ -291,6 +316,35 @@ export function ShopsConfig() {
               Hinzufügen
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Restore Removed Default Shops */}
+      {removedDefaultShops.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">Entfernte Standard-Shops:</p>
+          <div className="flex flex-wrap gap-1.5">
+            {removedDefaultShops.map(shop => (
+              <button
+                key={shop.id}
+                onClick={() => restoreDefaultShop(shop.id)}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors"
+              >
+                <Plus className="w-3 h-3" />
+                {getCountryFlag(shop.country)} {shop.name}
+              </button>
+            ))}
+          </div>
+          {removedDefaultShops.length > 1 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs h-7"
+              onClick={restoreAllDefaults}
+            >
+              Alle Standard-Shops wiederherstellen
+            </Button>
+          )}
         </div>
       )}
 
