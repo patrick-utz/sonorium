@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
-import { Search, User, Disc, Music, X } from "lucide-react";
+import { Search, User, Disc, Music, X, ArrowRight, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,12 +11,14 @@ interface SearchResult {
   value: string;
   recordId?: string;
   count?: number;
+  coverArt?: string;
 }
 
 export function QuickSearch() {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -25,8 +27,22 @@ export function QuickSearch() {
   const results = useMemo(() => {
     if (!query.trim()) return [];
 
-    const searchTerm = query.toLowerCase();
+    setIsSearching(true);
+    const searchTerm = query.toLowerCase().trim();
     const matches: SearchResult[] = [];
+
+    // Search albums first (more specific)
+    records.forEach((r) => {
+      if (r.album.toLowerCase().includes(searchTerm) || 
+          r.artist.toLowerCase().includes(searchTerm)) {
+        matches.push({ 
+          type: "album", 
+          value: r.album,
+          recordId: r.id,
+          coverArt: r.coverArt
+        });
+      }
+    });
 
     // Search artists
     const artistCounts = new Map<string, number>();
@@ -36,13 +52,9 @@ export function QuickSearch() {
       }
     });
     artistCounts.forEach((count, artist) => {
-      matches.push({ type: "artist", value: artist, count });
-    });
-
-    // Search albums
-    records.forEach((r) => {
-      if (r.album.toLowerCase().includes(searchTerm)) {
-        matches.push({ type: "album", value: `${r.artist} – ${r.album}`, recordId: r.id });
+      // Don't add if already in album results
+      if (!matches.some(m => m.type === "album" && records.find(r => r.id === m.recordId)?.artist === artist)) {
+        matches.push({ type: "artist", value: artist, count });
       }
     });
 
@@ -59,7 +71,8 @@ export function QuickSearch() {
       matches.push({ type: "genre", value: genre, count });
     });
 
-    return matches.slice(0, 10);
+    setIsSearching(false);
+    return matches.slice(0, 8);
   }, [query, records]);
 
   useEffect(() => {
@@ -76,9 +89,22 @@ export function QuickSearch() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSelect = (result: SearchResult) => {
+  // Keyboard shortcut to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        setIsOpen(true);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const handleSelect = useCallback((result: SearchResult) => {
     if (result.type === "album" && result.recordId) {
-      navigate(`/details/${result.recordId}`);
+      navigate(`/sammlung/${result.recordId}`);
     } else if (result.type === "artist") {
       navigate(`/sammlung?search=${encodeURIComponent(result.value)}`);
     } else if (result.type === "genre") {
@@ -86,9 +112,9 @@ export function QuickSearch() {
     }
     setQuery("");
     setIsOpen(false);
-  };
+  }, [navigate]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedIndex((i) => Math.min(i + 1, results.length - 1));
@@ -102,7 +128,7 @@ export function QuickSearch() {
       setIsOpen(false);
       inputRef.current?.blur();
     }
-  };
+  }, [results, selectedIndex, handleSelect]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -111,7 +137,7 @@ export function QuickSearch() {
       case "album":
         return <Disc className="w-4 h-4 text-muted-foreground" />;
       case "genre":
-        return <Music className="w-4 h-4 text-accent-foreground" />;
+        return <Music className="w-4 h-4 text-accent" />;
       default:
         return null;
     }
@@ -131,13 +157,13 @@ export function QuickSearch() {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-xs">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+    <div ref={containerRef} className="relative w-full">
+      <div className="relative group">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Suchen..."
+          placeholder="Suchen... (⌘K)"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -145,54 +171,96 @@ export function QuickSearch() {
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          className="pl-9 pr-8 bg-secondary/50 border-border/50 focus:bg-background"
+          className="pl-9 pr-8 h-10 bg-secondary/50 border-border/50 focus:bg-background focus:border-primary/50 transition-all"
         />
-        {query && (
+        {query ? (
           <button
             onClick={() => {
               setQuery("");
               inputRef.current?.focus();
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
-        )}
+        ) : isSearching ? (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+        ) : null}
       </div>
 
       <AnimatePresence>
-        {isOpen && results.length > 0 && (
+        {isOpen && (results.length > 0 || (query.trim() && results.length === 0)) && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-lg shadow-lg overflow-hidden z-50"
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-xl shadow-lg overflow-hidden z-50"
           >
-            <ul className="py-1 max-h-80 overflow-auto">
-              {results.map((result, index) => (
-                <li key={`${result.type}-${result.value}-${index}`}>
-                  <button
-                    onClick={() => handleSelect(result)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors",
-                      index === selectedIndex
-                        ? "bg-accent text-accent-foreground"
-                        : "hover:bg-accent/50"
-                    )}
-                  >
-                    {getIcon(result.type)}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{result.value}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {getLabel(result.type)}
-                        {result.count && ` · ${result.count} Einträge`}
-                      </p>
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {results.length > 0 ? (
+              <ul className="py-1.5 max-h-80 overflow-auto">
+                {results.map((result, index) => {
+                  const record = result.type === "album" && result.recordId 
+                    ? records.find(r => r.id === result.recordId)
+                    : null;
+                  
+                  return (
+                    <li key={`${result.type}-${result.value}-${index}`}>
+                      <motion.button
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        onClick={() => handleSelect(result)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all group",
+                          index === selectedIndex
+                            ? "bg-secondary"
+                            : "hover:bg-secondary/50"
+                        )}
+                      >
+                        {/* Cover thumbnail for albums */}
+                        {result.type === "album" && record?.coverArt ? (
+                          <div className="w-10 h-10 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                            <img 
+                              src={record.coverArt} 
+                              alt="" 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                            {getIcon(result.type)}
+                          </div>
+                        )}
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{result.value}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {result.type === "album" && record ? (
+                              <span>{record.artist} · {record.year}</span>
+                            ) : (
+                              <>
+                                {getLabel(result.type)}
+                                {result.count && ` · ${result.count} Einträge`}
+                              </>
+                            )}
+                          </p>
+                        </div>
+                        
+                        <ArrowRight className={cn(
+                          "w-4 h-4 text-muted-foreground transition-all",
+                          index === selectedIndex ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
+                        )} />
+                      </motion.button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : query.trim() ? (
+              <div className="p-4 text-center text-muted-foreground text-sm">
+                Keine Ergebnisse für „{query}"
+              </div>
+            ) : null}
           </motion.div>
         )}
       </AnimatePresence>

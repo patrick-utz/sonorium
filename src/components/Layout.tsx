@@ -1,210 +1,76 @@
+import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  Library, 
-  Heart, 
-  Plus,
-  Save,
-  Disc3,
-  Menu,
-  X,
-  Star,
-  Search,
-  LogOut
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Disc3 } from "lucide-react";
 import { QuickSearch } from "@/components/QuickSearch";
-import { useRecords } from "@/context/RecordContext";
-import { useAuth } from "@/context/AuthContext";
+import { AppSidebar } from "@/components/AppSidebar";
+import { BottomNav } from "@/components/BottomNav";
+import { motion } from "framer-motion";
 
-const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/sammlung", label: "Sammlung", icon: Library },
-  { to: "/wunschliste", label: "Wunschliste", icon: Heart },
-  { to: "/recherche", label: "Recherche", icon: Search },
-  { to: "/export", label: "Speichern", icon: Save },
-];
+const SIDEBAR_COLLAPSED_KEY = "sonorium-sidebar-collapsed";
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { getFavoriteRecords } = useRecords();
-  const { signOut } = useAuth();
-  const favoriteCount = getFavoriteRecords().length;
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, JSON.stringify(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   return (
-    <div className="min-h-screen bg-background texture-overlay">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="container flex h-16 items-center justify-between">
-          {/* Logo */}
-          <NavLink to="/" className="flex items-center gap-3 group">
-            <div className="relative w-10 h-10 flex-shrink-0 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/10 transition-all duration-300">
-              <Disc3 className="w-5 h-5 text-primary group-hover:animate-spin-slow" />
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="font-sans text-xl font-bold tracking-widest text-foreground">SONORIUM</h1>
-              <p className="text-[10px] text-muted-foreground -mt-0.5 tracking-widest uppercase">A place for your music</p>
-            </div>
-          </NavLink>
-
-          {/* Quick Search */}
-          <div className="hidden md:block flex-1 max-w-xs mx-4">
-            <QuickSearch />
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.to;
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </NavLink>
-              );
-            })}
-            
-            {/* Favorites Quick Link */}
-            <NavLink
-              to="/sammlung?favorites=true"
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all relative",
-                location.search.includes("favorites=true")
-                  ? "bg-red-500 text-white"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              )}
-              title="Favoriten anzeigen"
-            >
-              <Star className={cn("w-4 h-4", location.search.includes("favorites=true") && "fill-current")} />
-              {favoriteCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  {favoriteCount}
-                </span>
-              )}
-            </NavLink>
-            
-            {/* Logout Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={signOut}
-              className="text-muted-foreground hover:text-foreground"
-              title="Abmelden"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </nav>
-
-          {/* Add Button */}
-          <div className="flex items-center gap-2">
-            <NavLink to="/hinzufuegen">
-              <Button className="gap-2 bg-gradient-vinyl hover:opacity-90 text-primary-foreground shadow-vinyl">
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Hinzufügen</span>
-              </Button>
-            </NavLink>
-            
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-          </div>
-        </div>
-
-        {/* Mobile Navigation */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.nav
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="md:hidden border-t border-border/50 bg-background overflow-hidden"
-            >
-              <div className="container py-4 space-y-3">
-                {/* Mobile Search */}
-                <div className="px-1">
-                  <QuickSearch />
-                </div>
-                <div className="space-y-1">
-                  {navItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = location.pathname === item.to;
-                    return (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                        )}
-                      >
-                        <Icon className="w-5 h-5" />
-                        {item.label}
-                      </NavLink>
-                    );
-                  })}
-                  
-                  {/* Mobile Favorites Link */}
-                  <NavLink
-                    to="/sammlung?favorites=true"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                      location.search.includes("favorites=true")
-                        ? "bg-red-500 text-white"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                    )}
-                  >
-                    <Star className={cn("w-5 h-5", location.search.includes("favorites=true") && "fill-current")} />
-                    Favoriten
-                    {favoriteCount > 0 && (
-                      <span className="ml-auto w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                        {favoriteCount}
-                      </span>
-                    )}
-                  </NavLink>
-                  
-                  {/* Mobile Logout */}
-                  <button
-                    onClick={() => { signOut(); setMobileMenuOpen(false); }}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary w-full text-left"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    Abmelden
-                  </button>
-                </div>
-              </div>
-            </motion.nav>
-          )}
-        </AnimatePresence>
-      </header>
+    <div className="min-h-screen bg-background flex w-full">
+      {/* Desktop Sidebar */}
+      <AppSidebar 
+        collapsed={sidebarCollapsed} 
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
+      />
 
       {/* Main Content */}
-      <main className="container py-6 md:py-8">
-        {children}
-      </main>
+      <div className="flex-1 flex flex-col min-h-screen">
+        {/* Mobile Header */}
+        <header className="sticky top-0 z-40 md:hidden border-b border-border/50 bg-background/95 backdrop-blur-lg">
+          <div className="flex h-14 items-center justify-between px-4">
+            {/* Logo */}
+            <NavLink to="/" className="flex items-center gap-2 group">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
+                <Disc3 className="w-4 h-4 text-primary" />
+              </div>
+              <span className="font-sans text-base font-bold tracking-widest text-foreground">
+                SONORIUM
+              </span>
+            </NavLink>
+
+            {/* Search (compact) */}
+            <div className="flex-1 max-w-[180px] ml-3">
+              <QuickSearch />
+            </div>
+          </div>
+        </header>
+
+        {/* Desktop Header with Search */}
+        <header className="hidden md:flex sticky top-0 z-40 h-14 items-center border-b border-border/50 bg-background/95 backdrop-blur-lg px-6">
+          <div className="flex-1 max-w-md">
+            <QuickSearch />
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <motion.main 
+          key={location.pathname}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="flex-1 px-4 md:px-6 py-4 md:py-6 pb-24 md:pb-6"
+        >
+          {children}
+        </motion.main>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 }
