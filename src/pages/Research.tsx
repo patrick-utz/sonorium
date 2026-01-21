@@ -14,6 +14,7 @@ import {
   CheckCircle2, 
   Plus,
   Settings2,
+  Store,
   Disc3,
   Album as AlbumIcon,
   XCircle,
@@ -40,6 +41,7 @@ import { QuickScanButton } from "@/components/research/QuickScanButton";
 import { PriceComparisonCard } from "@/components/research/PriceComparisonCard";
 import { useMarketplacePrices } from "@/hooks/useMarketplacePrices";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ShopsConfig } from "@/components/research/ShopsConfig";
 
 interface PressingPrice {
   releaseId?: number;
@@ -78,7 +80,7 @@ interface AlbumSearchResult {
 }
 
 export default function Research() {
-  const [searchMode, setSearchMode] = useState<"artist" | "album">("album");
+  const [searchMode, setSearchMode] = useState<"artist" | "album" | "shops">("album");
   const [searchQuery, setSearchQuery] = useState("");
   const [albumQuery, setAlbumQuery] = useState("");
   const [labelQuery, setLabelQuery] = useState("");
@@ -554,15 +556,20 @@ export default function Research() {
       {/* Search Tabs */}
       <Card>
         <CardContent className="pt-4 pb-3">
-          <Tabs value={searchMode} onValueChange={(v) => setSearchMode(v as "artist" | "album")} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-9 mb-4">
+          <Tabs value={searchMode} onValueChange={(v) => setSearchMode(v as "artist" | "album" | "shops")} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 h-9 mb-4">
               <TabsTrigger value="album" className="gap-1.5 text-xs">
                 <Disc3 className="w-3.5 h-3.5" />
-                Pressung prüfen
+                <span className="hidden sm:inline">Pressung</span>
+                <span className="sm:hidden">Prüfen</span>
               </TabsTrigger>
               <TabsTrigger value="artist" className="gap-1.5 text-xs">
                 <User className="w-3.5 h-3.5" />
                 Künstler
+              </TabsTrigger>
+              <TabsTrigger value="shops" className="gap-1.5 text-xs">
+                <Store className="w-3.5 h-3.5" />
+                Shops
               </TabsTrigger>
             </TabsList>
 
@@ -633,6 +640,11 @@ export default function Research() {
                   )}
                 </Button>
               </div>
+            </TabsContent>
+
+            {/* Shops Config */}
+            <TabsContent value="shops" className="mt-0">
+              <ShopsConfig />
             </TabsContent>
           </Tabs>
         </CardContent>
