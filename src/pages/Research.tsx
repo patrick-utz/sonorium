@@ -16,12 +16,8 @@ import {
   Settings2,
   Disc3,
   Album as AlbumIcon,
-  Lightbulb,
   XCircle,
   FileDown,
-  DollarSign,
-  ExternalLink,
-  RefreshCw,
   User,
   Clock,
   Trash2,
@@ -30,7 +26,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 import { AudiophileProfileEditor } from "@/components/AudiophileProfileEditor";
-import { ArtistResearchResult, AlbumRecommendation } from "@/types/audiophileProfile";
+import { ArtistResearchResult, AlbumRecommendation, MarketplacePrice } from "@/types/audiophileProfile";
 import { useRecords } from "@/context/RecordContext";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,6 +37,8 @@ import { useResearchCache } from "@/hooks/useResearchCache";
 import { CompactAlbumCard } from "@/components/research/CompactAlbumCard";
 import { ExpandedPressingDetails } from "@/components/research/ExpandedPressingDetails";
 import { QuickScanButton } from "@/components/research/QuickScanButton";
+import { PriceComparisonCard } from "@/components/research/PriceComparisonCard";
+import { useMarketplacePrices } from "@/hooks/useMarketplacePrices";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface PressingPrice {
@@ -96,6 +94,8 @@ export default function Research() {
   const { profile, hasProfile } = useAudiophileProfile();
   const { addRecord } = useRecords();
   const cache = useResearchCache();
+  const marketplace = useMarketplacePrices();
+  const [marketplacePrices, setMarketplacePrices] = useState<MarketplacePrice[]>([]);
 
   // Handle barcode/catalog scan
   const handleBarcodeDetected = useCallback(async (barcode: string) => {
@@ -142,13 +142,17 @@ export default function Research() {
       // Cache the result
       cache.setAlbumCache(data.artist, data.album, data.label, barcode, data);
 
+      // Auto-fetch marketplace prices
+      marketplace.fetchPrices(data.artist, data.album, data.catalogNumber || barcode)
+        .then(setMarketplacePrices);
+
       toast({ title: "Album gefunden", description: `${data.artist} - ${data.album}` });
     } catch (err: any) {
       setError(err.message || "Scan fehlgeschlagen");
     } finally {
       setIsScanLoading(false);
     }
-  }, [profile?.mediaFormat, cache]);
+  }, [profile?.mediaFormat, cache, marketplace]);
 
   // Handle image capture (label/cover photo)
   const handleImageCaptured = useCallback(async (imageBase64: string) => {
@@ -191,13 +195,17 @@ export default function Research() {
       setLabelQuery(data.label || "");
       setCatalogQuery(data.catalogNumber || "");
 
+      // Auto-fetch marketplace prices
+      marketplace.fetchPrices(data.artist, data.album, data.catalogNumber)
+        .then(setMarketplacePrices);
+
       toast({ title: "Album erkannt", description: `${data.artist} - ${data.album}` });
     } catch (err: any) {
       setError(err.message || "Bild-Analyse fehlgeschlagen");
     } finally {
       setIsScanLoading(false);
     }
-  }, [profile?.mediaFormat]);
+  }, [profile?.mediaFormat, marketplace]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -332,6 +340,13 @@ export default function Research() {
 
       setAlbumResult(data);
       cache.setAlbumCache(searchQuery, albumQuery, labelQuery, catalogQuery, data);
+      
+      // Auto-fetch marketplace prices
+      marketplace.fetchPrices(
+        data.artist || searchQuery,
+        data.album || albumQuery,
+        data.catalogNumber || catalogQuery
+      ).then(setMarketplacePrices);
     } catch (err: any) {
       if (err.name === 'AbortError') {
         setError("Zeitüberschreitung - bitte erneut versuchen.");
@@ -843,6 +858,20 @@ export default function Research() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Price Comparison */}
+            <PriceComparisonCard
+              prices={marketplacePrices}
+              onRefresh={() => {
+                marketplace.fetchPrices(
+                  albumResult.artist,
+                  albumResult.album,
+                  albumResult.catalogNumber
+                ).then(setMarketplacePrices);
+              }}
+              isLoading={marketplace.loading}
+              compact
+            />
 
             {/* Alternative Releases */}
             {albumResult.alternativeReleases && albumResult.alternativeReleases.length > 0 && (
