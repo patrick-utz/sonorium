@@ -1,7 +1,8 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, X, RotateCcw, Check, SwitchCamera, Upload } from "lucide-react";
+import { Camera, X, RotateCcw, Check, SwitchCamera, Upload, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { compressCoverImage } from "@/lib/imageUtils";
 
 interface CameraCaptureProps {
   onCapture: (imageData: string) => void;
@@ -12,12 +13,14 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
-  const [mode, setMode] = useState<"camera" | "upload">("camera");
+  const [mode, setMode] = useState<"camera" | "upload">("upload"); // Default to upload for mobile
 
   const stopCamera = useCallback(() => {
     if (stream) {
@@ -101,8 +104,9 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     startCamera(newMode);
   }, [facingMode, startCamera]);
 
-  const capturePhoto = useCallback(() => {
+  const capturePhoto = useCallback(async () => {
     if (videoRef.current && canvasRef.current) {
+      setIsProcessing(true);
       const video = videoRef.current;
       const canvas = canvasRef.current;
       canvas.width = video.videoWidth || 1280;
@@ -110,24 +114,42 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(video, 0, 0);
-        const imageData = canvas.toDataURL("image/jpeg", 0.9);
-        setCapturedImage(imageData);
+        const rawImage = canvas.toDataURL("image/jpeg", 0.95);
+        try {
+          const compressed = await compressCoverImage(rawImage);
+          setCapturedImage(compressed);
+        } catch {
+          setCapturedImage(rawImage);
+        }
         stopCamera();
       }
+      setIsProcessing(false);
     }
   }, [stopCamera]);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setIsProcessing(true);
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const result = event.target?.result as string;
-        setCapturedImage(result);
+        try {
+          const compressed = await compressCoverImage(result);
+          setCapturedImage(compressed);
+        } catch {
+          setCapturedImage(result);
+        }
         stopCamera();
+        setIsProcessing(false);
+      };
+      reader.onerror = () => {
+        setIsProcessing(false);
       };
       reader.readAsDataURL(file);
     }
+    // Reset input so same file can be selected again
+    e.target.value = "";
   }, [stopCamera]);
 
   const retake = useCallback(() => {
@@ -161,13 +183,6 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     startCamera();
   }, [startCamera]);
 
-  // Auto-start camera on mount when in camera mode
-  useEffect(() => {
-    if (mode === "camera" && !stream && !isStarting && !capturedImage) {
-      startCamera();
-    }
-  }, [mode]);
-
   useEffect(() => {
     return () => {
       stopCamera();
@@ -184,40 +199,45 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border/50 bg-background">
         <h2 className="text-lg font-semibold">
-          {mode === "camera" ? "Foto aufnehmen" : "Bild auswählen"}
+          {mode === "camera" ? "Foto aufnehmen" : "Cover auswählen"}
         </h2>
-        <Button variant="ghost" size="icon" onClick={handleClose}>
-          <X className="w-5 h-5" />
+        <Button variant="ghost" size="icon" onClick={handleClose} className="h-11 w-11">
+          <X className="w-6 h-6" />
         </Button>
       </div>
 
       {/* Mode Toggle */}
-      {!capturedImage && (
-        <div className="flex justify-center gap-2 p-3 border-b border-border/50">
-          <Button
-            variant={mode === "camera" ? "default" : "outline"}
-            size="sm"
-            onClick={switchToCamera}
-            className="gap-2"
-          >
-            <Camera className="w-4 h-4" />
-            Kamera
-          </Button>
+      {!capturedImage && !isProcessing && (
+        <div className="flex justify-center gap-3 p-4 border-b border-border/50">
           <Button
             variant={mode === "upload" ? "default" : "outline"}
-            size="sm"
+            size="lg"
             onClick={switchToUpload}
-            className="gap-2"
+            className="gap-2 h-12 px-6"
           >
-            <Upload className="w-4 h-4" />
-            Datei
+            <Upload className="w-5 h-5" />
+            Foto/Datei
+          </Button>
+          <Button
+            variant={mode === "camera" ? "default" : "outline"}
+            size="lg"
+            onClick={switchToCamera}
+            className="gap-2 h-12 px-6"
+          >
+            <Camera className="w-5 h-5" />
+            Live-Kamera
           </Button>
         </div>
       )}
 
       {/* Content Area */}
       <div className="flex-1 flex items-center justify-center p-4 bg-black/90">
-        {capturedImage ? (
+        {isProcessing ? (
+          <div className="text-center space-y-4">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+            <p className="text-white">Bild wird optimiert...</p>
+          </div>
+        ) : capturedImage ? (
           <div className="relative max-w-full max-h-full">
             <img
               src={capturedImage}
@@ -226,45 +246,50 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
             />
           </div>
         ) : mode === "upload" ? (
-          <div className="text-center space-y-6 p-8 bg-card rounded-lg max-w-sm">
+          <div className="text-center space-y-6 p-6 bg-card rounded-xl max-w-sm w-full">
             <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-              <Upload className="w-10 h-10 text-primary" />
+              <Camera className="w-10 h-10 text-primary" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Bild hochladen</h3>
+              <h3 className="text-lg font-semibold">Cover fotografieren</h3>
               <p className="text-sm text-muted-foreground">
-                Wähle ein Bild von deinem Gerät
+                Fotografiere das Album-Cover oder wähle ein Bild aus der Galerie
               </p>
             </div>
+            
+            {/* Hidden inputs */}
             <input
-              ref={fileInputRef}
+              ref={cameraInputRef}
               type="file"
               accept="image/*"
               capture="environment"
               onChange={handleFileSelect}
               className="hidden"
             />
-            <div className="space-y-2 w-full">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            
+            <div className="space-y-3 w-full">
               <Button 
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full gap-2"
+                onClick={() => cameraInputRef.current?.click()}
+                size="lg"
+                className="w-full gap-3 h-14 text-base"
               >
-                <Camera className="w-4 h-4" />
+                <Camera className="w-6 h-6" />
                 Foto aufnehmen
               </Button>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-                id="gallery-input"
-              />
               <Button 
                 variant="outline"
-                onClick={() => document.getElementById('gallery-input')?.click()}
-                className="w-full gap-2"
+                size="lg"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full gap-3 h-14 text-base"
               >
-                <Upload className="w-4 h-4" />
+                <Upload className="w-6 h-6" />
                 Aus Galerie wählen
               </Button>
             </div>
@@ -273,10 +298,10 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           <div className="text-center space-y-4 p-6 bg-card rounded-lg max-w-sm">
             <p className="text-destructive whitespace-pre-line text-sm">{error}</p>
             <div className="flex gap-2">
-              <Button onClick={() => startCamera()} variant="outline" className="flex-1">
+              <Button onClick={() => startCamera()} variant="outline" className="flex-1 h-12">
                 Erneut versuchen
               </Button>
-              <Button onClick={switchToUpload} className="flex-1 gap-2">
+              <Button onClick={switchToUpload} className="flex-1 gap-2 h-12">
                 <Upload className="w-4 h-4" />
                 Datei wählen
               </Button>
@@ -286,23 +311,32 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           <div className="relative w-full max-w-lg aspect-[4/3] bg-muted rounded-lg overflow-hidden">
             {!stream ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Tippe auf „Kamera starten“. Wenn das im Vorschau-Fenster nicht klappt, nutze „Datei wählen“ (öffnet auf dem Handy auch die Kamera).
-                </p>
-                <div className="flex w-full gap-2">
-                  <Button onClick={() => startCamera()} className="flex-1 gap-2">
-                    <Camera className="w-4 h-4" />
-                    Kamera starten
-                  </Button>
-                  <Button onClick={switchToUpload} variant="outline" className="flex-1 gap-2">
-                    <Upload className="w-4 h-4" />
-                    Datei wählen
-                  </Button>
-                </div>
+                {isStarting ? (
+                  <>
+                    <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Kamera wird gestartet...</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Tippe auf „Kamera starten"
+                    </p>
+                    <div className="flex w-full gap-2">
+                      <Button onClick={() => startCamera()} className="flex-1 gap-2 h-12">
+                        <Camera className="w-5 h-5" />
+                        Kamera starten
+                      </Button>
+                      <Button onClick={switchToUpload} variant="outline" className="flex-1 gap-2 h-12">
+                        <Upload className="w-5 h-5" />
+                        Datei
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             ) : isStarting ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
                 <p className="text-sm text-muted-foreground">Kamera wird gestartet...</p>
               </div>
             ) : (
@@ -325,14 +359,14 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       </div>
 
       {/* Controls */}
-      <div className="p-4 border-t border-border/50 bg-background">
+      <div className="p-4 border-t border-border/50 bg-background safe-area-bottom">
         {capturedImage ? (
           <div className="flex gap-3 justify-center">
             <Button
               onClick={retake}
               variant="outline"
               size="lg"
-              className="gap-2"
+              className="gap-2 h-14 px-6"
             >
               <RotateCcw className="w-5 h-5" />
               Neu aufnehmen
@@ -340,34 +374,34 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
             <Button
               onClick={confirmCapture}
               size="lg"
-              className="gap-2 bg-gradient-vinyl"
+              className="gap-2 bg-gradient-vinyl h-14 px-8"
             >
               <Check className="w-5 h-5" />
               Verwenden
             </Button>
           </div>
-        ) : mode === "camera" && !error ? (
+        ) : mode === "camera" && !error && stream && !isStarting ? (
           <div className="flex justify-center items-center gap-6">
             <Button
               onClick={switchCamera}
               variant="outline"
               size="icon"
-              className="w-12 h-12 rounded-full"
+              className="w-14 h-14 rounded-full"
               disabled={!stream || isStarting}
             >
-              <SwitchCamera className="w-5 h-5" />
+              <SwitchCamera className="w-6 h-6" />
             </Button>
             
             <Button
               onClick={capturePhoto}
               size="lg"
-              className="w-16 h-16 rounded-full bg-gradient-vinyl hover:opacity-90"
+              className="w-20 h-20 rounded-full bg-gradient-vinyl hover:opacity-90"
               disabled={!stream || isStarting}
             >
-              <Camera className="w-6 h-6" />
+              <Camera className="w-8 h-8" />
             </Button>
             
-            <div className="w-12 h-12" />
+            <div className="w-14 h-14" />
           </div>
         ) : null}
       </div>

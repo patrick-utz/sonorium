@@ -2,8 +2,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { X, ScanBarcode, Loader2, Camera, ImagePlus, Monitor, Smartphone } from "lucide-react";
+import { X, ScanBarcode, Loader2, Camera, ImagePlus, Monitor, Smartphone, Keyboard, Hash } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { compressCoverImage } from "@/lib/imageUtils";
 
 interface SmartScannerProps {
   onBarcodeDetected: (barcode: string) => void;
@@ -16,7 +17,7 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
   const photoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  const [mode, setMode] = useState<"select" | "live" | "photo" | "processing">("select");
+  const [mode, setMode] = useState<"select" | "live" | "photo" | "processing" | "manual">("select");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState("");
@@ -33,7 +34,7 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
     }
   }, []);
 
-  // Live Camera Scan (Notebook/Desktop)
+  // Live Camera Scan (Desktop/Notebook)
   const startLiveScanning = useCallback(async () => {
     setMode("live");
     setIsLoading(true);
@@ -45,7 +46,6 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
       }
       const reader = readerRef.current;
 
-      // Wait a bit for the video element to mount
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       if (!videoRef.current) {
@@ -58,7 +58,6 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
         throw new Error("Keine Kamera gefunden");
       }
 
-      // Prefer back camera on mobile, otherwise use first available
       const backCamera = videoInputDevices.find(
         (device) =>
           device.label.toLowerCase().includes("back") ||
@@ -88,14 +87,13 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
     }
   }, [onBarcodeDetected, onClose]);
 
-  // Handle photo capture (mobile camera or file)
+  // Handle photo capture
   const handlePhotoCapture = useCallback(async (file: File) => {
     setMode("processing");
     setIsLoading(true);
     setError(null);
 
     try {
-      // Convert to base64
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
@@ -103,16 +101,24 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
         reader.readAsDataURL(file);
       });
 
-      setCapturedImage(base64);
+      // Compress image for faster processing
+      let compressedImage: string;
+      try {
+        compressedImage = await compressCoverImage(base64);
+      } catch {
+        compressedImage = base64;
+      }
 
-      // Try to detect barcode first
+      setCapturedImage(compressedImage);
+
+      // Try barcode detection
       if (!readerRef.current) {
         readerRef.current = new BrowserMultiFormatReader();
       }
       const zxingReader = readerRef.current;
 
       try {
-        const result = await zxingReader.decodeFromImageUrl(base64);
+        const result = await zxingReader.decodeFromImageUrl(compressedImage);
         if (result) {
           const barcodeText = result.getText();
           setScanResult({ type: "barcode", value: barcodeText });
@@ -120,12 +126,11 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
           return;
         }
       } catch {
-        // No barcode found - that's okay, treat as label
-        console.log("No barcode detected in image, treating as label");
+        console.log("No barcode detected, treating as label");
       }
 
-      // No barcode found - treat as label image
-      setScanResult({ type: "label", value: base64 });
+      // No barcode - treat as label
+      setScanResult({ type: "label", value: compressedImage });
       setIsLoading(false);
     } catch (err) {
       console.error("Photo processing error:", err);
@@ -140,7 +145,6 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
     if (file) {
       handlePhotoCapture(file);
     }
-    // Reset input so same file can be selected again
     e.target.value = "";
   }, [handlePhotoCapture]);
 
@@ -174,7 +178,6 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
     onClose();
   }, [stopScanning, onClose]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopScanning();
@@ -193,14 +196,15 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
         <div className="flex items-center gap-2">
           <ScanBarcode className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">
-            {mode === "select" && "Scanmethode wählen"}
-            {mode === "live" && "Live-Scan (Kamera)"}
+            {mode === "select" && "Album scannen"}
+            {mode === "live" && "Live-Scanner"}
             {mode === "photo" && "Foto aufnehmen"}
             {mode === "processing" && "Wird analysiert..."}
+            {mode === "manual" && "Manuelle Eingabe"}
           </h2>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleClose}>
-          <X className="w-5 h-5" />
+        <Button variant="ghost" size="icon" onClick={handleClose} className="h-11 w-11">
+          <X className="w-6 h-6" />
         </Button>
       </div>
 
@@ -224,71 +228,120 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
       {/* Content Area */}
       <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
         {mode === "select" && (
-          <div className="max-w-md w-full space-y-6">
-            {/* Live Scanner Option */}
-            <button
-              onClick={startLiveScanning}
-              className="w-full p-6 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-card/80 transition-all text-left group"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
-                  <Monitor className="w-7 h-7 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold mb-1">Live-Scanner</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Nutzt die eingebaute Kamera (Notebook/PC). Halte den Barcode direkt vor die Kamera.
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            {/* Photo Capture Option */}
+          <div className="max-w-md w-full space-y-4">
+            {/* Photo Capture - Primary for mobile */}
             <button
               onClick={() => photoInputRef.current?.click()}
-              className="w-full p-6 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-card/80 transition-all text-left group"
+              className="w-full p-5 bg-primary/10 border-2 border-primary rounded-xl hover:bg-primary/20 transition-all text-left group"
             >
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 group-hover:bg-accent/20 transition-colors">
-                  <Smartphone className="w-7 h-7 text-accent-foreground" />
+                <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/30 transition-colors">
+                  <Smartphone className="w-7 h-7 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold mb-1">Foto aufnehmen</h3>
+                  <h3 className="text-lg font-semibold mb-1">📷 Foto aufnehmen</h3>
                   <p className="text-sm text-muted-foreground">
-                    Öffnet die Kamera-App auf dem Handy. Fotografiere den <strong>Barcode</strong> oder das <strong>Label</strong> – wird automatisch erkannt.
+                    Fotografiere <strong>Barcode</strong> oder <strong>Plattenlabel</strong> – wird automatisch erkannt
                   </p>
                 </div>
               </div>
             </button>
 
-            {/* Gallery Option */}
+            {/* Gallery */}
             <button
               onClick={() => galleryInputRef.current?.click()}
-              className="w-full p-4 bg-muted/50 border border-border/50 rounded-xl hover:border-border hover:bg-muted transition-all text-left"
+              className="w-full p-4 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-card/80 transition-all text-left"
             >
-              <div className="flex items-center gap-3">
-                <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Aus Galerie wählen</span>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <ImagePlus className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium">Aus Galerie wählen</h3>
+                  <p className="text-sm text-muted-foreground">Vorhandenes Foto verwenden</p>
+                </div>
+              </div>
+            </button>
+
+            {/* Live Scanner */}
+            <button
+              onClick={startLiveScanning}
+              className="w-full p-4 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-card/80 transition-all text-left"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <Monitor className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium">Live-Scanner</h3>
+                  <p className="text-sm text-muted-foreground">Für Notebook/PC mit Webcam</p>
+                </div>
               </div>
             </button>
 
             {/* Manual Input */}
-            <div className="pt-4 border-t border-border space-y-3">
-              <p className="text-sm text-muted-foreground text-center">
-                Oder gib den Code manuell ein:
+            <button
+              onClick={() => setMode("manual")}
+              className="w-full p-4 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-card/80 transition-all text-left"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <Keyboard className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium">Manuell eingeben</h3>
+                  <p className="text-sm text-muted-foreground">EAN, Katalognummer oder Matrix</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
+
+        {mode === "manual" && (
+          <div className="max-w-md w-full space-y-6 p-6 bg-card rounded-xl border border-border">
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                <Hash className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold">Code eingeben</h3>
+              <p className="text-sm text-muted-foreground">
+                EAN-Barcode, Katalognummer oder Matrix-Nummer
               </p>
-              <div className="flex gap-2">
-                <Input
-                  value={manualCode}
-                  onChange={(e) => setManualCode(e.target.value)}
-                  placeholder="EAN / Katalognummer"
-                  onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
-                />
-                <Button onClick={handleManualSubmit} disabled={!manualCode.trim()}>
-                  OK
+            </div>
+
+            <div className="space-y-4">
+              <Input
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                placeholder="z.B. 4006408126850 oder ECM 1064"
+                className="h-14 text-lg text-center font-mono"
+                autoFocus
+                onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
+              />
+              
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={() => setMode("select")}
+                  className="flex-1 h-12"
+                >
+                  Zurück
+                </Button>
+                <Button 
+                  size="lg"
+                  onClick={handleManualSubmit} 
+                  disabled={!manualCode.trim()}
+                  className="flex-1 h-12"
+                >
+                  Suchen
                 </Button>
               </div>
             </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Tipp: Die Katalognummer findest du auf dem Plattenrücken oder dem Label
+            </p>
           </div>
         )}
 
@@ -296,7 +349,7 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
           <div className="relative w-full max-w-md aspect-[4/3] bg-muted rounded-lg overflow-hidden">
             {isLoading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
                 <p className="text-sm text-muted-foreground">Kamera wird gestartet...</p>
               </div>
             )}
@@ -305,10 +358,10 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
               <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center gap-4">
                 <p className="text-destructive text-sm">{error}</p>
                 <div className="flex gap-2">
-                  <Button onClick={startLiveScanning} variant="outline" size="sm">
+                  <Button onClick={startLiveScanning} variant="outline" size="lg" className="h-12">
                     Erneut versuchen
                   </Button>
-                  <Button onClick={() => setMode("select")} size="sm">
+                  <Button onClick={() => setMode("select")} size="lg" className="h-12">
                     Zurück
                   </Button>
                 </div>
@@ -347,7 +400,7 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
           <div className="max-w-md w-full space-y-6 text-center">
             {isLoading ? (
               <>
-                <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+                <Loader2 className="w-14 h-14 animate-spin text-primary mx-auto" />
                 <p className="text-muted-foreground">Bild wird analysiert...</p>
               </>
             ) : scanResult ? (
@@ -362,34 +415,34 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
                   </div>
                 )}
 
-                <div className="p-4 bg-card rounded-lg border border-border">
+                <div className="p-5 bg-card rounded-xl border border-border">
                   {scanResult.type === "barcode" ? (
                     <>
-                      <div className="flex items-center justify-center gap-2 text-green-500 mb-2">
-                        <ScanBarcode className="w-5 h-5" />
-                        <span className="font-semibold">Barcode erkannt</span>
+                      <div className="flex items-center justify-center gap-2 text-primary mb-3">
+                        <ScanBarcode className="w-6 h-6" />
+                        <span className="font-semibold text-lg">Barcode erkannt!</span>
                       </div>
                       <p className="text-2xl font-mono">{scanResult.value}</p>
                     </>
                   ) : (
                     <>
-                      <div className="flex items-center justify-center gap-2 text-blue-500 mb-2">
-                        <Camera className="w-5 h-5" />
-                        <span className="font-semibold">Label-Foto erkannt</span>
+                      <div className="flex items-center justify-center gap-2 text-accent-foreground mb-3">
+                        <Camera className="w-6 h-6" />
+                        <span className="font-semibold text-lg">Label-Foto erkannt</span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Kein Barcode gefunden. Das Bild wird zur KI-Analyse gesendet um Album-Informationen zu extrahieren.
+                        Kein Barcode gefunden. Das Bild wird per KI analysiert, um Album-Informationen zu extrahieren.
                       </p>
                     </>
                   )}
                 </div>
 
                 <div className="flex gap-3 justify-center">
-                  <Button onClick={handleRetry} variant="outline" className="gap-2">
-                    <Camera className="w-4 h-4" />
+                  <Button onClick={handleRetry} variant="outline" size="lg" className="gap-2 h-12">
+                    <Camera className="w-5 h-5" />
                     Neues Foto
                   </Button>
-                  <Button onClick={handleConfirmResult} className="gap-2">
+                  <Button onClick={handleConfirmResult} size="lg" className="gap-2 h-12 px-8">
                     Weiter
                   </Button>
                 </div>
@@ -397,7 +450,7 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
             ) : error ? (
               <div className="space-y-4">
                 <p className="text-destructive">{error}</p>
-                <Button onClick={handleRetry}>Erneut versuchen</Button>
+                <Button onClick={handleRetry} size="lg" className="h-12">Erneut versuchen</Button>
               </div>
             ) : null}
           </div>
@@ -406,11 +459,11 @@ export function SmartScanner({ onBarcodeDetected, onImageCaptured, onClose }: Sm
 
       {/* Footer */}
       {mode === "live" && !error && (
-        <div className="p-4 text-center border-t border-border">
+        <div className="p-4 text-center border-t border-border safe-area-bottom">
           <p className="text-muted-foreground text-sm mb-3">
-            Halte den Barcode (EAN) der CD oder Schallplatte in den Scanbereich
+            Halte den Barcode in den Scanbereich
           </p>
-          <Button variant="outline" onClick={() => { stopScanning(); setMode("select"); }}>
+          <Button variant="outline" size="lg" onClick={() => { stopScanning(); setMode("select"); }} className="h-12">
             Zurück zur Auswahl
           </Button>
         </div>
