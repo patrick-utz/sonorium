@@ -79,8 +79,14 @@ export function AudiophileProfileProvider({ children }: { children: ReactNode })
         // Profile found in database
         const dbProfile = data.profile as unknown as AudiophileProfile;
         // Ensure shops array exists with defaults if missing
-        if (!dbProfile.shops) {
+        if (!dbProfile.shops || dbProfile.shops.length === 0) {
           dbProfile.shops = DEFAULT_SHOPS;
+          // Save the updated profile with shops back to database
+          try {
+            await saveProfileToDatabase(user.id, dbProfile);
+          } catch (err) {
+            console.error("Failed to save updated profile with shops:", err);
+          }
         }
         setProfile(dbProfile);
         // Also update localStorage for offline access
