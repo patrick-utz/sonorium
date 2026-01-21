@@ -4,6 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { GripVertical, Plus, Trash2, ExternalLink } from "lucide-react";
 import { ShopPreference, DEFAULT_SHOPS } from "@/types/audiophileProfile";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
@@ -47,6 +57,7 @@ export function ShopsConfig() {
     searchUrlTemplate: "",
     country: "CH",
   });
+  const [shopToDelete, setShopToDelete] = useState<ShopPreference | null>(null);
 
   const toggleShop = (shopId: string) => {
     if (!profile) return;
@@ -67,16 +78,15 @@ export function ShopsConfig() {
     }
   };
 
-  const deleteShop = (shopId: string) => {
-    if (!profile) return;
-    const shop = shops.find(s => s.id === shopId);
-    if (!shop) return;
+  const confirmDeleteShop = () => {
+    if (!profile || !shopToDelete) return;
     
     const updatedShops = shops
-      .filter(s => s.id !== shopId)
+      .filter(s => s.id !== shopToDelete.id)
       .map((s, i) => ({ ...s, priority: i + 1 }));
     updateProfile({ ...profile, shops: updatedShops });
-    toast.success(`${shop.name} entfernt`);
+    toast.success(`${shopToDelete.name} entfernt`);
+    setShopToDelete(null);
   };
 
   // Get default shops that are not in the current list (for restore)
@@ -211,7 +221,7 @@ export function ShopsConfig() {
 
               <button
                 type="button"
-                onClick={() => deleteShop(shop.id)}
+                onClick={() => setShopToDelete(shop)}
                 className="p-1 text-muted-foreground hover:text-destructive"
                 title={shop.isCustom ? "Shop löschen" : "Shop entfernen"}
               >
@@ -351,6 +361,29 @@ export function ShopsConfig() {
       <p className="text-[10px] text-muted-foreground">
         Discogs = echte Marktpreise • Andere = öffnen Suchseite
       </p>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!shopToDelete} onOpenChange={(open) => !open && setShopToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Shop entfernen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Möchtest du <strong>{shopToDelete?.name}</strong> wirklich aus deiner Liste entfernen?
+              {!shopToDelete?.isCustom && (
+                <span className="block mt-2 text-muted-foreground">
+                  Du kannst diesen Standard-Shop später wiederherstellen.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteShop} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Entfernen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
