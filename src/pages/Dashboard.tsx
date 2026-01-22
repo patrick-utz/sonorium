@@ -1,5 +1,5 @@
 import { useRecords } from "@/context/RecordContext";
-import { Disc3, Disc, Music, Heart, Sparkles } from "lucide-react";
+import { Disc3, Disc, Music, Heart, Sparkles, Tag } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -33,7 +33,19 @@ export default function Dashboard() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20);
 
-  // Calculate tag distribution (using tags for "Stimmung" dropdown)
+  // Calculate mood distribution
+  const moodCount = records.reduce((acc, record) => {
+    (record.moods || []).forEach((m) => {
+      acc[m] = (acc[m] || 0) + 1;
+    });
+    return acc;
+  }, {} as Record<string, number>);
+
+  const topMoods = Object.entries(moodCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20);
+
+  // Calculate tag distribution (Stichworte)
   const tagCount = records.reduce((acc, record) => {
     (record.tags || []).forEach((t) => {
       acc[t] = (acc[t] || 0) + 1;
@@ -60,6 +72,10 @@ export default function Dashboard() {
 
   const handleGenreSelect = (genre: string) => {
     navigate(`/sammlung?genre=${encodeURIComponent(genre)}`);
+  };
+
+  const handleMoodSelect = (mood: string) => {
+    navigate(`/sammlung?mood=${encodeURIComponent(mood)}`);
   };
 
   const handleTagSelect = (tag: string) => {
@@ -133,7 +149,7 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Filter Dropdowns */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3 max-w-md mx-auto px-1">
+        <motion.div variants={itemVariants} className="grid grid-cols-3 gap-3 max-w-xl mx-auto px-1">
           {/* Genres Dropdown */}
           {topGenres.length > 0 && (
             <Select onValueChange={handleGenreSelect}>
@@ -151,12 +167,29 @@ export default function Dashboard() {
             </Select>
           )}
 
-          {/* Tags/Stimmung Dropdown */}
-          {topTags.length > 0 && (
-            <Select onValueChange={handleTagSelect}>
+          {/* Moods/Stimmung Dropdown */}
+          {topMoods.length > 0 && (
+            <Select onValueChange={handleMoodSelect}>
               <SelectTrigger className="w-full bg-card border-border">
                 <Sparkles className="w-4 h-4 mr-2 text-muted-foreground flex-shrink-0" />
                 <SelectValue placeholder="Stimmung" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border z-50 max-h-[300px]">
+                {topMoods.map(([mood, count]) => (
+                  <SelectItem key={mood} value={mood}>
+                    {mood} ({count})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Tags/Stichworte Dropdown */}
+          {topTags.length > 0 && (
+            <Select onValueChange={handleTagSelect}>
+              <SelectTrigger className="w-full bg-card border-border">
+                <Tag className="w-4 h-4 mr-2 text-muted-foreground flex-shrink-0" />
+                <SelectValue placeholder="Stichworte" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border z-50 max-h-[300px]">
                 {topTags.map(([tag, count]) => (
