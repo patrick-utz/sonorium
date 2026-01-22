@@ -1,5 +1,5 @@
 import { useRecords } from "@/context/RecordContext";
-import { Disc3, Disc, Music, TrendingUp, Tag, Sparkles, Heart, Star } from "lucide-react";
+import { Disc3, Disc, Music, TrendingUp, Tag, Sparkles, Heart, Star, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -10,6 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
+import { useMemo } from "react";
 
 export default function Dashboard() {
   const { records, getWishlistRecords, getFavoriteRecords, toggleFavorite } = useRecords();
@@ -55,6 +58,41 @@ export default function Dashboard() {
   const topMoods = Object.entries(moodCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20);
+
+  // Calculate purchases per month (last 12 months)
+  const purchasesByMonth = useMemo(() => {
+    const months: { month: string; shortMonth: string; count: number; isCurrentMonth: boolean }[] = [];
+    const now = new Date();
+    
+    // Generate last 12 months
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = date.toLocaleDateString("de-DE", { month: "long" });
+      const shortMonth = date.toLocaleDateString("de-DE", { month: "short" });
+      const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      
+      // Count records purchased in this month
+      const count = records.filter((r) => {
+        if (!r.purchaseDate) return false;
+        const purchaseDate = new Date(r.purchaseDate);
+        return (
+          purchaseDate.getFullYear() === date.getFullYear() &&
+          purchaseDate.getMonth() === date.getMonth()
+        );
+      }).length;
+      
+      months.push({ 
+        month: monthName, 
+        shortMonth: shortMonth.replace(".", ""),
+        count,
+        isCurrentMonth: i === 0
+      });
+    }
+    
+    return months;
+  }, [records]);
+
+  const totalPurchasesLast12Months = purchasesByMonth.reduce((sum, m) => sum + m.count, 0);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -181,6 +219,93 @@ export default function Dashboard() {
 
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto space-y-8 pt-4">
+        {/* Statistics Cards */}
+        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Format Distribution Card */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Music className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold text-foreground">Formate</h3>
+              </div>
+              <div className="flex items-center justify-around gap-4">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-primary/10 border-4 border-primary flex items-center justify-center">
+                    <div className="text-center">
+                      <Disc3 className="w-6 h-6 md:w-8 md:h-8 text-primary mx-auto mb-1" />
+                      <span className="text-2xl md:text-3xl font-bold text-foreground">{vinylCount}</span>
+                    </div>
+                  </div>
+                  <span className="text-sm text-muted-foreground">Vinyl</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-secondary/30 border-4 border-secondary flex items-center justify-center">
+                    <div className="text-center">
+                      <Disc className="w-6 h-6 md:w-8 md:h-8 text-secondary-foreground mx-auto mb-1" />
+                      <span className="text-2xl md:text-3xl font-bold text-foreground">{cdCount}</span>
+                    </div>
+                  </div>
+                  <span className="text-sm text-muted-foreground">CDs</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Purchases Timeline Card */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold text-foreground">Käufe (12 Monate)</h3>
+                </div>
+                <span className="text-sm text-muted-foreground">{totalPurchasesLast12Months} gesamt</span>
+              </div>
+              <div className="h-32 md:h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={purchasesByMonth} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                    <XAxis 
+                      dataKey="shortMonth" 
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={{ stroke: "hsl(var(--border))" }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                      allowDecimals={false}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: "hsl(var(--muted)/0.3)" }}
+                      contentStyle={{ 
+                        backgroundColor: "hsl(var(--card))", 
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        fontSize: "12px"
+                      }}
+                      formatter={(value: number) => [`${value} Käufe`, ""]}
+                      labelFormatter={(label, payload) => {
+                        if (payload && payload[0]) {
+                          return payload[0].payload.month;
+                        }
+                        return label;
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                      {purchasesByMonth.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`}
+                          fill={entry.isCurrentMonth ? "hsl(var(--primary))" : "hsl(var(--primary)/0.5)"}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
         {/* Favorites - Horizontal Scroll */}
         <motion.div variants={itemVariants}>
         <button
