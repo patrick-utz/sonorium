@@ -529,7 +529,12 @@ export default function RecordDetail() {
               <CardContent>
                 <div className="flex flex-wrap gap-2">
                   {record.moods.map((mood) => (
-                    <Badge key={mood} variant="secondary" className="text-sm bg-accent text-accent-foreground">
+                    <Badge 
+                      key={mood} 
+                      variant="secondary" 
+                      className="text-sm bg-accent text-accent-foreground cursor-pointer hover:bg-accent/80 transition-colors"
+                      onClick={() => navigate(`/sammlung?mood=${encodeURIComponent(mood)}`)}
+                    >
                       {mood}
                     </Badge>
                   ))}
