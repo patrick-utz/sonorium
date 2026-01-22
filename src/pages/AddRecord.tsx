@@ -26,6 +26,7 @@ import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
 import { SmartScanner } from "@/components/SmartScanner";
 import { AlternativeReleases } from "@/components/AlternativeReleases";
+import { MoodInput } from "@/components/MoodInput";
 import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library, ShoppingCart, ExternalLink, Plus, Trash2, SaveIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -65,6 +66,7 @@ export default function AddRecord() {
       status: "owned",
       personalNotes: "",
       tags: [],
+      moods: [],
     }
   );
 
@@ -1427,19 +1429,39 @@ export default function AddRecord() {
             </Card>
           )}
 
+          {/* Moods / Stimmungen */}
+          <Card className="bg-gradient-card border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                Stimmungen
+              </CardTitle>
+              <CardDescription>
+                Beschreibe die emotionale Atmosphäre des Albums
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MoodInput
+                moods={formData.moods || []}
+                onChange={(moods) => setFormData((prev) => ({ ...prev, moods }))}
+                placeholder="Stimmung hinzufügen (z.B. entspannend, energiegeladen)..."
+              />
+            </CardContent>
+          </Card>
+
           {/* Tags / Keywords */}
           <Card className="bg-gradient-card border-border/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Stichworte</CardTitle>
               <CardDescription>
-                Füge Stichworte für Stimmung, Instrumente, Anlässe hinzu
+                Füge Stichworte für Instrumente, Anlässe, Stile hinzu
               </CardDescription>
             </CardHeader>
             <CardContent>
               <TagInput
                 tags={formData.tags || []}
                 onChange={(tags) => setFormData((prev) => ({ ...prev, tags }))}
-                placeholder="Stichwort hinzufügen (z.B. entspannt, Klavier, Sommer)..."
+                placeholder="Stichwort hinzufügen (z.B. Klavier, Live, Sommer)..."
               />
             </CardContent>
           </Card>

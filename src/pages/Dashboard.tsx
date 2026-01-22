@@ -167,22 +167,26 @@ export default function Dashboard() {
             </Select>
           )}
 
-          {/* Moods/Stimmung Dropdown */}
-          {topMoods.length > 0 && (
-            <Select onValueChange={handleMoodSelect}>
-              <SelectTrigger className="w-full bg-card border-border">
-                <Sparkles className="w-4 h-4 mr-2 text-muted-foreground flex-shrink-0" />
-                <SelectValue placeholder="Stimmung" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border z-50 max-h-[300px]">
-                {topMoods.map(([mood, count]) => (
+          {/* Moods/Stimmung Dropdown - always visible */}
+          <Select onValueChange={handleMoodSelect} disabled={topMoods.length === 0}>
+            <SelectTrigger className="w-full bg-card border-border">
+              <Sparkles className="w-4 h-4 mr-2 text-muted-foreground flex-shrink-0" />
+              <SelectValue placeholder={topMoods.length === 0 ? "Keine Stimmungen" : "Stimmung"} />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border z-50 max-h-[300px]">
+              {topMoods.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  Noch keine Stimmungen gepflegt
+                </div>
+              ) : (
+                topMoods.map(([mood, count]) => (
                   <SelectItem key={mood} value={mood}>
                     {mood} ({count})
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+                ))
+              )}
+            </SelectContent>
+          </Select>
 
           {/* Tags/Stichworte Dropdown */}
           {topTags.length > 0 && (
