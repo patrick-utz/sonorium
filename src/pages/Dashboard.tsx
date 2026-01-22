@@ -33,15 +33,15 @@ export default function Dashboard() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20);
 
-  // Calculate mood distribution
-  const moodCount = records.reduce((acc, record) => {
-    (record.moods || []).forEach((m) => {
-      acc[m] = (acc[m] || 0) + 1;
+  // Calculate tag distribution (using tags for "Stimmung" dropdown)
+  const tagCount = records.reduce((acc, record) => {
+    (record.tags || []).forEach((t) => {
+      acc[t] = (acc[t] || 0) + 1;
     });
     return acc;
   }, {} as Record<string, number>);
 
-  const topMoods = Object.entries(moodCount)
+  const topTags = Object.entries(tagCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20);
 
@@ -62,8 +62,8 @@ export default function Dashboard() {
     navigate(`/sammlung?genre=${encodeURIComponent(genre)}`);
   };
 
-  const handleMoodSelect = (mood: string) => {
-    navigate(`/sammlung?mood=${encodeURIComponent(mood)}`);
+  const handleTagSelect = (tag: string) => {
+    navigate(`/sammlung?tag=${encodeURIComponent(tag)}`);
   };
 
   return (
@@ -151,17 +151,17 @@ export default function Dashboard() {
             </Select>
           )}
 
-          {/* Moods Dropdown */}
-          {topMoods.length > 0 && (
-            <Select onValueChange={handleMoodSelect}>
+          {/* Tags/Stimmung Dropdown */}
+          {topTags.length > 0 && (
+            <Select onValueChange={handleTagSelect}>
               <SelectTrigger className="w-full bg-card border-border">
                 <Sparkles className="w-4 h-4 mr-2 text-muted-foreground flex-shrink-0" />
                 <SelectValue placeholder="Stimmung" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border z-50 max-h-[300px]">
-                {topMoods.map(([mood, count]) => (
-                  <SelectItem key={mood} value={mood}>
-                    {mood} ({count})
+                {topTags.map(([tag, count]) => (
+                  <SelectItem key={tag} value={tag}>
+                    {tag} ({count})
                   </SelectItem>
                 ))}
               </SelectContent>
