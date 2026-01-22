@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
-import { Search, User, Disc, Music, X, ArrowRight, Loader2 } from "lucide-react";
+import { Search, User, Disc, Music, X, ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface SearchResult {
-  type: "artist" | "album" | "genre";
+  type: "artist" | "album" | "genre" | "mood";
   value: string;
   recordId?: string;
   count?: number;
@@ -71,8 +71,21 @@ export function QuickSearch() {
       matches.push({ type: "genre", value: genre, count });
     });
 
+    // Search moods (Stimmungen)
+    const moodCounts = new Map<string, number>();
+    records.forEach((r) => {
+      r.moods?.forEach((m) => {
+        if (m.toLowerCase().includes(searchTerm)) {
+          moodCounts.set(m, (moodCounts.get(m) || 0) + 1);
+        }
+      });
+    });
+    moodCounts.forEach((count, mood) => {
+      matches.push({ type: "mood", value: mood, count });
+    });
+
     setIsSearching(false);
-    return matches.slice(0, 8);
+    return matches.slice(0, 10);
   }, [query, records]);
 
   useEffect(() => {
@@ -109,6 +122,8 @@ export function QuickSearch() {
       navigate(`/sammlung?search=${encodeURIComponent(result.value)}`);
     } else if (result.type === "genre") {
       navigate(`/sammlung?genre=${encodeURIComponent(result.value)}`);
+    } else if (result.type === "mood") {
+      navigate(`/sammlung?mood=${encodeURIComponent(result.value)}`);
     }
     setQuery("");
     setIsOpen(false);
@@ -138,6 +153,8 @@ export function QuickSearch() {
         return <Disc className="w-4 h-4 text-muted-foreground" />;
       case "genre":
         return <Music className="w-4 h-4 text-accent" />;
+      case "mood":
+        return <Sparkles className="w-4 h-4 text-primary" />;
       default:
         return null;
     }
@@ -151,6 +168,8 @@ export function QuickSearch() {
         return "Album";
       case "genre":
         return "Genre";
+      case "mood":
+        return "Stimmung";
       default:
         return "";
     }
