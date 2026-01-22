@@ -13,10 +13,25 @@ export interface MoodCategory {
   id: string;
   name: string;
   icon: string; // emoji
+  color?: string; // subtle accent color (HSL values only, e.g., "200 80% 60%")
   enabled: boolean;
   priority: number;
   isCustom?: boolean;
 }
+
+// Subtle color palette for moods (HSL format for Tailwind compatibility)
+export const MOOD_COLORS = [
+  { id: "slate", name: "Neutral", hsl: "215 16% 47%" },
+  { id: "blue", name: "Blau", hsl: "217 91% 60%" },
+  { id: "cyan", name: "Cyan", hsl: "189 94% 43%" },
+  { id: "teal", name: "Petrol", hsl: "168 76% 36%" },
+  { id: "emerald", name: "Smaragd", hsl: "160 84% 39%" },
+  { id: "amber", name: "Bernstein", hsl: "38 92% 50%" },
+  { id: "orange", name: "Orange", hsl: "25 95% 53%" },
+  { id: "rose", name: "Rose", hsl: "350 89% 60%" },
+  { id: "purple", name: "Violett", hsl: "271 81% 56%" },
+  { id: "indigo", name: "Indigo", hsl: "239 84% 67%" },
+];
 
 export const DEFAULT_SHOPS: ShopPreference[] = [
   { id: "discogs", name: "Discogs", url: "https://www.discogs.com", country: "INT", enabled: true, priority: 1, searchUrlTemplate: "https://www.discogs.com/search/?q={query}&type=release" },
@@ -28,12 +43,12 @@ export const DEFAULT_SHOPS: ShopPreference[] = [
 ];
 
 export const DEFAULT_MOODS: MoodCategory[] = [
-  { id: "entspannend", name: "Entspannend", icon: "🌙", enabled: true, priority: 1 },
-  { id: "energetisch", name: "Energetisch", icon: "⚡", enabled: true, priority: 2 },
-  { id: "melancholisch", name: "Melancholisch", icon: "💭", enabled: true, priority: 3 },
-  { id: "romantisch", name: "Romantisch", icon: "💫", enabled: true, priority: 4 },
-  { id: "party", name: "Party", icon: "🎉", enabled: true, priority: 5 },
-  { id: "fokus", name: "Fokus", icon: "🎯", enabled: true, priority: 6 },
+  { id: "entspannend", name: "Entspannend", icon: "🌙", color: "217 91% 60%", enabled: true, priority: 1 },
+  { id: "energetisch", name: "Energetisch", icon: "⚡", color: "38 92% 50%", enabled: true, priority: 2 },
+  { id: "melancholisch", name: "Melancholisch", icon: "💭", color: "271 81% 56%", enabled: true, priority: 3 },
+  { id: "romantisch", name: "Romantisch", icon: "💫", color: "350 89% 60%", enabled: true, priority: 4 },
+  { id: "party", name: "Party", icon: "🎉", color: "25 95% 53%", enabled: true, priority: 5 },
+  { id: "fokus", name: "Fokus", icon: "🎯", color: "168 76% 36%", enabled: true, priority: 6 },
 ];
 
 export interface AudiophileProfile {

@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
+import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { DEFAULT_MOODS } from "@/types/audiophileProfile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,9 +74,22 @@ import { RelatedByMoodSection } from "@/components/RelatedByMoodSection";
 export default function RecordDetail() {
   const { id } = useParams<{ id: string }>();
   const { getRecordById, deleteRecord, records, addRecord, toggleFavorite, updateRecord } = useRecords();
+  const { profile } = useAudiophileProfile();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isEnriching, setIsEnriching] = useState(false);
+
+  // Get configured moods for color lookup
+  const configuredMoods = useMemo(() => 
+    (profile?.moods || DEFAULT_MOODS).filter(m => m.enabled),
+    [profile?.moods]
+  );
+
+  // Helper to get mood color
+  const getMoodColor = (moodName: string) => {
+    const mood = configuredMoods.find(m => m.name.toLowerCase() === moodName.toLowerCase());
+    return mood?.color;
+  };
 
   const record = getRecordById(id || "");
 
@@ -528,16 +543,25 @@ export default function RecordDetail() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {record.moods.map((mood) => (
-                    <Badge 
-                      key={mood} 
-                      variant="secondary" 
-                      className="text-sm bg-accent text-accent-foreground cursor-pointer hover:bg-accent/80 transition-colors"
-                      onClick={() => navigate(`/sammlung?mood=${encodeURIComponent(mood)}`)}
-                    >
-                      {mood}
-                    </Badge>
-                  ))}
+                  {record.moods.map((mood) => {
+                    const color = getMoodColor(mood);
+                    const configuredMood = configuredMoods.find(m => m.name.toLowerCase() === mood.toLowerCase());
+                    return (
+                      <Badge 
+                        key={mood} 
+                        variant="secondary" 
+                        className="text-sm bg-muted text-foreground cursor-pointer hover:bg-muted/80 transition-colors border"
+                        style={color ? { 
+                          borderColor: `hsl(${color})`,
+                          borderLeftWidth: '3px'
+                        } : undefined}
+                        onClick={() => navigate(`/sammlung?mood=${encodeURIComponent(mood)}`)}
+                      >
+                        {configuredMood?.icon && <span className="mr-1">{configuredMood.icon}</span>}
+                        {mood}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

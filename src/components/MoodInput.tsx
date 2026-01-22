@@ -76,6 +76,14 @@ export function MoodInput({ moods, onChange, placeholder = "Weitere Stimmung hin
   const isMoodSelected = (moodName: string) => 
     moods.some(m => m.toLowerCase() === moodName.toLowerCase());
 
+  // Get color for a configured mood
+  const getMoodColor = (moodName: string) => {
+    const configuredMood = configuredMoods.find(
+      m => m.name.toLowerCase() === moodName.toLowerCase()
+    );
+    return configuredMood?.color;
+  };
+
   return (
     <div className="space-y-3">
       {/* Configured Mood Quick-Select Buttons */}
@@ -90,12 +98,16 @@ export function MoodInput({ moods, onChange, placeholder = "Weitere Stimmung hin
                 type="button"
                 onClick={() => toggleMood(mood.name)}
                 className={`
-                  flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all border
                   ${isSelected 
-                    ? "bg-primary text-primary-foreground shadow-sm" 
-                    : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                    ? "bg-muted text-foreground shadow-sm" 
+                    : "bg-transparent hover:bg-muted/50 text-muted-foreground hover:text-foreground border-transparent"
                   }
                 `}
+                style={mood.color ? {
+                  borderColor: isSelected ? `hsl(${mood.color})` : 'transparent',
+                  ...(isSelected && { boxShadow: `0 0 0 1px hsl(${mood.color} / 0.3)` })
+                } : undefined}
               >
                 <span className="text-base">{mood.icon}</span>
                 {mood.name}
