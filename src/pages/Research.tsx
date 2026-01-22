@@ -42,6 +42,7 @@ import { PriceComparisonCard } from "@/components/research/PriceComparisonCard";
 import { useMarketplacePrices } from "@/hooks/useMarketplacePrices";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ShopsConfig } from "@/components/research/ShopsConfig";
+import { MoodsConfig } from "@/components/MoodsConfig";
 
 interface PressingPrice {
   releaseId?: number;
@@ -80,7 +81,7 @@ interface AlbumSearchResult {
 }
 
 export default function Research() {
-  const [searchMode, setSearchMode] = useState<"artist" | "album" | "shops">("album");
+  const [searchMode, setSearchMode] = useState<"artist" | "album" | "shops" | "moods">("album");
   const [searchQuery, setSearchQuery] = useState("");
   const [albumQuery, setAlbumQuery] = useState("");
   const [labelQuery, setLabelQuery] = useState("");
@@ -556,8 +557,8 @@ export default function Research() {
       {/* Search Tabs */}
       <Card>
         <CardContent className="pt-4 pb-3">
-          <Tabs value={searchMode} onValueChange={(v) => setSearchMode(v as "artist" | "album" | "shops")} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-9 mb-4">
+          <Tabs value={searchMode} onValueChange={(v) => setSearchMode(v as "artist" | "album" | "shops" | "moods")} className="w-full">
+            <TabsList className="grid w-full grid-cols-4 h-9 mb-4">
               <TabsTrigger value="album" className="gap-1.5 text-xs">
                 <Disc3 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Pressung</span>
@@ -565,11 +566,17 @@ export default function Research() {
               </TabsTrigger>
               <TabsTrigger value="artist" className="gap-1.5 text-xs">
                 <User className="w-3.5 h-3.5" />
-                Künstler
+                <span className="hidden sm:inline">Künstler</span>
+                <span className="sm:hidden">Künstl.</span>
               </TabsTrigger>
               <TabsTrigger value="shops" className="gap-1.5 text-xs">
                 <Store className="w-3.5 h-3.5" />
                 Shops
+              </TabsTrigger>
+              <TabsTrigger value="moods" className="gap-1.5 text-xs">
+                <Music className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Stimmungen</span>
+                <span className="sm:hidden">Moods</span>
               </TabsTrigger>
             </TabsList>
 
@@ -645,6 +652,11 @@ export default function Research() {
             {/* Shops Config */}
             <TabsContent value="shops" className="mt-0">
               <ShopsConfig />
+            </TabsContent>
+
+            {/* Moods Config */}
+            <TabsContent value="moods" className="mt-0">
+              <MoodsConfig />
             </TabsContent>
           </Tabs>
         </CardContent>

@@ -1,0 +1,366 @@
+import { useState } from "react";
+import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
+import { MoodCategory, DEFAULT_MOODS } from "@/types/audiophileProfile";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { 
+  Sparkles, 
+  GripVertical, 
+  Plus, 
+  Trash2, 
+  Pencil, 
+  Check, 
+  X, 
+  RotateCcw,
+  Search
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+const EMOJI_SUGGESTIONS = ["🌙", "⚡", "💭", "💫", "🎉", "🎯", "🔥", "❄️", "🌊", "🌸", "🎸", "🎹", "✨", "🌈", "🎭", "💎"];
+
+export function MoodsConfig() {
+  const { profile, updateProfile } = useAudiophileProfile();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editIcon, setEditIcon] = useState("");
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newMoodName, setNewMoodName] = useState("");
+  const [newMoodIcon, setNewMoodIcon] = useState("✨");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const moods = profile?.moods || DEFAULT_MOODS;
+  const enabledMoods = moods.filter(m => m.enabled).sort((a, b) => a.priority - b.priority);
+  const disabledMoods = moods.filter(m => !m.enabled).sort((a, b) => a.priority - b.priority);
+
+  // Filter moods based on search
+  const filteredEnabled = searchQuery 
+    ? enabledMoods.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : enabledMoods;
+  const filteredDisabled = searchQuery
+    ? disabledMoods.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : disabledMoods;
+
+  const handleToggle = async (moodId: string, enabled: boolean) => {
+    if (!profile) return;
+    
+    const updatedMoods = moods.map(m => 
+      m.id === moodId ? { ...m, enabled } : m
+    );
+    
+    await updateProfile({ ...profile, moods: updatedMoods });
+    toast.success(enabled ? "Stimmung aktiviert" : "Stimmung deaktiviert");
+  };
+
+  const handleDragStart = (id: string) => {
+    setDraggedId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) return;
+  };
+
+  const handleDrop = async (targetId: string) => {
+    if (!draggedId || !profile || draggedId === targetId) return;
+
+    const draggedMood = moods.find(m => m.id === draggedId);
+    const targetMood = moods.find(m => m.id === targetId);
+    
+    if (!draggedMood || !targetMood) return;
+
+    // Only reorder within enabled moods
+    const sortedEnabled = [...enabledMoods];
+    const draggedIndex = sortedEnabled.findIndex(m => m.id === draggedId);
+    const targetIndex = sortedEnabled.findIndex(m => m.id === targetId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Remove and insert at new position
+    sortedEnabled.splice(draggedIndex, 1);
+    sortedEnabled.splice(targetIndex, 0, draggedMood);
+
+    // Update priorities
+    const updatedMoods = moods.map(m => {
+      const newIndex = sortedEnabled.findIndex(s => s.id === m.id);
+      if (newIndex !== -1) {
+        return { ...m, priority: newIndex + 1 };
+      }
+      return m;
+    });
+
+    await updateProfile({ ...profile, moods: updatedMoods });
+    setDraggedId(null);
+  };
+
+  const startEdit = (mood: MoodCategory) => {
+    setEditingId(mood.id);
+    setEditName(mood.name);
+    setEditIcon(mood.icon);
+  };
+
+  const saveEdit = async () => {
+    if (!profile || !editingId || !editName.trim()) return;
+
+    const updatedMoods = moods.map(m => 
+      m.id === editingId ? { ...m, name: editName.trim(), icon: editIcon } : m
+    );
+
+    await updateProfile({ ...profile, moods: updatedMoods });
+    setEditingId(null);
+    toast.success("Stimmung aktualisiert");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName("");
+    setEditIcon("");
+  };
+
+  const handleAddMood = async () => {
+    if (!profile || !newMoodName.trim()) return;
+
+    const newId = newMoodName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+    const newMood: MoodCategory = {
+      id: newId,
+      name: newMoodName.trim(),
+      icon: newMoodIcon,
+      enabled: true,
+      priority: enabledMoods.length + 1,
+      isCustom: true,
+    };
+
+    const updatedMoods = [...moods, newMood];
+    await updateProfile({ ...profile, moods: updatedMoods });
+    
+    setShowAddDialog(false);
+    setNewMoodName("");
+    setNewMoodIcon("✨");
+    toast.success("Neue Stimmung hinzugefügt");
+  };
+
+  const handleDelete = async (moodId: string) => {
+    if (!profile) return;
+
+    const mood = moods.find(m => m.id === moodId);
+    if (!mood?.isCustom) {
+      // For default moods, just disable them
+      await handleToggle(moodId, false);
+      return;
+    }
+
+    const updatedMoods = moods.filter(m => m.id !== moodId);
+    await updateProfile({ ...profile, moods: updatedMoods });
+    toast.success("Stimmung gelöscht");
+  };
+
+  const handleResetToDefaults = async () => {
+    if (!profile) return;
+    
+    await updateProfile({ ...profile, moods: DEFAULT_MOODS });
+    toast.success("Stimmungen auf Standard zurückgesetzt");
+  };
+
+  const MoodItem = ({ mood, isDraggable }: { mood: MoodCategory; isDraggable: boolean }) => {
+    const isEditing = editingId === mood.id;
+
+    return (
+      <div
+        draggable={isDraggable && !isEditing}
+        onDragStart={() => handleDragStart(mood.id)}
+        onDragOver={(e) => handleDragOver(e, mood.id)}
+        onDrop={() => handleDrop(mood.id)}
+        className={cn(
+          "flex items-center gap-3 p-3 rounded-lg border bg-card transition-all",
+          isDraggable && !isEditing && "cursor-grab active:cursor-grabbing",
+          draggedId === mood.id && "opacity-50",
+          !mood.enabled && "opacity-60"
+        )}
+      >
+        {isDraggable && !isEditing && (
+          <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        )}
+        
+        {isEditing ? (
+          <div className="flex-1 flex items-center gap-2">
+            <div className="flex gap-1 flex-wrap">
+              {EMOJI_SUGGESTIONS.slice(0, 8).map(emoji => (
+                <button
+                  key={emoji}
+                  onClick={() => setEditIcon(emoji)}
+                  className={cn(
+                    "w-8 h-8 rounded-md text-lg flex items-center justify-center transition-colors",
+                    editIcon === emoji ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
+                  )}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <Input
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="flex-1"
+              autoFocus
+            />
+            <Button size="icon" variant="ghost" onClick={saveEdit}>
+              <Check className="w-4 h-4 text-primary" />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={cancelEdit}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        ) : (
+          <>
+            <span className="text-xl flex-shrink-0">{mood.icon}</span>
+            <span className="flex-1 font-medium truncate">{mood.name}</span>
+            
+            {mood.enabled && (
+              <Button size="icon" variant="ghost" onClick={() => startEdit(mood)}>
+                <Pencil className="w-4 h-4 text-muted-foreground" />
+              </Button>
+            )}
+            
+            {mood.isCustom && (
+              <Button size="icon" variant="ghost" onClick={() => handleDelete(mood.id)}>
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            )}
+            
+            <Switch
+              checked={mood.enabled}
+              onCheckedChange={(checked) => handleToggle(mood.id, checked)}
+            />
+          </>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Card className="bg-gradient-card border-border/50">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Stimmungen
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Konfiguriere deine 6 Haupt-Stimmungen für das Filtern und Kategorisieren
+            </CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleResetToDefaults}>
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Zurücksetzen
+            </Button>
+            <Button size="sm" onClick={() => setShowAddDialog(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Hinzufügen
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Search - show when more than 6 moods */}
+        {moods.length > 6 && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Stimmungen durchsuchen..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        )}
+
+        {/* Active Moods */}
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-muted-foreground">
+            Aktive Stimmungen ({filteredEnabled.length})
+          </h4>
+          <div className="space-y-2">
+            {filteredEnabled.map(mood => (
+              <MoodItem key={mood.id} mood={mood} isDraggable={true} />
+            ))}
+            {filteredEnabled.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                {searchQuery ? "Keine Stimmungen gefunden" : "Keine aktiven Stimmungen"}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Disabled Moods */}
+        {filteredDisabled.length > 0 && (
+          <div className="space-y-2 pt-4 border-t border-border">
+            <h4 className="text-sm font-medium text-muted-foreground">
+              Deaktivierte Stimmungen ({filteredDisabled.length})
+            </h4>
+            <div className="space-y-2">
+              {filteredDisabled.map(mood => (
+                <MoodItem key={mood.id} mood={mood} isDraggable={false} />
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+
+      {/* Add Mood Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Neue Stimmung hinzufügen</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Icon wählen</label>
+              <div className="flex gap-2 flex-wrap">
+                {EMOJI_SUGGESTIONS.map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => setNewMoodIcon(emoji)}
+                    className={cn(
+                      "w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-colors",
+                      newMoodIcon === emoji ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
+                    )}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Name</label>
+              <Input
+                placeholder="z.B. Nachdenklich, Sommerlich, etc."
+                value={newMoodName}
+                onChange={(e) => setNewMoodName(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Abbrechen
+            </Button>
+            <Button onClick={handleAddMood} disabled={!newMoodName.trim()}>
+              Hinzufügen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
