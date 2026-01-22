@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
+import { MoodCategory } from "@/types/audiophileProfile";
 
 type SortOption = "artist" | "album" | "year" | "dateAdded" | "rating";
 type SortDirection = "asc" | "desc";
@@ -53,9 +55,11 @@ const getDecade = (year: number): string => {
 
 export default function Collection() {
   const { getOwnedRecords, updateRecord, deleteRecord, toggleFavorite } = useRecords();
+  const { profile } = useAudiophileProfile();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const records = getOwnedRecords();
+  const configuredMoods = profile?.moods || [];
   
   const [searchQuery, setSearchQuery] = useState("");
   const [formatFilter, setFormatFilter] = useState<RecordFormat | "all">("all");
@@ -728,6 +732,7 @@ export default function Collection() {
               <ListItem
                 key={record.id}
                 record={record}
+                configuredMoods={configuredMoods}
                 onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
                 isSelectMode={isSelectMode}
                 isSelected={selectedRecords.has(record.id)}
@@ -746,6 +751,7 @@ export default function Collection() {
 
 interface ListItemProps {
   record: Record;
+  configuredMoods: MoodCategory[];
   onClick: () => void;
   isSelectMode?: boolean;
   isSelected?: boolean;
@@ -754,7 +760,16 @@ interface ListItemProps {
   onRatingChange?: (rating: number) => void;
 }
 
-function ListItem({ record, onClick, isSelectMode, isSelected, onToggleSelect, onToggleFavorite, onRatingChange }: ListItemProps) {
+function ListItem({ record, configuredMoods, onClick, isSelectMode, isSelected, onToggleSelect, onToggleFavorite, onRatingChange }: ListItemProps) {
+  // Get configured moods that match this record's moods (with colors)
+  const recordMoodsWithColors = (record.moods || [])
+    .map(moodName => {
+      const configured = configuredMoods.find(m => m.name === moodName && m.enabled);
+      return configured ? { name: moodName, color: configured.color, icon: configured.icon } : null;
+    })
+    .filter(Boolean)
+    .slice(0, 3); // Show max 3 mood indicators
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -792,7 +807,22 @@ function ListItem({ record, onClick, isSelectMode, isSelected, onToggleSelect, o
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-foreground truncate">{record.album}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-foreground truncate">{record.album}</h3>
+          {/* Mood color indicators */}
+          {recordMoodsWithColors.length > 0 && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {recordMoodsWithColors.map((mood, idx) => (
+                <div
+                  key={idx}
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: mood?.color ? `hsl(${mood.color})` : 'hsl(var(--muted-foreground))' }}
+                  title={mood?.name}
+                />
+              ))}
+            </div>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground truncate">{record.artist}</p>
       </div>
       
