@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
-import { MoodCategory, DEFAULT_MOODS } from "@/types/audiophileProfile";
+import { MoodCategory, DEFAULT_MOODS, MOOD_COLORS } from "@/types/audiophileProfile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,7 +14,8 @@ import {
   Check, 
   X, 
   RotateCcw,
-  Search
+  Search,
+  Palette
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -25,6 +26,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const EMOJI_SUGGESTIONS = ["🌙", "⚡", "💭", "💫", "🎉", "🎯", "🔥", "❄️", "🌊", "🌸", "🎸", "🎹", "✨", "🌈", "🎭", "💎"];
 
@@ -33,10 +39,12 @@ export function MoodsConfig() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editIcon, setEditIcon] = useState("");
+  const [editColor, setEditColor] = useState<string | undefined>(undefined);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newMoodName, setNewMoodName] = useState("");
   const [newMoodIcon, setNewMoodIcon] = useState("✨");
+  const [newMoodColor, setNewMoodColor] = useState<string>(MOOD_COLORS[0].hsl);
   const [searchQuery, setSearchQuery] = useState("");
 
   const moods = profile?.moods || DEFAULT_MOODS;
@@ -107,17 +115,19 @@ export function MoodsConfig() {
     setEditingId(mood.id);
     setEditName(mood.name);
     setEditIcon(mood.icon);
+    setEditColor(mood.color);
   };
 
   const saveEdit = async () => {
     if (!profile || !editingId || !editName.trim()) return;
 
     const updatedMoods = moods.map(m => 
-      m.id === editingId ? { ...m, name: editName.trim(), icon: editIcon } : m
+      m.id === editingId ? { ...m, name: editName.trim(), icon: editIcon, color: editColor } : m
     );
 
     await updateProfile({ ...profile, moods: updatedMoods });
     setEditingId(null);
+    setEditColor(undefined);
     toast.success("Stimmung aktualisiert");
   };
 
@@ -125,6 +135,7 @@ export function MoodsConfig() {
     setEditingId(null);
     setEditName("");
     setEditIcon("");
+    setEditColor(undefined);
   };
 
   const handleAddMood = async () => {
@@ -135,6 +146,7 @@ export function MoodsConfig() {
       id: newId,
       name: newMoodName.trim(),
       icon: newMoodIcon,
+      color: newMoodColor,
       enabled: true,
       priority: enabledMoods.length + 1,
       isCustom: true,
@@ -146,7 +158,18 @@ export function MoodsConfig() {
     setShowAddDialog(false);
     setNewMoodName("");
     setNewMoodIcon("✨");
+    setNewMoodColor(MOOD_COLORS[0].hsl);
     toast.success("Neue Stimmung hinzugefügt");
+  };
+
+  const handleColorChange = async (moodId: string, color: string) => {
+    if (!profile) return;
+    
+    const updatedMoods = moods.map(m => 
+      m.id === moodId ? { ...m, color } : m
+    );
+    
+    await updateProfile({ ...profile, moods: updatedMoods });
   };
 
   const handleDelete = async (moodId: string) => {
@@ -186,45 +209,122 @@ export function MoodsConfig() {
           draggedId === mood.id && "opacity-50",
           !mood.enabled && "opacity-60"
         )}
+        style={mood.color && mood.enabled ? { 
+          borderLeftWidth: '3px',
+          borderLeftColor: `hsl(${mood.color})`
+        } : undefined}
       >
         {isDraggable && !isEditing && (
           <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         )}
         
         {isEditing ? (
-          <div className="flex-1 flex items-center gap-2">
-            <div className="flex gap-1 flex-wrap">
-              {EMOJI_SUGGESTIONS.slice(0, 8).map(emoji => (
-                <button
-                  key={emoji}
-                  onClick={() => setEditIcon(emoji)}
-                  className={cn(
-                    "w-8 h-8 rounded-md text-lg flex items-center justify-center transition-colors",
-                    editIcon === emoji ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
-                  )}
-                >
-                  {emoji}
-                </button>
-              ))}
+          <div className="flex-1 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1 flex-wrap">
+                {EMOJI_SUGGESTIONS.slice(0, 8).map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => setEditIcon(emoji)}
+                    className={cn(
+                      "w-8 h-8 rounded-md text-lg flex items-center justify-center transition-colors",
+                      editIcon === emoji ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
+                    )}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="flex-1"
+                autoFocus
+              />
             </div>
-            <Input
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              className="flex-1"
-              autoFocus
-            />
-            <Button size="icon" variant="ghost" onClick={saveEdit}>
-              <Check className="w-4 h-4 text-primary" />
-            </Button>
-            <Button size="icon" variant="ghost" onClick={cancelEdit}>
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Farbe:</span>
+              <div className="flex gap-1 flex-wrap">
+                {MOOD_COLORS.map(color => (
+                  <button
+                    key={color.id}
+                    onClick={() => setEditColor(color.hsl)}
+                    className={cn(
+                      "w-6 h-6 rounded-full transition-all border-2",
+                      editColor === color.hsl ? "border-foreground scale-110" : "border-transparent hover:scale-105"
+                    )}
+                    style={{ backgroundColor: `hsl(${color.hsl})` }}
+                    title={color.name}
+                  />
+                ))}
+              </div>
+              <div className="flex-1" />
+              <Button size="sm" variant="ghost" onClick={saveEdit}>
+                <Check className="w-4 h-4 text-primary mr-1" />
+                Speichern
+              </Button>
+              <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                <X className="w-4 h-4 mr-1" />
+                Abbrechen
+              </Button>
+            </div>
           </div>
         ) : (
           <>
             <span className="text-xl flex-shrink-0">{mood.icon}</span>
             <span className="flex-1 font-medium truncate">{mood.name}</span>
             
+            {/* Color indicator */}
+            {mood.color && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className="w-5 h-5 rounded-full border border-border/50 hover:scale-110 transition-transform"
+                    style={{ backgroundColor: `hsl(${mood.color})` }}
+                  />
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-2" align="end">
+                  <div className="flex gap-1 flex-wrap max-w-[200px]">
+                    {MOOD_COLORS.map(color => (
+                      <button
+                        key={color.id}
+                        onClick={() => handleColorChange(mood.id, color.hsl)}
+                        className={cn(
+                          "w-7 h-7 rounded-full transition-all border-2",
+                          mood.color === color.hsl ? "border-foreground scale-110" : "border-transparent hover:scale-105"
+                        )}
+                        style={{ backgroundColor: `hsl(${color.hsl})` }}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+            
+            {!mood.color && mood.enabled && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-8 w-8">
+                    <Palette className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-2" align="end">
+                  <div className="flex gap-1 flex-wrap max-w-[200px]">
+                    {MOOD_COLORS.map(color => (
+                      <button
+                        key={color.id}
+                        onClick={() => handleColorChange(mood.id, color.hsl)}
+                        className="w-7 h-7 rounded-full transition-all border-2 border-transparent hover:scale-105"
+                        style={{ backgroundColor: `hsl(${color.hsl})` }}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+
             {mood.enabled && (
               <Button size="icon" variant="ghost" onClick={() => startEdit(mood)}>
                 <Pencil className="w-4 h-4 text-muted-foreground" />
@@ -339,6 +439,23 @@ export function MoodsConfig() {
                   >
                     {emoji}
                   </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Farbe wählen</label>
+              <div className="flex gap-2 flex-wrap">
+                {MOOD_COLORS.map(color => (
+                  <button
+                    key={color.id}
+                    onClick={() => setNewMoodColor(color.hsl)}
+                    className={cn(
+                      "w-8 h-8 rounded-full transition-all border-2",
+                      newMoodColor === color.hsl ? "border-foreground scale-110" : "border-transparent hover:scale-105"
+                    )}
+                    style={{ backgroundColor: `hsl(${color.hsl})` }}
+                    title={color.name}
+                  />
                 ))}
               </div>
             </div>
