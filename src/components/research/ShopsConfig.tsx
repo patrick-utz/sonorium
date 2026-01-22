@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { GripVertical, Plus, Trash2, ExternalLink } from "lucide-react";
+import { GripVertical, Plus, Trash2, ExternalLink, Pencil } from "lucide-react";
 import { ShopPreference, DEFAULT_SHOPS } from "@/types/audiophileProfile";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 import { toast } from "sonner";
@@ -51,6 +51,7 @@ export function ShopsConfig() {
   const shops = profile?.shops || DEFAULT_SHOPS;
   
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingShop, setEditingShop] = useState<ShopPreference | null>(null);
   const [newShop, setNewShop] = useState({
     name: "",
     url: "",
@@ -153,7 +154,24 @@ export function ShopsConfig() {
     }
   };
 
-  const addCustomShop = () => {
+  const startEditing = (shop: ShopPreference) => {
+    setEditingShop(shop);
+    setNewShop({
+      name: shop.name,
+      url: shop.url,
+      searchUrlTemplate: shop.searchUrlTemplate || "",
+      country: shop.country,
+    });
+    setShowAddForm(true);
+  };
+
+  const cancelEditing = () => {
+    setEditingShop(null);
+    setNewShop({ name: "", url: "", searchUrlTemplate: "", country: "CH" });
+    setShowAddForm(false);
+  };
+
+  const saveShop = () => {
     if (!profile) return;
     
     // Validate inputs
@@ -181,27 +199,50 @@ export function ShopsConfig() {
       return;
     }
 
-    // Check for duplicate
-    if (shops.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+    // Check for duplicate (exclude current shop when editing)
+    const duplicateExists = shops.some(s => 
+      s.name.toLowerCase() === name.toLowerCase() && 
+      (!editingShop || s.id !== editingShop.id)
+    );
+    if (duplicateExists) {
       toast.error("Ein Shop mit diesem Namen existiert bereits");
       return;
     }
 
-    const customShop: ShopPreference = {
-      id: `custom-${Date.now()}`,
-      name,
-      url,
-      country: newShop.country,
-      enabled: true,
-      priority: shops.length + 1,
-      isCustom: true,
-      searchUrlTemplate: searchUrlTemplate || `${url}/search?q={query}`,
-    };
+    if (editingShop) {
+      // Update existing shop
+      const updatedShops = shops.map(s => 
+        s.id === editingShop.id 
+          ? { 
+              ...s, 
+              name, 
+              url, 
+              country: newShop.country,
+              searchUrlTemplate: searchUrlTemplate || `${url}/search?q={query}`,
+            } 
+          : s
+      );
+      updateProfile({ ...profile, shops: updatedShops });
+      toast.success(`${name} aktualisiert`);
+    } else {
+      // Add new shop
+      const customShop: ShopPreference = {
+        id: `custom-${Date.now()}`,
+        name,
+        url,
+        country: newShop.country,
+        enabled: true,
+        priority: shops.length + 1,
+        isCustom: true,
+        searchUrlTemplate: searchUrlTemplate || `${url}/search?q={query}`,
+      };
+      updateProfile({ ...profile, shops: [...shops, customShop] });
+      toast.success(`${name} hinzugefügt`);
+    }
 
-    updateProfile({ ...profile, shops: [...shops, customShop] });
+    setEditingShop(null);
     setNewShop({ name: "", url: "", searchUrlTemplate: "", country: "CH" });
     setShowAddForm(false);
-    toast.success(`${name} hinzugefügt`);
   };
 
   return (
@@ -254,6 +295,15 @@ export function ShopsConfig() {
 
               <button
                 type="button"
+                onClick={() => startEditing(shop)}
+                className="p-1 text-muted-foreground hover:text-primary"
+                title="Shop bearbeiten"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setShopToDelete(shop)}
                 className="p-1 text-muted-foreground hover:text-destructive"
                 title={shop.isCustom ? "Shop löschen" : "Shop entfernen"}
@@ -270,19 +320,27 @@ export function ShopsConfig() {
           ))}
       </div>
 
-      {/* Add Custom Shop */}
+      {/* Add/Edit Shop Form */}
       {!showAddForm ? (
         <Button
           variant="outline"
           size="sm"
           className="w-full gap-2 text-xs"
-          onClick={() => setShowAddForm(true)}
+          onClick={() => {
+            setEditingShop(null);
+            setShowAddForm(true);
+          }}
         >
           <Plus className="w-3.5 h-3.5" />
           Eigenen Shop hinzufügen
         </Button>
       ) : (
         <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/50">
+          {editingShop && (
+            <p className="text-xs font-medium text-primary">
+              Bearbeiten: {editingShop.name}
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Name *</Label>
@@ -343,20 +401,17 @@ export function ShopsConfig() {
               variant="ghost"
               size="sm"
               className="flex-1 text-xs"
-              onClick={() => {
-                setShowAddForm(false);
-                setNewShop({ name: "", url: "", searchUrlTemplate: "", country: "CH" });
-              }}
+              onClick={cancelEditing}
             >
               Abbrechen
             </Button>
             <Button
               size="sm"
               className="flex-1 text-xs"
-              onClick={addCustomShop}
+              onClick={saveShop}
               disabled={!newShop.name.trim() || !newShop.url.trim()}
             >
-              Hinzufügen
+              {editingShop ? "Speichern" : "Hinzufügen"}
             </Button>
           </div>
         </div>
