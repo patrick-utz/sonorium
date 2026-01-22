@@ -1,5 +1,5 @@
 import { useRecords } from "@/context/RecordContext";
-import { Disc3, Disc, Music, TrendingUp, Tag, Sparkles, Heart, Star, Calendar } from "lucide-react";
+import { Disc3, Disc, Music, TrendingUp, Tag, Sparkles, Heart, Star, Calendar, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 import { useMemo } from "react";
 
 export default function Dashboard() {
@@ -59,9 +59,9 @@ export default function Dashboard() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20);
 
-  // Calculate purchases per month (last 12 months)
-  const purchasesByMonth = useMemo(() => {
-    const months: { month: string; shortMonth: string; count: number; isCurrentMonth: boolean }[] = [];
+  // Calculate purchases and expenses per month (last 12 months)
+  const monthlyData = useMemo(() => {
+    const months: { month: string; shortMonth: string; count: number; expenses: number; isCurrentMonth: boolean }[] = [];
     const now = new Date();
     
     // Generate last 12 months
@@ -69,22 +69,25 @@ export default function Dashboard() {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthName = date.toLocaleDateString("de-DE", { month: "long" });
       const shortMonth = date.toLocaleDateString("de-DE", { month: "short" });
-      const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       
-      // Count records purchased in this month
-      const count = records.filter((r) => {
+      // Filter records purchased in this month
+      const monthRecords = records.filter((r) => {
         if (!r.purchaseDate) return false;
         const purchaseDate = new Date(r.purchaseDate);
         return (
           purchaseDate.getFullYear() === date.getFullYear() &&
           purchaseDate.getMonth() === date.getMonth()
         );
-      }).length;
+      });
+      
+      const count = monthRecords.length;
+      const expenses = monthRecords.reduce((sum, r) => sum + (r.purchasePrice || 0), 0);
       
       months.push({ 
         month: monthName, 
         shortMonth: shortMonth.replace(".", ""),
         count,
+        expenses,
         isCurrentMonth: i === 0
       });
     }
@@ -92,7 +95,8 @@ export default function Dashboard() {
     return months;
   }, [records]);
 
-  const totalPurchasesLast12Months = purchasesByMonth.reduce((sum, m) => sum + m.count, 0);
+  const totalPurchasesLast12Months = monthlyData.reduce((sum, m) => sum + m.count, 0);
+  const totalExpensesLast12Months = monthlyData.reduce((sum, m) => sum + m.expenses, 0);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -263,7 +267,7 @@ export default function Dashboard() {
               </div>
               <div className="h-32 md:h-40">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={purchasesByMonth} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                  <BarChart data={monthlyData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                     <XAxis 
                       dataKey="shortMonth" 
                       tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
@@ -293,7 +297,7 @@ export default function Dashboard() {
                       }}
                     />
                     <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                      {purchasesByMonth.map((entry, index) => (
+                      {monthlyData.map((entry, index) => (
                         <Cell 
                           key={`cell-${index}`}
                           fill={entry.isCurrentMonth ? "hsl(var(--primary))" : "hsl(var(--primary)/0.5)"}
@@ -301,6 +305,62 @@ export default function Dashboard() {
                       ))}
                     </Bar>
                   </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Expenses Timeline Card */}
+        <motion.div variants={itemVariants}>
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold text-foreground">Ausgaben (12 Monate)</h3>
+                </div>
+                <span className="text-sm text-muted-foreground">{totalExpensesLast12Months.toFixed(0)} CHF gesamt</span>
+              </div>
+              <div className="h-32 md:h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={monthlyData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+                    <XAxis 
+                      dataKey="shortMonth" 
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={{ stroke: "hsl(var(--border))" }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => `${value}`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "hsl(var(--card))", 
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        fontSize: "12px"
+                      }}
+                      formatter={(value: number) => [`${value.toFixed(2)} CHF`, "Ausgaben"]}
+                      labelFormatter={(label, payload) => {
+                        if (payload && payload[0]) {
+                          return payload[0].payload.month;
+                        }
+                        return label;
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="expenses" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      dot={{ fill: "hsl(var(--primary))", strokeWidth: 0, r: 3 }}
+                      activeDot={{ r: 5, fill: "hsl(var(--primary))" }}
+                    />
+                  </LineChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
