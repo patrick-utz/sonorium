@@ -222,7 +222,7 @@ export default function Dashboard() {
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto space-y-8 pt-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-8 pt-4">
         {/* Statistics Cards */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Format Distribution Card */}
@@ -256,7 +256,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Combined Purchases & Expenses Timeline Card */}
-          <Card className="bg-card border-border">
+          <Card className="bg-card border-border min-w-0 overflow-hidden">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -269,8 +269,8 @@ export default function Dashboard() {
                   <span>{totalExpensesLast12Months.toFixed(0)} CHF</span>
                 </div>
               </div>
-              <div className="h-40 md:h-48">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-40 md:h-48 w-full min-w-0">
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
                   <ComposedChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
                     <XAxis 
                       dataKey="shortMonth" 
