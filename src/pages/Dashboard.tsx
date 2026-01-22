@@ -49,14 +49,20 @@ export default function Dashboard() {
   }, [genreCount]);
 
   const GENRE_COLORS = [
-    "hsl(var(--primary))",
-    "hsl(var(--primary) / 0.8)",
-    "hsl(var(--primary) / 0.6)",
-    "hsl(var(--primary) / 0.4)",
-    "hsl(var(--secondary))",
-    "hsl(var(--secondary) / 0.7)",
-    "hsl(var(--muted-foreground) / 0.5)",
+    "#E63946", // Vibrant Red
+    "#F4A261", // Orange
+    "#E9C46A", // Golden Yellow
+    "#2A9D8F", // Teal
+    "#457B9D", // Steel Blue
+    "#8338EC", // Purple
+    "#6B7280", // Gray for "Andere"
   ];
+
+  const handleGenreChartClick = (data: { name: string }) => {
+    if (data.name !== "Andere") {
+      navigate(`/sammlung?genre=${encodeURIComponent(data.name)}`);
+    }
+  };
 
   // Calculate tag distribution
   const tagCount = records.reduce((acc, record) => {
@@ -297,9 +303,16 @@ export default function Dashboard() {
                         outerRadius="80%"
                         paddingAngle={2}
                         dataKey="value"
+                        onClick={(_, index) => handleGenreChartClick(genreChartData[index])}
+                        style={{ cursor: "pointer" }}
                       >
-                        {genreChartData.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={GENRE_COLORS[index % GENRE_COLORS.length]} />
+                        {genreChartData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={GENRE_COLORS[index % GENRE_COLORS.length]}
+                            className="transition-opacity hover:opacity-80"
+                            style={{ cursor: entry.name !== "Andere" ? "pointer" : "default" }}
+                          />
                         ))}
                       </Pie>
                       <Tooltip
@@ -322,13 +335,18 @@ export default function Dashboard() {
               {genreChartData.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2 justify-center">
                   {genreChartData.slice(0, 4).map((genre, index) => (
-                    <div key={genre.name} className="flex items-center gap-1.5 text-xs">
+                    <button
+                      key={genre.name}
+                      onClick={() => genre.name !== "Andere" && handleGenreChartClick(genre)}
+                      className="flex items-center gap-1.5 text-xs hover:opacity-70 transition-opacity"
+                      style={{ cursor: genre.name !== "Andere" ? "pointer" : "default" }}
+                    >
                       <div
                         className="w-2.5 h-2.5 rounded-full"
                         style={{ backgroundColor: GENRE_COLORS[index] }}
                       />
                       <span className="text-muted-foreground">{genre.name}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
