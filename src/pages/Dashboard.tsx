@@ -209,6 +209,86 @@ export default function Dashboard() {
 
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-8 pt-4">
+        {/* Mood-based Sections */}
+        {topMoods.slice(0, 3).map(([mood, count]) => {
+          const moodRecords = records.filter(r => r.moods?.includes(mood));
+          if (moodRecords.length === 0) return null;
+          
+          // Choose icon and label based on mood
+          const getMoodDisplay = (m: string) => {
+            const lower = m.toLowerCase();
+            if (lower.includes('entspann') || lower.includes('ruhig') || lower.includes('meditativ')) {
+              return { label: `${m} Alben`, icon: '🌙' };
+            }
+            if (lower.includes('energet') || lower.includes('kraftvoll') || lower.includes('euphor')) {
+              return { label: `${m} Musik`, icon: '⚡' };
+            }
+            if (lower.includes('melanchol') || lower.includes('traurig') || lower.includes('nachdenklich')) {
+              return { label: `${m} Klänge`, icon: '💭' };
+            }
+            if (lower.includes('roman') || lower.includes('intim') || lower.includes('sinnlich')) {
+              return { label: `${m} Stimmung`, icon: '💫' };
+            }
+            if (lower.includes('party') || lower.includes('tanz') || lower.includes('feier')) {
+              return { label: `${m} Sounds`, icon: '🎉' };
+            }
+            return { label: m, icon: '✨' };
+          };
+          
+          const display = getMoodDisplay(mood);
+          
+          return (
+            <motion.section key={mood} variants={itemVariants}>
+              <div className="flex items-center justify-between mb-4">
+                <button 
+                  onClick={() => navigate(`/sammlung?mood=${encodeURIComponent(mood)}`)}
+                  className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+                >
+                  <span className="text-lg">{display.icon}</span>
+                  <h2 className="text-lg font-semibold text-foreground">{display.label}</h2>
+                  <span className="text-sm text-muted-foreground">({count})</span>
+                </button>
+                <button 
+                  onClick={() => navigate(`/sammlung?mood=${encodeURIComponent(mood)}`)}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Alle anzeigen →
+                </button>
+              </div>
+              <ScrollArea className="w-full">
+                <div className="flex gap-4 pb-4">
+                  {moodRecords.slice(0, 8).map((record) => (
+                    <div
+                      key={record.id}
+                      className="relative group cursor-pointer flex-shrink-0 w-36 md:w-44"
+                      onClick={() => navigate(`/sammlung/${record.id}`)}
+                    >
+                      <div className="aspect-square rounded-lg overflow-hidden bg-muted">
+                        {record.coverArt ? (
+                          <img
+                            src={record.coverArt}
+                            alt={record.album}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Disc3 className="w-12 h-12 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-2">
+                        <p className="text-sm font-medium text-foreground truncate">{record.album}</p>
+                        <p className="text-xs text-muted-foreground truncate">{record.artist}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </motion.section>
+          );
+        })}
+
         {/* Favorites Section */}
         {favoriteRecords.length > 0 && (
           <motion.section variants={itemVariants}>
