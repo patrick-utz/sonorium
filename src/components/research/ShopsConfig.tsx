@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { GripVertical, Plus, Trash2, ExternalLink, Pencil } from "lucide-react";
+import { GripVertical, Plus, Trash2, ExternalLink, Pencil, Search, X } from "lucide-react";
 import { ShopPreference, DEFAULT_SHOPS } from "@/types/audiophileProfile";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 import { toast } from "sonner";
@@ -61,6 +61,20 @@ export function ShopsConfig() {
   const [shopToDelete, setShopToDelete] = useState<ShopPreference | null>(null);
   const [draggedShopId, setDraggedShopId] = useState<string | null>(null);
   const [dragOverShopId, setDragOverShopId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter shops based on search query
+  const filteredShops = shops
+    .filter((shop) => {
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        shop.name.toLowerCase().includes(query) ||
+        shop.country.toLowerCase().includes(query) ||
+        shop.url.toLowerCase().includes(query)
+      );
+    })
+    .sort((a, b) => a.priority - b.priority);
 
   const handleDragStart = (shopId: string) => {
     setDraggedShopId(shopId);
@@ -250,10 +264,35 @@ export function ShopsConfig() {
       <p className="text-xs text-muted-foreground">
         Ziehe Shops per Drag-and-Drop um die Priorität zu ändern.
       </p>
+
+      {/* Search/Filter Input */}
+      {shops.length > 4 && (
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Shop suchen..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-8 text-xs pl-8 pr-8"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
       
       <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-        {shops
-          .sort((a, b) => a.priority - b.priority)
+        {filteredShops.length === 0 && searchQuery ? (
+          <p className="text-xs text-muted-foreground text-center py-4">
+            Kein Shop gefunden für "{searchQuery}"
+          </p>
+        ) : null}
+        {filteredShops
           .map((shop, idx) => (
             <div
               key={shop.id}
