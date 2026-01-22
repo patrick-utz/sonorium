@@ -413,6 +413,7 @@ export default function AddRecord() {
           formatDetails: aiData.formatDetails,
           pressing: aiData.pressing,
           tags: aiData.tags,
+          moods: aiData.moods,
           personalNotes: aiData.personalNotes,
           coverArt: aiData.coverArtBase64 || aiData.coverArtUrl || imageBase64,
           audiophileAssessment: aiData.audiophileAssessment,
@@ -504,6 +505,7 @@ export default function AddRecord() {
         vinylRecommendation: pendingBarcodeData.vinylRecommendation || prev.vinylRecommendation,
         recommendationReason: pendingBarcodeData.recommendationReason || prev.recommendationReason,
         recommendations: pendingBarcodeData.recommendations || prev.recommendations,
+        moods: pendingBarcodeData.moods?.length ? pendingBarcodeData.moods : prev.moods,
         status: status,
       }));
 
