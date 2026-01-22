@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Trash2, Music, Heart, Star, ThumbsUp, Radio, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +43,16 @@ const getVinylRecommendationLabel = (rec: VinylRecommendation | undefined) => {
 
 export function RecordCard({ record, onClick, onDelete, onToggleFavorite, onRatingChange, onReloadCover, className }: RecordCardProps) {
   const [isReloadingCover, setIsReloadingCover] = useState(false);
+  const { profile } = useAudiophileProfile();
+
+  // Get configured moods that match this record's moods (with colors)
+  const recordMoodsWithColors = (record.moods || [])
+    .map(moodName => {
+      const configured = (profile?.moods || []).find(m => m.name === moodName && m.enabled);
+      return configured ? { name: moodName, color: configured.color, icon: configured.icon } : null;
+    })
+    .filter(Boolean)
+    .slice(0, 3); // Show max 3 mood indicators
 
   const handleReloadCover = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -161,6 +172,19 @@ export function RecordCard({ record, onClick, onDelete, onToggleFavorite, onRati
       
       {/* Card Footer - Click to open detail */}
       <div className="p-4 space-y-2">
+        {/* Mood color indicators */}
+        {recordMoodsWithColors.length > 0 && (
+          <div className="flex items-center gap-1.5 mb-1">
+            {recordMoodsWithColors.map((mood, idx) => (
+              <div
+                key={idx}
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: mood?.color ? `hsl(${mood.color})` : 'hsl(var(--muted-foreground))' }}
+                title={mood?.name}
+              />
+            ))}
+          </div>
+        )}
         <h3 className="font-semibold text-foreground truncate">
           {record.album}
         </h3>
