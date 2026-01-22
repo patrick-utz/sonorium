@@ -1,5 +1,5 @@
 import { useRecords } from "@/context/RecordContext";
-import { Disc3, Disc, Music, Heart, Sparkles, Tag } from "lucide-react";
+import { Disc3, Disc, Music, Heart, Tag } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -11,10 +11,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Star } from "lucide-react";
+import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
+import { Button } from "@/components/ui/button";
 
 export default function Dashboard() {
   const { records, getWishlistRecords, getFavoriteRecords, toggleFavorite } = useRecords();
+  const { profile } = useAudiophileProfile();
   const navigate = useNavigate();
+  
+  // Get enabled configured moods sorted by priority
+  const configuredMoods = (profile?.moods || [])
+    .filter(m => m.enabled)
+    .sort((a, b) => a.priority - b.priority);
 
   const wishlistRecords = getWishlistRecords();
   const favoriteRecords = getFavoriteRecords();
@@ -148,8 +156,8 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Filter Dropdowns */}
-        <motion.div variants={itemVariants} className="grid grid-cols-3 gap-3 max-w-xl mx-auto px-1">
+        {/* Genre & Tags Dropdowns */}
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3 max-w-md mx-auto px-1">
           {/* Genres Dropdown */}
           {topGenres.length > 0 && (
             <Select onValueChange={handleGenreSelect}>
@@ -166,27 +174,6 @@ export default function Dashboard() {
               </SelectContent>
             </Select>
           )}
-
-          {/* Moods/Stimmung Dropdown - always visible */}
-          <Select onValueChange={handleMoodSelect} disabled={topMoods.length === 0}>
-            <SelectTrigger className="w-full bg-card border-border">
-              <Sparkles className="w-4 h-4 mr-2 text-muted-foreground flex-shrink-0" />
-              <SelectValue placeholder={topMoods.length === 0 ? "Keine Stimmungen" : "Stimmung"} />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border z-50 max-h-[300px]">
-              {topMoods.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-muted-foreground">
-                  Noch keine Stimmungen gepflegt
-                </div>
-              ) : (
-                topMoods.map(([mood, count]) => (
-                  <SelectItem key={mood} value={mood}>
-                    {mood} ({count})
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
 
           {/* Tags/Stichworte Dropdown */}
           {topTags.length > 0 && (
@@ -205,6 +192,34 @@ export default function Dashboard() {
             </Select>
           )}
         </motion.div>
+
+        {/* Mood Filter Buttons */}
+        {configuredMoods.length > 0 && (
+          <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto px-1">
+            {configuredMoods.map((mood) => {
+              const count = moodCount[mood.name] || 0;
+              return (
+                <Button
+                  key={mood.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleMoodSelect(mood.name)}
+                  className="border transition-all hover:scale-105"
+                  style={mood.color ? {
+                    borderColor: `hsl(${mood.color})`,
+                    borderLeftWidth: '3px',
+                  } : undefined}
+                >
+                  <span className="mr-1.5">{mood.icon}</span>
+                  <span>{mood.name}</span>
+                  {count > 0 && (
+                    <span className="ml-1.5 text-xs text-muted-foreground">({count})</span>
+                  )}
+                </Button>
+              );
+            })}
+          </motion.div>
+        )}
       </div>
 
       {/* Scrollable Content Area */}
