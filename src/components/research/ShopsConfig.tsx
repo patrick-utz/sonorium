@@ -58,24 +58,51 @@ export function ShopsConfig() {
     country: "CH",
   });
   const [shopToDelete, setShopToDelete] = useState<ShopPreference | null>(null);
+  const [draggedShopId, setDraggedShopId] = useState<string | null>(null);
+  const [dragOverShopId, setDragOverShopId] = useState<string | null>(null);
 
+  const handleDragStart = (shopId: string) => {
+    setDraggedShopId(shopId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, shopId: string) => {
+    e.preventDefault();
+    if (draggedShopId && draggedShopId !== shopId) {
+      setDragOverShopId(shopId);
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (!profile || !draggedShopId || !dragOverShopId) {
+      setDraggedShopId(null);
+      setDragOverShopId(null);
+      return;
+    }
+
+    const shopsCopy = [...shops].sort((a, b) => a.priority - b.priority);
+    const draggedIdx = shopsCopy.findIndex((s) => s.id === draggedShopId);
+    const dropIdx = shopsCopy.findIndex((s) => s.id === dragOverShopId);
+
+    if (draggedIdx !== -1 && dropIdx !== -1) {
+      const [draggedShop] = shopsCopy.splice(draggedIdx, 1);
+      shopsCopy.splice(dropIdx, 0, draggedShop);
+      shopsCopy.forEach((s, i) => (s.priority = i + 1));
+      updateProfile({ ...profile, shops: shopsCopy });
+    }
+
+    setDraggedShopId(null);
+    setDragOverShopId(null);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverShopId(null);
+  };
   const toggleShop = (shopId: string) => {
     if (!profile) return;
     const updatedShops = shops.map((s) =>
       s.id === shopId ? { ...s, enabled: !s.enabled } : s
     );
     updateProfile({ ...profile, shops: updatedShops });
-  };
-
-  const moveShopUp = (shopId: string) => {
-    if (!profile) return;
-    const shopsCopy = [...shops];
-    const idx = shopsCopy.findIndex((s) => s.id === shopId);
-    if (idx > 0) {
-      [shopsCopy[idx - 1], shopsCopy[idx]] = [shopsCopy[idx], shopsCopy[idx - 1]];
-      shopsCopy.forEach((s, i) => (s.priority = i + 1));
-      updateProfile({ ...profile, shops: shopsCopy });
-    }
   };
 
   const confirmDeleteShop = () => {
@@ -180,7 +207,7 @@ export function ShopsConfig() {
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Aktiviere/deaktiviere Shops. Reihenfolge = Priorität im Preisvergleich.
+        Ziehe Shops per Drag-and-Drop um die Priorität zu ändern.
       </p>
       
       <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
@@ -189,16 +216,22 @@ export function ShopsConfig() {
           .map((shop, idx) => (
             <div
               key={shop.id}
-              className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card"
+              draggable
+              onDragStart={() => handleDragStart(shop.id)}
+              onDragOver={(e) => handleDragOver(e, shop.id)}
+              onDragEnd={handleDragEnd}
+              onDragLeave={handleDragLeave}
+              className={`flex items-center gap-2 p-2 rounded-lg border bg-card transition-all ${
+                draggedShopId === shop.id 
+                  ? "opacity-50 border-primary" 
+                  : dragOverShopId === shop.id 
+                    ? "border-primary bg-primary/5" 
+                    : "border-border"
+              }`}
             >
-              <button
-                type="button"
-                onClick={() => moveShopUp(shop.id)}
-                disabled={idx === 0}
-                className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-grab"
-              >
+              <div className="p-0.5 text-muted-foreground cursor-grab active:cursor-grabbing">
                 <GripVertical className="w-3.5 h-3.5" />
-              </button>
+              </div>
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
