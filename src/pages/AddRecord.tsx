@@ -269,6 +269,7 @@ export default function AddRecord() {
           formatDetails: prev.formatDetails || aiData.formatDetails || prev.formatDetails,
           pressing: prev.pressing || aiData.pressing || prev.pressing,
           tags: prev.tags?.length ? prev.tags : (aiData.tags || prev.tags),
+          moods: prev.moods?.length ? prev.moods : (aiData.moods || prev.moods),
           personalNotes: prev.personalNotes || aiData.personalNotes || prev.personalNotes,
           coverArt: finalCoverArt || prev.coverArt,
           // KI-Bewertungen - always update these from AI
