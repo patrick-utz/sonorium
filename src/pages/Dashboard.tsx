@@ -128,7 +128,7 @@ export default function Dashboard() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="flex flex-col h-[calc(100vh-6rem)]"
+      className="flex flex-col h-[calc(100vh-6rem)] min-w-0 w-full overflow-hidden"
     >
       {/* Sticky Header Area with shadow */}
       <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
