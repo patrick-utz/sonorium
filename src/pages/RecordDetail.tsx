@@ -67,6 +67,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RelatedByMoodSection } from "@/components/RelatedByMoodSection";
 
 export default function RecordDetail() {
   const { id } = useParams<{ id: string }>();
@@ -675,6 +676,13 @@ export default function RecordDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Ähnliche Alben nach Stimmung */}
+      <RelatedByMoodSection 
+        currentRecord={record}
+        allRecords={records}
+        onNavigate={(id) => navigate(`/sammlung/${id}`)}
+      />
     </motion.div>
   );
 }
