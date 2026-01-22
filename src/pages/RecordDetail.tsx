@@ -125,6 +125,7 @@ export default function RecordDetail() {
           recommendationReason: aiData.recommendationReason || record.recommendationReason,
           recommendations: aiData.recommendations || record.recommendations,
           tags: aiData.tags?.length ? aiData.tags : record.tags,
+          moods: aiData.moods?.length ? aiData.moods : record.moods,
           personalNotes: aiData.personalNotes || record.personalNotes,
         });
 
