@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import { AudiophileProfile, DEFAULT_SHOPS } from "@/types/audiophileProfile";
+import { AudiophileProfile, DEFAULT_SHOPS, DEFAULT_MOODS } from "@/types/audiophileProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ const defaultProfile: AudiophileProfile = {
   },
   mediaFormat: "vinyl",
   shops: DEFAULT_SHOPS,
+  moods: DEFAULT_MOODS,
 };
 
 const AudiophileProfileContext = createContext<AudiophileProfileContextType | undefined>(undefined);
@@ -78,16 +79,28 @@ export function AudiophileProfileProvider({ children }: { children: ReactNode })
       } else if (data?.profile) {
         // Profile found in database
         const dbProfile = data.profile as unknown as AudiophileProfile;
+        let needsSave = false;
+        
         // Ensure shops array exists with defaults if missing
         if (!dbProfile.shops || dbProfile.shops.length === 0) {
           dbProfile.shops = DEFAULT_SHOPS;
-          // Save the updated profile with shops back to database
+          needsSave = true;
+        }
+        
+        // Ensure moods array exists with defaults if missing
+        if (!dbProfile.moods || dbProfile.moods.length === 0) {
+          dbProfile.moods = DEFAULT_MOODS;
+          needsSave = true;
+        }
+        
+        if (needsSave) {
           try {
             await saveProfileToDatabase(user.id, dbProfile);
           } catch (err) {
-            console.error("Failed to save updated profile with shops:", err);
+            console.error("Failed to save updated profile:", err);
           }
         }
+        
         setProfile(dbProfile);
         // Also update localStorage for offline access
         localStorage.setItem("sonorium-audiophile-profile", JSON.stringify(dbProfile));

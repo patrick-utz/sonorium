@@ -9,6 +9,15 @@ export interface ShopPreference {
   searchUrlTemplate?: string; // e.g., "https://shop.com/search?q={query}"
 }
 
+export interface MoodCategory {
+  id: string;
+  name: string;
+  icon: string; // emoji
+  enabled: boolean;
+  priority: number;
+  isCustom?: boolean;
+}
+
 export const DEFAULT_SHOPS: ShopPreference[] = [
   { id: "discogs", name: "Discogs", url: "https://www.discogs.com", country: "INT", enabled: true, priority: 1, searchUrlTemplate: "https://www.discogs.com/search/?q={query}&type=release" },
   { id: "recordsale", name: "recordsale.ch", url: "https://www.recordsale.ch", country: "CH", enabled: true, priority: 2, searchUrlTemplate: "https://www.recordsale.ch/search?q={query}" },
@@ -16,6 +25,15 @@ export const DEFAULT_SHOPS: ShopPreference[] = [
   { id: "jpc", name: "jpc.de", url: "https://www.jpc.de", country: "DE", enabled: true, priority: 4, searchUrlTemplate: "https://www.jpc.de/s/{query}" },
   { id: "imusic", name: "imusic.ch", url: "https://www.imusic.ch", country: "CH", enabled: false, priority: 5, searchUrlTemplate: "https://www.imusic.ch/search/?query={query}" },
   { id: "musikhug", name: "Musik Hug", url: "https://www.musikhug.ch", country: "CH", enabled: false, priority: 6, searchUrlTemplate: "https://www.musikhug.ch/suche?q={query}" },
+];
+
+export const DEFAULT_MOODS: MoodCategory[] = [
+  { id: "entspannend", name: "Entspannend", icon: "🌙", enabled: true, priority: 1 },
+  { id: "energetisch", name: "Energetisch", icon: "⚡", enabled: true, priority: 2 },
+  { id: "melancholisch", name: "Melancholisch", icon: "💭", enabled: true, priority: 3 },
+  { id: "romantisch", name: "Romantisch", icon: "💫", enabled: true, priority: 4 },
+  { id: "party", name: "Party", icon: "🎉", enabled: true, priority: 5 },
+  { id: "fokus", name: "Fokus", icon: "🎯", enabled: true, priority: 6 },
 ];
 
 export interface AudiophileProfile {
@@ -36,6 +54,7 @@ export interface AudiophileProfile {
   };
   mediaFormat: 'vinyl' | 'cd' | 'both';
   shops?: ShopPreference[];
+  moods?: MoodCategory[];
 }
 
 export interface AlbumRecommendation {

@@ -2,6 +2,8 @@ import { useState, KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { X, Sparkles } from "lucide-react";
+import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
+import { DEFAULT_MOODS } from "@/types/audiophileProfile";
 
 interface MoodInputProps {
   moods: string[];
@@ -9,6 +11,7 @@ interface MoodInputProps {
   placeholder?: string;
 }
 
+// Fallback suggestions for free-form input
 const MOOD_SUGGESTIONS = [
   // Emotionen
   "entspannend", "energiegeladen", "melancholisch", "fröhlich", "euphorisch",
@@ -22,13 +25,20 @@ const MOOD_SUGGESTIONS = [
   "zum Nachdenken", "für lange Fahrten", "Dinner-Musik", "Hintergrundmusik"
 ];
 
-export function MoodInput({ moods, onChange, placeholder = "Stimmung hinzufügen..." }: MoodInputProps) {
+export function MoodInput({ moods, onChange, placeholder = "Weitere Stimmung hinzufügen..." }: MoodInputProps) {
+  const { profile } = useAudiophileProfile();
   const [inputValue, setInputValue] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // Get configured moods from profile, fallback to defaults
+  const configuredMoods = (profile?.moods || DEFAULT_MOODS)
+    .filter(m => m.enabled)
+    .sort((a, b) => a.priority - b.priority);
+
   const addMood = (mood: string) => {
-    const trimmedMood = mood.trim().toLowerCase();
-    if (trimmedMood && !moods.includes(trimmedMood)) {
+    const trimmedMood = mood.trim();
+    // Check case-insensitive but preserve case
+    if (trimmedMood && !moods.some(m => m.toLowerCase() === trimmedMood.toLowerCase())) {
       onChange([...moods, trimmedMood]);
     }
     setInputValue("");
@@ -37,6 +47,14 @@ export function MoodInput({ moods, onChange, placeholder = "Stimmung hinzufügen
 
   const removeMood = (moodToRemove: string) => {
     onChange(moods.filter((mood) => mood !== moodToRemove));
+  };
+
+  const toggleMood = (moodName: string) => {
+    if (moods.some(m => m.toLowerCase() === moodName.toLowerCase())) {
+      onChange(moods.filter(m => m.toLowerCase() !== moodName.toLowerCase()));
+    } else {
+      addMood(moodName);
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -51,34 +69,69 @@ export function MoodInput({ moods, onChange, placeholder = "Stimmung hinzufügen
   const filteredSuggestions = MOOD_SUGGESTIONS.filter(
     (s) =>
       s.toLowerCase().includes(inputValue.toLowerCase()) &&
-      !moods.includes(s.toLowerCase())
+      !moods.some(m => m.toLowerCase() === s.toLowerCase())
   );
 
+  // Check if a mood is selected
+  const isMoodSelected = (moodName: string) => 
+    moods.some(m => m.toLowerCase() === moodName.toLowerCase());
+
   return (
-    <div className="space-y-2">
-      {moods.length > 0 && (
+    <div className="space-y-3">
+      {/* Configured Mood Quick-Select Buttons */}
+      <div className="space-y-2">
+        <span className="text-xs text-muted-foreground">Haupt-Stimmungen:</span>
         <div className="flex flex-wrap gap-2">
-          {moods.map((mood) => (
-            <Badge
-              key={mood}
-              variant="secondary"
-              className="gap-1 pr-1 bg-accent text-accent-foreground hover:bg-accent/80"
-            >
-              <Sparkles className="w-3 h-3" />
-              {mood}
+          {configuredMoods.map((mood) => {
+            const isSelected = isMoodSelected(mood.name);
+            return (
               <button
+                key={mood.id}
                 type="button"
-                onClick={() => removeMood(mood)}
-                className="ml-1 hover:bg-accent/50 rounded-full p-0.5"
+                onClick={() => toggleMood(mood.name)}
+                className={`
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
+                  ${isSelected 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                  }
+                `}
               >
-                <X className="w-3 h-3" />
+                <span className="text-base">{mood.icon}</span>
+                {mood.name}
+                {isSelected && <X className="w-3 h-3 ml-0.5" />}
               </button>
-            </Badge>
-          ))}
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Custom moods that are not in the configured list */}
+      {moods.filter(m => !configuredMoods.some(cm => cm.name.toLowerCase() === m.toLowerCase())).length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {moods
+            .filter(m => !configuredMoods.some(cm => cm.name.toLowerCase() === m.toLowerCase()))
+            .map((mood) => (
+              <Badge
+                key={mood}
+                variant="secondary"
+                className="gap-1 pr-1 bg-accent text-accent-foreground hover:bg-accent/80"
+              >
+                <Sparkles className="w-3 h-3" />
+                {mood}
+                <button
+                  type="button"
+                  onClick={() => removeMood(mood)}
+                  className="ml-1 hover:bg-accent/50 rounded-full p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            ))}
         </div>
       )}
 
-      {/* Input */}
+      {/* Free-form Input */}
       <div className="relative">
         <Input
           value={inputValue}
@@ -109,24 +162,9 @@ export function MoodInput({ moods, onChange, placeholder = "Stimmung hinzufügen
           </div>
         )}
       </div>
-
-      {moods.length === 0 && !inputValue && (
-        <div className="flex flex-wrap gap-1">
-          <span className="text-xs text-muted-foreground mr-1">Vorschläge:</span>
-          {MOOD_SUGGESTIONS.slice(0, 6).map((suggestion) => (
-            <button
-              key={suggestion}
-              type="button"
-              onClick={() => addMood(suggestion)}
-              className="text-xs px-2 py-0.5 rounded-full bg-accent hover:bg-accent/80 text-accent-foreground transition-colors"
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
 
 export { MOOD_SUGGESTIONS };
+
