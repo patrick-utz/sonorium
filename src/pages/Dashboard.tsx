@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
+import { ComposedChart, Bar, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, Legend } from "recharts";
 import { useMemo } from "react";
 
 export default function Dashboard() {
@@ -255,19 +255,23 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Purchases Timeline Card */}
+          {/* Combined Purchases & Expenses Timeline Card */}
           <Card className="bg-card border-border">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold text-foreground">Käufe (12 Monate)</h3>
+                  <h3 className="font-semibold text-foreground">Käufe & Ausgaben (12 Monate)</h3>
                 </div>
-                <span className="text-sm text-muted-foreground">{totalPurchasesLast12Months} gesamt</span>
+                <div className="flex gap-3 text-xs text-muted-foreground">
+                  <span>{totalPurchasesLast12Months} Käufe</span>
+                  <span>•</span>
+                  <span>{totalExpensesLast12Months.toFixed(0)} CHF</span>
+                </div>
               </div>
-              <div className="h-32 md:h-40">
+              <div className="h-40 md:h-48">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                  <ComposedChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
                     <XAxis 
                       dataKey="shortMonth" 
                       tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
@@ -275,10 +279,20 @@ export default function Dashboard() {
                       tickLine={false}
                     />
                     <YAxis 
+                      yAxisId="left"
                       tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                       axisLine={false}
                       tickLine={false}
                       allowDecimals={false}
+                      orientation="left"
+                    />
+                    <YAxis 
+                      yAxisId="right"
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                      orientation="right"
+                      tickFormatter={(value) => `${value}`}
                     />
                     <Tooltip 
                       cursor={{ fill: "hsl(var(--muted)/0.3)" }}
@@ -288,7 +302,10 @@ export default function Dashboard() {
                         borderRadius: "8px",
                         fontSize: "12px"
                       }}
-                      formatter={(value: number) => [`${value} Käufe`, ""]}
+                      formatter={(value: number, name: string) => {
+                        if (name === "count") return [`${value} Käufe`, "Käufe"];
+                        return [`${value.toFixed(2)} CHF`, "Ausgaben"];
+                      }}
                       labelFormatter={(label, payload) => {
                         if (payload && payload[0]) {
                           return payload[0].payload.month;
@@ -296,7 +313,13 @@ export default function Dashboard() {
                         return label;
                       }}
                     />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    <Legend 
+                      verticalAlign="top" 
+                      height={24}
+                      formatter={(value) => value === "count" ? "Käufe" : "Ausgaben (CHF)"}
+                      wrapperStyle={{ fontSize: "11px" }}
+                    />
+                    <Bar yAxisId="left" dataKey="count" radius={[4, 4, 0, 0]} name="count">
                       {monthlyData.map((entry, index) => (
                         <Cell 
                           key={`cell-${index}`}
@@ -304,63 +327,17 @@ export default function Dashboard() {
                         />
                       ))}
                     </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Expenses Timeline Card */}
-        <motion.div variants={itemVariants}>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Wallet className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold text-foreground">Ausgaben (12 Monate)</h3>
-                </div>
-                <span className="text-sm text-muted-foreground">{totalExpensesLast12Months.toFixed(0)} CHF gesamt</span>
-              </div>
-              <div className="h-32 md:h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={monthlyData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-                    <XAxis 
-                      dataKey="shortMonth" 
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                      tickLine={false}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(value) => `${value}`}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))", 
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                        fontSize: "12px"
-                      }}
-                      formatter={(value: number) => [`${value.toFixed(2)} CHF`, "Ausgaben"]}
-                      labelFormatter={(label, payload) => {
-                        if (payload && payload[0]) {
-                          return payload[0].payload.month;
-                        }
-                        return label;
-                      }}
-                    />
                     <Line 
+                      yAxisId="right"
                       type="monotone" 
                       dataKey="expenses" 
-                      stroke="hsl(var(--primary))" 
+                      name="expenses"
+                      stroke="hsl(var(--destructive))" 
                       strokeWidth={2}
-                      dot={{ fill: "hsl(var(--primary))", strokeWidth: 0, r: 3 }}
-                      activeDot={{ r: 5, fill: "hsl(var(--primary))" }}
+                      dot={{ fill: "hsl(var(--destructive))", strokeWidth: 0, r: 3 }}
+                      activeDot={{ r: 5, fill: "hsl(var(--destructive))" }}
                     />
-                  </LineChart>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
