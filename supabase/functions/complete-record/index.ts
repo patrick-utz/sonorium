@@ -1412,8 +1412,8 @@ Liefere ein JSON-Objekt mit folgender Struktur:
   "catalogNumber": "string - falls bekannt",
   "formatDetails": "string - Vinyl-Details wie Gewicht, Pressung",
   "pressing": "string - Pressland/Jahr",
-  "tags": ["stichworte", "instrumente", "stile"] - Technische Beschreibungen wie Instrumente, Anlässe, musikalische Stile,
-  "moods": ["array", "der", "stimmungen"] - Emotionale Atmosphäre des Albums. Wähle passende Stimmungen aus dieser Liste oder ähnliche: entspannend, energiegeladen, melancholisch, fröhlich, euphorisch, nachdenklich, romantisch, düster, verträumt, aufwühlend, beruhigend, nostalgisch, ekstatisch, sehnsüchtig, tröstend, atmosphärisch, intim, episch, minimalistisch, hypnotisch, groovend, tanzbar, meditativ, kraftvoll, sanft. Wähle 2-5 passende Stimmungen.,
+  "tags": ["string", "array"] - Technische Stichworte wie Instrumente (Klavier, Gitarre), Stile (Live, Studio), Anlässe (Party, Arbeit). 3-6 Stichworte.,
+  "moods": ["string", "array"] - PFLICHTFELD! Emotionale Stimmungen des Albums. Wähle 2-5 aus: entspannend, energiegeladen, melancholisch, fröhlich, euphorisch, nachdenklich, romantisch, düster, verträumt, aufwühlend, beruhigend, nostalgisch, ekstatisch, sehnsüchtig, tröstend, atmosphärisch, intim, episch, minimalistisch, hypnotisch, groovend, tanzbar, meditativ, kraftvoll, sanft. IMMER als Array zurückgeben!,
   "personalNotes": "string - interessante Fakten über dieses Album",
   
   "audiophileAssessment": "AUSFÜHRLICHE audiophile Beurteilung (mindestens 150 Wörter): Beschreibe die Aufnahmequalität, Räumlichkeit, Transparenz, Dynamik, Basswiedergabe, Höhenauflösung. Erwähne spezifische Toningenieure, Studios, Aufnahmetechnik. Nenne die besten Pressungen (Original, Reissues wie MoFi, Acoustic Sounds, Analogue Productions). Beschreibe die Klangbühne und Instrumententrennung. Nutze audiophile Fachbegriffe.",

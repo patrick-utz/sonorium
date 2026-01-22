@@ -492,46 +492,51 @@ export default function RecordDetail() {
         </Card>
       )}
 
-      {/* Stichworte - volle Breite */}
-      {record.tags && record.tags.length > 0 && (
-        <Card className="bg-gradient-card border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Music className="w-5 h-5 text-primary" />
-              Stichworte
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {record.tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-sm">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Stichworte & Stimmungen - nebeneinander */}
+      {((record.tags && record.tags.length > 0) || (record.moods && record.moods.length > 0)) && (
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Stichworte */}
+          {record.tags && record.tags.length > 0 && (
+            <Card className="bg-gradient-card border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Tag className="w-5 h-5 text-primary" />
+                  Stichworte
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {record.tags.map((tag) => (
+                    <Badge key={tag} variant="outline" className="text-sm">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Stimmungen - volle Breite */}
-      {record.moods && record.moods.length > 0 && (
-        <Card className="bg-gradient-card border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Heart className="w-5 h-5 text-primary" />
-              Stimmungen
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {record.moods.map((mood) => (
-                <Badge key={mood} variant="secondary" className="text-sm">
-                  {mood}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          {/* Stimmungen */}
+          {record.moods && record.moods.length > 0 && (
+            <Card className="bg-gradient-card border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  Stimmungen
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {record.moods.map((mood) => (
+                    <Badge key={mood} variant="secondary" className="text-sm bg-accent text-accent-foreground">
+                      {mood}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Kritiken von Fachmagazinen */}
