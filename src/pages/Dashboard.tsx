@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { ComposedChart, Bar, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, Legend } from "recharts";
+import { ComposedChart, Bar, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, Legend, PieChart, Pie } from "recharts";
 import { useMemo } from "react";
 
 export default function Dashboard() {
@@ -34,6 +34,29 @@ export default function Dashboard() {
   const topGenres = Object.entries(genreCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20);
+
+  // Genre data for donut chart (top 6 + others)
+  const genreChartData = useMemo(() => {
+    const sorted = Object.entries(genreCount).sort((a, b) => b[1] - a[1]);
+    const top6 = sorted.slice(0, 6);
+    const othersCount = sorted.slice(6).reduce((sum, [, count]) => sum + count, 0);
+    
+    const data = top6.map(([name, value]) => ({ name, value }));
+    if (othersCount > 0) {
+      data.push({ name: "Andere", value: othersCount });
+    }
+    return data;
+  }, [genreCount]);
+
+  const GENRE_COLORS = [
+    "hsl(var(--primary))",
+    "hsl(var(--primary) / 0.8)",
+    "hsl(var(--primary) / 0.6)",
+    "hsl(var(--primary) / 0.4)",
+    "hsl(var(--secondary))",
+    "hsl(var(--secondary) / 0.7)",
+    "hsl(var(--muted-foreground) / 0.5)",
+  ];
 
   // Calculate tag distribution
   const tagCount = records.reduce((acc, record) => {
@@ -224,7 +247,7 @@ export default function Dashboard() {
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-8 pt-4">
         {/* Statistics Cards */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Format Distribution Card */}
           <Card className="bg-card border-border">
             <CardContent className="p-4 md:p-6">
@@ -252,6 +275,63 @@ export default function Dashboard() {
                   <span className="text-sm text-muted-foreground">CDs</span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Genre Distribution Donut Chart */}
+          <Card className="bg-card border-border min-w-0 overflow-hidden">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Music className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold text-foreground">Genres</h3>
+              </div>
+              {genreChartData.length > 0 ? (
+                <div className="h-40 md:h-48 w-full min-w-0">
+                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
+                    <PieChart>
+                      <Pie
+                        data={genreChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="50%"
+                        outerRadius="80%"
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {genreChartData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={GENRE_COLORS[index % GENRE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                        }}
+                        formatter={(value: number, name: string) => [`${value} Alben`, name]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">
+                  Keine Genre-Daten
+                </div>
+              )}
+              {genreChartData.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                  {genreChartData.slice(0, 4).map((genre, index) => (
+                    <div key={genre.name} className="flex items-center gap-1.5 text-xs">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: GENRE_COLORS[index] }}
+                      />
+                      <span className="text-muted-foreground">{genre.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
