@@ -15,6 +15,7 @@ interface RecordContextType {
   getFavoriteRecords: () => Record[];
   toggleFavorite: (id: string) => Promise<void>;
   importRecords: (records: Record[], mode: "merge" | "replace") => Promise<void>;
+  refreshRecords: () => Promise<void>;
 }
 
 const RecordContext = createContext<RecordContextType | undefined>(undefined);
@@ -33,6 +34,7 @@ export function RecordProvider({ children }: { children: ReactNode }) {
     getFavoriteRecords,
     toggleFavorite,
     importRecords,
+    refetch,
   } = useRecordsSync();
 
   return (
@@ -50,6 +52,7 @@ export function RecordProvider({ children }: { children: ReactNode }) {
         getFavoriteRecords,
         toggleFavorite,
         importRecords,
+        refreshRecords: refetch,
       }}
     >
       {children}

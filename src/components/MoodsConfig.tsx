@@ -15,7 +15,9 @@ import {
   X, 
   RotateCcw,
   Search,
-  Palette
+  Palette,
+  Wand2,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -31,11 +33,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
+import { useRecords } from "@/context/RecordContext";
 
 const EMOJI_SUGGESTIONS = ["🌙", "⚡", "💭", "💫", "🎉", "🎯", "🔥", "❄️", "🌊", "🌸", "🎸", "🎹", "✨", "🌈", "🎭", "💎"];
 
 export function MoodsConfig() {
   const { profile, updateProfile } = useAudiophileProfile();
+  const { records, refreshRecords } = useRecords();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editIcon, setEditIcon] = useState("");
@@ -46,8 +51,14 @@ export function MoodsConfig() {
   const [newMoodIcon, setNewMoodIcon] = useState("✨");
   const [newMoodColor, setNewMoodColor] = useState<string>(MOOD_COLORS[0].hsl);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAssigningMoods, setIsAssigningMoods] = useState(false);
 
   const moods = profile?.moods || DEFAULT_MOODS;
+  const enabledMoods = moods.filter(m => m.enabled).sort((a, b) => a.priority - b.priority);
+  const disabledMoods = moods.filter(m => !m.enabled).sort((a, b) => a.priority - b.priority);
+
+  // Count records without moods
+  const recordsWithoutMoods = records.filter(r => !r.moods || r.moods.length === 0).length;
   const enabledMoods = moods.filter(m => m.enabled).sort((a, b) => a.priority - b.priority);
   const disabledMoods = moods.filter(m => !m.enabled).sort((a, b) => a.priority - b.priority);
 
@@ -192,6 +203,44 @@ export function MoodsConfig() {
     
     await updateProfile({ ...profile, moods: DEFAULT_MOODS });
     toast.success("Stimmungen auf Standard zurückgesetzt");
+  };
+
+  const handleBulkAssignMoods = async () => {
+    setIsAssigningMoods(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Bitte melde dich an");
+        return;
+      }
+
+      const response = await supabase.functions.invoke("bulk-assign-moods", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const result = response.data;
+      if (result.success) {
+        toast.success(result.message);
+        // Refresh records to show new moods
+        await refreshRecords();
+      } else {
+        throw new Error(result.error || "Unbekannter Fehler");
+      }
+    } catch (error) {
+      console.error("Bulk assign moods error:", error);
+      toast.error("Fehler beim Zuweisen der Stimmungen", {
+        description: error instanceof Error ? error.message : "Bitte versuche es erneut",
+      });
+    } finally {
+      setIsAssigningMoods(false);
+    }
+  };
   };
 
   const MoodItem = ({ mood, isDraggable }: { mood: MoodCategory; isDraggable: boolean }) => {
@@ -441,6 +490,44 @@ export function MoodsConfig() {
               {filteredDisabled.map(mood => (
                 <MoodItem key={mood.id} mood={mood} isDraggable={false} />
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Assign Moods Section */}
+        {recordsWithoutMoods > 0 && (
+          <div className="pt-4 border-t border-border">
+            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-start gap-3">
+                <Wand2 className="w-5 h-5 text-primary mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-medium text-foreground">
+                    Stimmungen automatisch zuweisen
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {recordsWithoutMoods} {recordsWithoutMoods === 1 ? 'Album hat' : 'Alben haben'} noch keine Stimmungen. 
+                    KI kann basierend auf Künstler und Genre passende Stimmungen zuweisen.
+                  </p>
+                  <Button 
+                    onClick={handleBulkAssignMoods} 
+                    disabled={isAssigningMoods}
+                    className="mt-3 gap-2"
+                    size="sm"
+                  >
+                    {isAssigningMoods ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Zuweisen...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-4 h-4" />
+                        Jetzt Stimmungen zuweisen
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         )}
