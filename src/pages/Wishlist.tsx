@@ -302,7 +302,7 @@ export default function Wishlist() {
         </div>
 
         {/* Filters - Row 2: Filter Dropdowns */}
-        <div className="grid grid-cols-3 md:grid-cols-5 gap-1.5 md:gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-3">
           <Select
             value={formatFilter}
             onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
@@ -357,26 +357,6 @@ export default function Wishlist() {
             </Select>
           )}
 
-          {allMoods.length > 0 && (
-            <Select
-              value={moodFilter}
-              onValueChange={(v) => setMoodFilter(v)}
-            >
-              <SelectTrigger className="w-full bg-card border-border/50">
-                <Sparkles className="w-4 h-4 mr-2 flex-shrink-0" />
-                <SelectValue placeholder="Stimmung" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover max-h-[300px]">
-                <SelectItem value="all">Alle Stimmungen</SelectItem>
-                {allMoods.map((mood) => (
-                  <SelectItem key={mood} value={mood}>
-                    {mood}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
             <SelectTrigger className="w-full bg-card border-border/50">
               <SlidersHorizontal className="w-4 h-4 mr-2 flex-shrink-0" />
@@ -391,6 +371,40 @@ export default function Wishlist() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Mood Filter Buttons - Row 3 */}
+        {configuredMoods.filter(m => m.enabled).length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {configuredMoods
+              .filter(m => m.enabled)
+              .sort((a, b) => a.priority - b.priority)
+              .map((mood) => {
+                const isActive = moodFilter === mood.name;
+                return (
+                  <Button
+                    key={mood.id}
+                    variant={isActive ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setMoodFilter(isActive ? "all" : mood.name)}
+                    className={cn(
+                      "border transition-all hover:scale-105",
+                      isActive && "ring-2 ring-offset-1 ring-offset-background"
+                    )}
+                    style={mood.color ? {
+                      borderColor: `hsl(${mood.color})`,
+                      borderLeftWidth: '3px',
+                      ...(isActive && { 
+                        backgroundColor: `hsl(${mood.color} / 0.15)`,
+                      })
+                    } : undefined}
+                  >
+                    <span className="mr-1.5">{mood.icon}</span>
+                    <span>{mood.name}</span>
+                  </Button>
+                );
+              })}
+          </div>
+        )}
       </div>
 
       {/* Scrollable Content Area */}
