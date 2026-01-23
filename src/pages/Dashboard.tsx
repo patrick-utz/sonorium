@@ -53,7 +53,7 @@ export default function Dashboard() {
 
   const topMoods = Object.entries(moodCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 20);
+    ;
 
   // Calculate tag distribution (Stichworte)
   const tagCount = records.reduce((acc, record) => {
@@ -346,29 +346,34 @@ export default function Dashboard() {
         )}
 
         {/* Mood-based Sections */}
-        {topMoods.slice(0, 3).map(([mood, count]) => {
+        {topMoods.map(([mood, count]) => {
           const moodRecords = records.filter(r => r.moods?.includes(mood));
           if (moodRecords.length === 0) return null;
           
           // Choose icon and label based on mood
           const getMoodDisplay = (m: string) => {
             const lower = m.toLowerCase();
+
+            // Prefer configured icon/color (if this mood exists in the profile config)
+            const configured = profileMoods.find(pm => pm.name.toLowerCase() === lower);
+
             if (lower.includes('entspann') || lower.includes('ruhig') || lower.includes('meditativ')) {
-              return { label: `${m} Alben`, icon: '🌙' };
+              return { label: `${m} Alben`, icon: configured?.icon ?? '🌙', color: configured?.color };
             }
             if (lower.includes('energet') || lower.includes('kraftvoll') || lower.includes('euphor')) {
-              return { label: `${m} Musik`, icon: '⚡' };
+              return { label: `${m} Musik`, icon: configured?.icon ?? '⚡', color: configured?.color };
             }
             if (lower.includes('melanchol') || lower.includes('traurig') || lower.includes('nachdenklich')) {
-              return { label: `${m} Klänge`, icon: '💭' };
+              return { label: `${m} Klänge`, icon: configured?.icon ?? '💭', color: configured?.color };
             }
             if (lower.includes('roman') || lower.includes('intim') || lower.includes('sinnlich')) {
-              return { label: `${m} Stimmung`, icon: '💫' };
+              return { label: `${m} Stimmung`, icon: configured?.icon ?? '💫', color: configured?.color };
             }
             if (lower.includes('party') || lower.includes('tanz') || lower.includes('feier')) {
-              return { label: `${m} Sounds`, icon: '🎉' };
+              return { label: `${m} Sounds`, icon: configured?.icon ?? '🎉', color: configured?.color };
             }
-            return { label: m, icon: '✨' };
+
+            return { label: m, icon: configured?.icon ?? '✨', color: configured?.color };
           };
           
           const display = getMoodDisplay(mood);
