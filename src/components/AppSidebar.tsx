@@ -30,8 +30,6 @@ const navItems = [
   { to: "/sammlung", label: "Sammlung", icon: Library },
   { to: "/wunschliste", label: "Wunschliste", icon: Heart },
   { to: "/recherche", label: "Recherche", icon: Search },
-  { to: "/profil", label: "Profil", icon: User },
-  { to: "/export", label: "Backup", icon: Save },
 ];
 
 interface AppSidebarProps {
@@ -194,65 +192,73 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-sidebar-border space-y-2">
-        {/* Collapse Toggle */}
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size={collapsed ? "icon" : "default"}
-              onClick={onToggle}
-              className={cn(
-                "text-muted-foreground hover:text-foreground transition-all",
-                collapsed ? "w-full" : "w-full justify-start"
-              )}
-            >
-              {collapsed ? (
-                <ChevronRight className="w-4 h-4" />
-              ) : (
-                <>
-                  <ChevronLeft className="w-4 h-4 mr-2" />
-                  <span>Einklappen</span>
-                </>
-              )}
-            </Button>
-          </TooltipTrigger>
-          {collapsed && (
-            <TooltipContent side="right">Sidebar ausklappen</TooltipContent>
-          )}
-        </Tooltip>
+      <div className="p-3 border-t border-sidebar-border space-y-1">
+        {/* Profile */}
+        <NavItem to="/profil" label="Profil" icon={User} />
+        
+        {/* Backup */}
+        <NavItem to="/export" label="Backup" icon={Save} />
 
-        {/* Logout */}
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size={collapsed ? "icon" : "default"}
-              onClick={signOut}
-              className={cn(
-                "text-muted-foreground hover:text-foreground transition-all",
-                collapsed ? "w-full" : "w-full justify-start"
-              )}
-            >
-              <LogOut className={cn("w-4 h-4", !collapsed && "mr-2")} />
-              <AnimatePresence>
-                {!collapsed && (
-                  <motion.span
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: "auto" }}
-                    exit={{ opacity: 0, width: 0 }}
-                    className="overflow-hidden whitespace-nowrap"
-                  >
-                    Abmelden
-                  </motion.span>
+        {/* Collapse Toggle */}
+        <div className="pt-2 mt-2 border-t border-sidebar-border space-y-1">
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size={collapsed ? "icon" : "default"}
+                onClick={onToggle}
+                className={cn(
+                  "text-muted-foreground hover:text-foreground transition-all",
+                  collapsed ? "w-full" : "w-full justify-start"
                 )}
-              </AnimatePresence>
-            </Button>
-          </TooltipTrigger>
-          {collapsed && (
-            <TooltipContent side="right">Abmelden</TooltipContent>
-          )}
-        </Tooltip>
+              >
+                {collapsed ? (
+                  <ChevronRight className="w-4 h-4" />
+                ) : (
+                  <>
+                    <ChevronLeft className="w-4 h-4 mr-2" />
+                    <span>Einklappen</span>
+                  </>
+                )}
+              </Button>
+            </TooltipTrigger>
+            {collapsed && (
+              <TooltipContent side="right">Sidebar ausklappen</TooltipContent>
+            )}
+          </Tooltip>
+
+          {/* Logout */}
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size={collapsed ? "icon" : "default"}
+                onClick={signOut}
+                className={cn(
+                  "text-muted-foreground hover:text-foreground transition-all",
+                  collapsed ? "w-full" : "w-full justify-start"
+                )}
+              >
+                <LogOut className={cn("w-4 h-4", !collapsed && "mr-2")} />
+                <AnimatePresence>
+                  {!collapsed && (
+                    <motion.span
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: "auto" }}
+                      exit={{ opacity: 0, width: 0 }}
+                      className="overflow-hidden whitespace-nowrap"
+                    >
+                      Abmelden
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Button>
+            </TooltipTrigger>
+            {collapsed && (
+              <TooltipContent side="right">Abmelden</TooltipContent>
+            )}
+          </Tooltip>
+        </div>
       </div>
     </motion.aside>
   );
