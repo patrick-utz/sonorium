@@ -5,7 +5,7 @@ import {
   Library, 
   Heart, 
   Plus,
-  Search
+  User
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -14,7 +14,7 @@ const navItems = [
   { to: "/sammlung", label: "Sammlung", icon: Library },
   { to: "/hinzufuegen", label: "Hinzufügen", icon: Plus, isMain: true },
   { to: "/wunschliste", label: "Wunschliste", icon: Heart },
-  { to: "/recherche", label: "Recherche", icon: Search },
+  { to: "/profil", label: "Profil", icon: User },
 ];
 
 export function BottomNav() {
