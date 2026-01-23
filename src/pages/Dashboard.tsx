@@ -350,30 +350,26 @@ export default function Dashboard() {
           const moodRecords = records.filter(r => r.moods?.includes(mood));
           if (moodRecords.length === 0) return null;
           
-          // Choose icon and label based on mood
+          // Get icon/color from profile config, fallback to defaults
           const getMoodDisplay = (m: string) => {
             const lower = m.toLowerCase();
-
-            // Prefer configured icon/color (if this mood exists in the profile config)
             const configured = profileMoods.find(pm => pm.name.toLowerCase() === lower);
 
+            // Determine default icon based on mood type
+            let defaultIcon = '✨';
             if (lower.includes('entspann') || lower.includes('ruhig') || lower.includes('meditativ')) {
-              return { label: `${m} Alben`, icon: configured?.icon ?? '🌙', color: configured?.color };
-            }
-            if (lower.includes('energet') || lower.includes('kraftvoll') || lower.includes('euphor')) {
-              return { label: `${m} Musik`, icon: configured?.icon ?? '⚡', color: configured?.color };
-            }
-            if (lower.includes('melanchol') || lower.includes('traurig') || lower.includes('nachdenklich')) {
-              return { label: `${m} Klänge`, icon: configured?.icon ?? '💭', color: configured?.color };
-            }
-            if (lower.includes('roman') || lower.includes('intim') || lower.includes('sinnlich')) {
-              return { label: `${m} Stimmung`, icon: configured?.icon ?? '💫', color: configured?.color };
-            }
-            if (lower.includes('party') || lower.includes('tanz') || lower.includes('feier')) {
-              return { label: `${m} Sounds`, icon: configured?.icon ?? '🎉', color: configured?.color };
+              defaultIcon = '🌙';
+            } else if (lower.includes('energet') || lower.includes('kraftvoll') || lower.includes('euphor')) {
+              defaultIcon = '⚡';
+            } else if (lower.includes('melanchol') || lower.includes('traurig') || lower.includes('nachdenklich')) {
+              defaultIcon = '💭';
+            } else if (lower.includes('roman') || lower.includes('intim') || lower.includes('sinnlich')) {
+              defaultIcon = '💫';
+            } else if (lower.includes('party') || lower.includes('tanz') || lower.includes('feier')) {
+              defaultIcon = '🎉';
             }
 
-            return { label: m, icon: configured?.icon ?? '✨', color: configured?.color };
+            return { label: m, icon: configured?.icon ?? defaultIcon, color: configured?.color };
           };
           
           const display = getMoodDisplay(mood);
