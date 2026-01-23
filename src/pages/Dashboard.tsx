@@ -2,7 +2,7 @@ import { useRecords } from "@/context/RecordContext";
 import { Disc3, Disc, Music, Heart, Tag, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+
 import {
   Select,
   SelectContent,
@@ -252,7 +252,7 @@ export default function Dashboard() {
                 Alle anzeigen →
               </button>
             </div>
-            <ScrollArea className="w-full">
+            <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
               <div className="flex gap-4 pb-4">
                 {favoriteRecords.slice(0, 10).map((record) => (
                   <div
@@ -289,8 +289,7 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+            </div>
           </motion.section>
         )}
 
@@ -312,7 +311,7 @@ export default function Dashboard() {
                 Alle anzeigen →
               </button>
             </div>
-            <ScrollArea className="w-full">
+            <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
               <div className="flex gap-4 pb-4">
                 {wishlistRecords.slice(0, 10).map((record) => (
                   <div
@@ -340,8 +339,7 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+            </div>
           </motion.section>
         )}
 
@@ -392,7 +390,7 @@ export default function Dashboard() {
                   Alle anzeigen →
                 </button>
               </div>
-              <ScrollArea className="w-full">
+              <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
                 <div className="flex gap-4 pb-4">
                   {moodRecords.slice(0, 8).map((record) => (
                     <div
@@ -420,8 +418,7 @@ export default function Dashboard() {
                     </div>
                   ))}
                 </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              </div>
             </motion.section>
           );
         })}
