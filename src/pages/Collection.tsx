@@ -23,6 +23,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 import { MoodCategory } from "@/types/audiophileProfile";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type SortOption = "artist" | "album" | "year" | "dateAdded" | "rating";
 type SortDirection = "asc" | "desc";
@@ -811,16 +817,24 @@ function ListItem({ record, configuredMoods, onClick, isSelectMode, isSelected, 
           <h3 className="font-semibold text-foreground truncate">{record.album}</h3>
           {/* Mood color indicators */}
           {recordMoodsWithColors.length > 0 && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {recordMoodsWithColors.map((mood, idx) => (
-                <div
-                  key={idx}
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: mood?.color ? `hsl(${mood.color})` : 'hsl(var(--muted-foreground))' }}
-                  title={mood?.name}
-                />
-              ))}
-            </div>
+            <TooltipProvider delayDuration={200}>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {recordMoodsWithColors.map((mood, idx) => (
+                  <Tooltip key={idx}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="w-2 h-2 rounded-full cursor-default"
+                        style={{ backgroundColor: mood?.color ? `hsl(${mood.color})` : 'hsl(var(--muted-foreground))' }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="flex items-center gap-1.5">
+                      <span>{mood?.icon}</span>
+                      <span>{mood?.name}</span>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </TooltipProvider>
           )}
         </div>
         <p className="text-sm text-muted-foreground truncate">{record.artist}</p>
