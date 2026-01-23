@@ -20,6 +20,12 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type SortOption = "artist" | "album" | "year" | "dateAdded" | "rating";
 type ViewMode = "grid" | "list";
@@ -502,16 +508,24 @@ export default function Wishlist() {
                         .filter(Boolean)
                         .slice(0, 3);
                       return recordMoodsWithColors.length > 0 && (
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {recordMoodsWithColors.map((mood, idx) => (
-                            <div
-                              key={idx}
-                              className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: mood?.color ? `hsl(${mood.color})` : 'hsl(var(--muted-foreground))' }}
-                              title={mood?.name}
-                            />
-                          ))}
-                        </div>
+                        <TooltipProvider delayDuration={200}>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {recordMoodsWithColors.map((mood, idx) => (
+                              <Tooltip key={idx}>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className="w-2 h-2 rounded-full cursor-default"
+                                    style={{ backgroundColor: mood?.color ? `hsl(${mood.color})` : 'hsl(var(--muted-foreground))' }}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="flex items-center gap-1.5">
+                                  <span>{mood?.icon}</span>
+                                  <span>{mood?.name}</span>
+                                </TooltipContent>
+                              </Tooltip>
+                            ))}
+                          </div>
+                        </TooltipProvider>
                       );
                     })()}
                   </div>
