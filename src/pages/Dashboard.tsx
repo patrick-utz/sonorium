@@ -13,14 +13,16 @@ import {
 import { Star } from "lucide-react";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 import { Button } from "@/components/ui/button";
+import { DEFAULT_MOODS } from "@/types/audiophileProfile";
 
 export default function Dashboard() {
   const { records, getWishlistRecords, getFavoriteRecords, toggleFavorite } = useRecords();
   const { profile } = useAudiophileProfile();
   const navigate = useNavigate();
   
-  // Get enabled configured moods sorted by priority
-  const configuredMoods = (profile?.moods || [])
+  // Get enabled configured moods sorted by priority - use DEFAULT_MOODS as fallback
+  const profileMoods = profile?.moods && profile.moods.length > 0 ? profile.moods : DEFAULT_MOODS;
+  const configuredMoods = profileMoods
     .filter(m => m.enabled)
     .sort((a, b) => a.priority - b.priority);
 
