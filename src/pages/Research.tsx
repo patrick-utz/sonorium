@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,6 +82,7 @@ interface AlbumSearchResult {
 }
 
 export default function Research() {
+  const [searchParams] = useSearchParams();
   const [searchMode, setSearchMode] = useState<"artist" | "album" | "shops" | "moods">("album");
   const [searchQuery, setSearchQuery] = useState("");
   const [albumQuery, setAlbumQuery] = useState("");
@@ -99,6 +101,14 @@ export default function Research() {
   const cache = useResearchCache();
   const marketplace = useMarketplacePrices();
   const [marketplacePrices, setMarketplacePrices] = useState<MarketplacePrice[]>([]);
+
+  // Read tab from URL params
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "moods" || tab === "shops" || tab === "artist" || tab === "album") {
+      setSearchMode(tab);
+    }
+  }, [searchParams]);
 
   // Handle barcode/catalog scan
   const handleBarcodeDetected = useCallback(async (barcode: string) => {

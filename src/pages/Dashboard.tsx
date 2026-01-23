@@ -221,7 +221,7 @@ export default function Dashboard() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate("/profil?tab=moods")}
+            onClick={() => navigate("/recherche?tab=moods")}
             className="text-muted-foreground hover:text-foreground transition-all"
           >
             <Settings className="w-4 h-4 mr-1.5" />
