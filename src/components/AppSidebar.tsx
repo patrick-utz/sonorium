@@ -44,10 +44,14 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const { getFavoriteRecords } = useRecords();
   const favoriteCount = getFavoriteRecords().length;
 
-  const NavItem = ({ to, label, icon: Icon, badge }: { to: string; label: string; icon: React.ElementType; badge?: number }) => {
-    const isActive = to === "/" 
-      ? location.pathname === "/" 
-      : location.pathname.startsWith(to);
+  const NavItem = ({ to, label, icon: Icon, badge, accentColor }: { to: string; label: string; icon: React.ElementType; badge?: number; accentColor?: string }) => {
+    // Handle query params for active detection
+    const [pathname, search] = to.split('?');
+    const isActive = pathname === "/" 
+      ? location.pathname === "/" && !location.search
+      : search 
+        ? location.pathname === pathname && location.search === `?${search}`
+        : location.pathname.startsWith(pathname) && !location.search.includes('tab=');
 
     const content = (
       <NavLink
@@ -55,14 +59,20 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         className={cn(
           "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group relative",
           isActive
-            ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+            ? accentColor 
+              ? `bg-[hsl(${accentColor})]/10` 
+              : "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
+          isActive && accentColor && "text-foreground"
         )}
       >
-        <Icon className={cn(
-          "w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110",
-          isActive && "text-primary"
-        )} />
+        <Icon 
+          className={cn(
+            "w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110",
+            isActive && !accentColor && "text-primary"
+          )} 
+          style={isActive && accentColor ? { color: `hsl(${accentColor})` } : undefined}
+        />
         <AnimatePresence>
           {!collapsed && (
             <motion.span
@@ -197,8 +207,8 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         {/* Profile */}
         <NavItem to="/profil" label="Profil" icon={User} />
         
-        {/* Moods */}
-        <NavItem to="/profil?tab=moods" label="Stimmungen" icon={Sparkles} />
+        {/* Moods - with accent color */}
+        <NavItem to="/profil?tab=moods" label="Stimmungen" icon={Sparkles} accentColor="271 81% 56%" />
         
         {/* Backup */}
         <NavItem to="/export" label="Backup" icon={Save} />
