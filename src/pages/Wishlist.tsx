@@ -19,14 +19,17 @@ import { RecordFormat } from "@/types/record";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 
 type SortOption = "artist" | "album" | "year" | "dateAdded" | "rating";
 type ViewMode = "grid" | "list";
 
 export default function Wishlist() {
   const { getWishlistRecords, updateRecord, deleteRecord, toggleFavorite } = useRecords();
+  const { profile } = useAudiophileProfile();
   const navigate = useNavigate();
   const records = getWishlistRecords();
+  const configuredMoods = profile?.moods || [];
 
   const [searchQuery, setSearchQuery] = useState("");
   const [formatFilter, setFormatFilter] = useState<RecordFormat | "all">("all");
@@ -487,7 +490,31 @@ export default function Wishlist() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground truncate">{record.album}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-foreground truncate">{record.album}</h3>
+                    {/* Mood color indicators */}
+                    {(() => {
+                      const recordMoodsWithColors = (record.moods || [])
+                        .map(moodName => {
+                          const configured = configuredMoods.find(m => m.name === moodName && m.enabled);
+                          return configured ? { name: moodName, color: configured.color, icon: configured.icon } : null;
+                        })
+                        .filter(Boolean)
+                        .slice(0, 3);
+                      return recordMoodsWithColors.length > 0 && (
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {recordMoodsWithColors.map((mood, idx) => (
+                            <div
+                              key={idx}
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: mood?.color ? `hsl(${mood.color})` : 'hsl(var(--muted-foreground))' }}
+                              title={mood?.name}
+                            />
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
                   <p className="text-sm text-muted-foreground truncate">{record.artist}</p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                     <span>{record.year}</span>
