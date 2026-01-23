@@ -14,6 +14,7 @@ import Wishlist from "./pages/Wishlist";
 import AddRecord from "./pages/AddRecord";
 import Export from "./pages/Export";
 import Research from "./pages/Research";
+import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -145,6 +146,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <Export />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profil"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Profile />
             </Layout>
           </ProtectedRoute>
         }

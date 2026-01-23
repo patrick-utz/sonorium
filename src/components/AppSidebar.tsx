@@ -11,7 +11,8 @@ import {
   LogOut,
   Star,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -29,6 +30,7 @@ const navItems = [
   { to: "/sammlung", label: "Sammlung", icon: Library },
   { to: "/wunschliste", label: "Wunschliste", icon: Heart },
   { to: "/recherche", label: "Recherche", icon: Search },
+  { to: "/profil", label: "Profil", icon: User },
   { to: "/export", label: "Backup", icon: Save },
 ];
 
