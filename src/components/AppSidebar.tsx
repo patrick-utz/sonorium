@@ -12,14 +12,16 @@ import {
   Star,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   User,
-  Sparkles
+  Sparkles,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useRecords } from "@/context/RecordContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -43,6 +45,17 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const { signOut } = useAuth();
   const { getFavoriteRecords } = useRecords();
   const favoriteCount = getFavoriteRecords().length;
+  
+  // Check if any settings route is active to auto-expand
+  const isSettingsActive = location.pathname === "/profil" || location.pathname === "/export";
+  const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
+  
+  // Auto-expand when navigating to settings
+  useEffect(() => {
+    if (isSettingsActive) {
+      setSettingsOpen(true);
+    }
+  }, [isSettingsActive]);
 
   const NavItem = ({ to, label, icon: Icon, badge, accentColor }: { to: string; label: string; icon: React.ElementType; badge?: number; accentColor?: string }) => {
     // Handle query params for active detection
@@ -204,14 +217,70 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
 
       {/* Footer */}
       <div className="p-3 border-t border-sidebar-border space-y-1">
-        {/* Profile */}
-        <NavItem to="/profil" label="Profil" icon={User} />
-        
-        {/* Moods - with accent color */}
-        <NavItem to="/profil?tab=moods" label="Stimmungen" icon={Sparkles} accentColor="271 81% 56%" />
-        
-        {/* Backup */}
-        <NavItem to="/export" label="Backup" icon={Save} />
+        {/* Collapsible Settings Group */}
+        <div className="space-y-1">
+          {collapsed ? (
+            // When sidebar is collapsed, just show settings icon as link
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <NavLink
+                  to="/profil"
+                  className={cn(
+                    "flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                    isSettingsActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                  )}
+                >
+                  <Settings className="w-5 h-5" />
+                </NavLink>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="font-medium">
+                Einstellungen
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <>
+              {/* Settings Header - Toggle */}
+              <button
+                onClick={() => setSettingsOpen(!settingsOpen)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all w-full group",
+                  isSettingsActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                )}
+              >
+                <Settings className={cn(
+                  "w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110",
+                  isSettingsActive && "text-primary"
+                )} />
+                <span className="flex-1 text-left">Einstellungen</span>
+                <ChevronDown className={cn(
+                  "w-4 h-4 transition-transform",
+                  settingsOpen && "rotate-180"
+                )} />
+              </button>
+              
+              {/* Settings Sub-Items */}
+              <AnimatePresence>
+                {settingsOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden pl-4 space-y-1"
+                  >
+                    <NavItem to="/profil" label="Profil" icon={User} />
+                    <NavItem to="/profil?tab=moods" label="Stimmungen" icon={Sparkles} accentColor="271 81% 56%" />
+                    <NavItem to="/export" label="Backup" icon={Save} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          )}
+        </div>
 
         {/* Collapse Toggle */}
         <div className="pt-2 mt-2 border-t border-sidebar-border space-y-1">
