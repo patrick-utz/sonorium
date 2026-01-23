@@ -1,5 +1,5 @@
 import { useRecords } from "@/context/RecordContext";
-import { Disc3, Disc, Music, Heart, Tag, Settings } from "lucide-react";
+import { Disc3, Disc, Music, Heart, Tag } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
@@ -219,16 +219,6 @@ export default function Dashboard() {
               </Button>
             );
           })}
-          {/* "Alle Stimmungen" Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/profil?tab=moods")}
-            className="text-muted-foreground hover:text-foreground transition-all"
-          >
-            <Settings className="w-4 h-4 mr-1.5" />
-            Alle Stimmungen
-          </Button>
         </motion.div>
       </div>
 

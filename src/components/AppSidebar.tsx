@@ -12,7 +12,8 @@ import {
   Star,
   ChevronLeft,
   ChevronRight,
-  User
+  User,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -195,6 +196,9 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       <div className="p-3 border-t border-sidebar-border space-y-1">
         {/* Profile */}
         <NavItem to="/profil" label="Profil" icon={User} />
+        
+        {/* Moods */}
+        <NavItem to="/profil?tab=moods" label="Stimmungen" icon={Sparkles} />
         
         {/* Backup */}
         <NavItem to="/export" label="Backup" icon={Save} />
