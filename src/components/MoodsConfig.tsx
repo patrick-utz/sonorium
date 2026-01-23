@@ -59,8 +59,6 @@ export function MoodsConfig() {
 
   // Count records without moods
   const recordsWithoutMoods = records.filter(r => !r.moods || r.moods.length === 0).length;
-  const enabledMoods = moods.filter(m => m.enabled).sort((a, b) => a.priority - b.priority);
-  const disabledMoods = moods.filter(m => !m.enabled).sort((a, b) => a.priority - b.priority);
 
   // Filter moods based on search
   const filteredEnabled = searchQuery 
@@ -240,7 +238,6 @@ export function MoodsConfig() {
     } finally {
       setIsAssigningMoods(false);
     }
-  };
   };
 
   const MoodItem = ({ mood, isDraggable }: { mood: MoodCategory; isDraggable: boolean }) => {
