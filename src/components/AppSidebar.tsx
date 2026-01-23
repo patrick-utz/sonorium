@@ -211,6 +211,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
             label="Favoriten" 
             icon={Star}
             badge={favoriteCount}
+            accentColor="38 92% 50%"
           />
         </div>
       </nav>
