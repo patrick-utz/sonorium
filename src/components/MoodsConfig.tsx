@@ -373,6 +373,34 @@ export function MoodsConfig() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Color Preview Banner */}
+        {enabledMoods.length > 0 && (
+          <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+            <p className="text-xs text-muted-foreground mb-3">Vorschau deiner Stimmungs-Palette</p>
+            <div className="flex flex-wrap gap-3">
+              {enabledMoods.map(mood => (
+                <div 
+                  key={mood.id} 
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-background transition-all hover:scale-105"
+                  style={mood.color ? {
+                    borderColor: `hsl(${mood.color})`,
+                    borderLeftWidth: '3px',
+                  } : undefined}
+                >
+                  <span className="text-sm">{mood.icon}</span>
+                  <span className="text-sm font-medium">{mood.name}</span>
+                  {mood.color && (
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: `hsl(${mood.color})` }}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Search - show when more than 6 moods */}
         {moods.length > 6 && (
           <div className="relative">
