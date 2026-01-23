@@ -48,7 +48,15 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   
   // Check if any settings route is active to auto-expand
   const isSettingsActive = location.pathname === "/profil" || location.pathname === "/export";
-  const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
+  
+  // Load initial state from localStorage, fallback to checking if settings is active
+  const [settingsOpen, setSettingsOpen] = useState(() => {
+    const saved = localStorage.getItem("sidebar-settings-open");
+    if (saved !== null) {
+      return JSON.parse(saved);
+    }
+    return isSettingsActive;
+  });
   
   // Auto-expand when navigating to settings
   useEffect(() => {
@@ -56,6 +64,11 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       setSettingsOpen(true);
     }
   }, [isSettingsActive]);
+  
+  // Persist settings open state to localStorage
+  useEffect(() => {
+    localStorage.setItem("sidebar-settings-open", JSON.stringify(settingsOpen));
+  }, [settingsOpen]);
 
   const NavItem = ({ to, label, icon: Icon, badge, accentColor }: { to: string; label: string; icon: React.ElementType; badge?: number; accentColor?: string }) => {
     // Handle query params for active detection
