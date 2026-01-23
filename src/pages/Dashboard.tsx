@@ -1,5 +1,5 @@
 import { useRecords } from "@/context/RecordContext";
-import { Disc3, Disc, Music, Heart, Tag } from "lucide-react";
+import { Disc3, Disc, Music, Heart, Tag, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -194,32 +194,40 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Mood Filter Buttons */}
-        {configuredMoods.length > 0 && (
-          <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto px-1">
-            {configuredMoods.map((mood) => {
-              const count = moodCount[mood.name] || 0;
-              return (
-                <Button
-                  key={mood.id}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleMoodSelect(mood.name)}
-                  className="border transition-all hover:scale-105"
-                  style={mood.color ? {
-                    borderColor: `hsl(${mood.color})`,
-                    borderLeftWidth: '3px',
-                  } : undefined}
-                >
-                  <span className="mr-1.5">{mood.icon}</span>
-                  <span>{mood.name}</span>
-                  {count > 0 && (
-                    <span className="ml-1.5 text-xs text-muted-foreground">({count})</span>
-                  )}
-                </Button>
-              );
-            })}
-          </motion.div>
-        )}
+        <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto px-1">
+          {configuredMoods.map((mood) => {
+            const count = moodCount[mood.name] || 0;
+            return (
+              <Button
+                key={mood.id}
+                variant="outline"
+                size="sm"
+                onClick={() => handleMoodSelect(mood.name)}
+                className="border transition-all hover:scale-105"
+                style={mood.color ? {
+                  borderColor: `hsl(${mood.color})`,
+                  borderLeftWidth: '3px',
+                } : undefined}
+              >
+                <span className="mr-1.5">{mood.icon}</span>
+                <span>{mood.name}</span>
+                {count > 0 && (
+                  <span className="ml-1.5 text-xs text-muted-foreground">({count})</span>
+                )}
+              </Button>
+            );
+          })}
+          {/* "Alle Stimmungen" Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/profil?tab=moods")}
+            className="text-muted-foreground hover:text-foreground transition-all"
+          >
+            <Settings className="w-4 h-4 mr-1.5" />
+            Alle Stimmungen
+          </Button>
+        </motion.div>
       </div>
 
       {/* Scrollable Content Area */}
