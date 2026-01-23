@@ -43,8 +43,9 @@ interface AppSidebarProps {
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const location = useLocation();
   const { signOut } = useAuth();
-  const { getFavoriteRecords } = useRecords();
+  const { getFavoriteRecords, records } = useRecords();
   const favoriteCount = getFavoriteRecords().length;
+  const recordsWithoutMoods = records.filter(r => !r.moods || r.moods.length === 0).length;
   
   // Check if any settings route is active to auto-expand
   const isSettingsActive = location.pathname === "/profil" || location.pathname === "/export";
@@ -287,7 +288,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                     className="overflow-hidden pl-4 space-y-1"
                   >
                     <NavItem to="/profil" label="Profil" icon={User} />
-                    <NavItem to="/profil?tab=moods" label="Stimmungen" icon={Sparkles} accentColor="271 81% 56%" />
+                    <NavItem to="/profil?tab=moods" label="Stimmungen" icon={Sparkles} accentColor="271 81% 56%" badge={recordsWithoutMoods > 0 ? recordsWithoutMoods : undefined} />
                     <NavItem to="/export" label="Backup" icon={Save} />
                   </motion.div>
                 )}
