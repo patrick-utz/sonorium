@@ -49,6 +49,7 @@ export const DEFAULT_MOODS: MoodCategory[] = [
   { id: "romantisch", name: "Romantisch", icon: "💫", color: "350 89% 60%", enabled: true, priority: 4 },
   { id: "party", name: "Party", icon: "🎉", color: "25 95% 53%", enabled: true, priority: 5 },
   { id: "fokus", name: "Fokus", icon: "🎯", color: "168 76% 36%", enabled: true, priority: 6 },
+  { id: "live", name: "Live", icon: "🎤", color: "160 84% 39%", enabled: true, priority: 7 },
 ];
 
 export interface AudiophileProfile {
