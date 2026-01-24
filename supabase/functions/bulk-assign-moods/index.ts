@@ -104,7 +104,8 @@ Antworte NUR im JSON-Format, ohne zusätzlichen Text:
 ]`;
 
       try {
-        const aiResponse = await fetch("https://ai.lovable.dev/v1/chat/completions", {
+        // Use Lovable AI gateway (works from backend functions)
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${lovableApiKey}`,
