@@ -13,7 +13,8 @@ const AVAILABLE_MOODS = [
   "Melancholisch",
   "Romantisch",
   "Party",
-  "Fokus"
+  "Fokus",
+  "Live"
 ];
 
 serve(async (req) => {
@@ -83,6 +84,10 @@ serve(async (req) => {
       const prompt = `Du bist ein Musik-Experte. Ordne jedem Album GENAU 2 passende Stimmungen aus dieser Liste zu:
 ${AVAILABLE_MOODS.join(", ")}
 
+WICHTIG:
+- "Live" NUR für Alben die explizit Live-Aufnahmen sind (z.B. "Live at...", "In Concert", "Unplugged")
+- Wähle die 2 Stimmungen die den Charakter der Musik am besten beschreiben
+
 Alben:
 ${albumDescriptions}
 
@@ -90,9 +95,7 @@ Antworte NUR im JSON-Format, ohne zusätzlichen Text:
 [
   {"index": 1, "moods": ["Stimmung1", "Stimmung2"]},
   ...
-]
-
-Wähle die Stimmungen basierend auf dem typischen Charakter des Albums/Künstlers.`;
+]`;
 
       try {
         const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
