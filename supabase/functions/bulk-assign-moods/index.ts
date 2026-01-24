@@ -30,6 +30,12 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    
+    if (!lovableApiKey) {
+      throw new Error("LOVABLE_API_KEY not configured");
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get user from token
@@ -98,13 +104,11 @@ Antworte NUR im JSON-Format, ohne zusätzlichen Text:
 ]`;
 
       try {
-        const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const aiResponse = await fetch("https://ai.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${Deno.env.get("OPENROUTER_API_KEY")}`,
+            "Authorization": `Bearer ${lovableApiKey}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://sonorium.lovable.app",
-            "X-Title": "SONORIUM Mood Assignment",
           },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
