@@ -37,6 +37,18 @@ async function validateAuth(req: Request): Promise<{ userId: string } | Response
   return { userId: data.user.id };
 }
 
+// Safe Base64 conversion for large arrays (avoids stack overflow with spread operator)
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000; // 32KB chunks to avoid stack overflow
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+  }
+  return btoa(binary);
+}
+
 // MusicBrainz User-Agent (required by their API)
 const MB_USER_AGENT = 'VinylCollector/1.0 (contact@vinylcollector.app)';
 
@@ -434,7 +446,7 @@ async function searchITunesCover(artist: string, album: string): Promise<string 
         
         const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
         const arrayBuffer = await imageResponse.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        const base64 = arrayBufferToBase64(arrayBuffer);
         
         console.log('iTunes cover converted to base64');
         return `data:${contentType};base64,${base64}`;
@@ -505,7 +517,7 @@ async function searchDeezerCover(artist: string, album: string): Promise<string 
         
         const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
         const arrayBuffer = await imageResponse.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        const base64 = arrayBufferToBase64(arrayBuffer);
         
         console.log('Deezer cover converted to base64');
         return `data:${contentType};base64,${base64}`;
@@ -907,7 +919,7 @@ async function searchDiscogsCover(artist: string, album: string, barcode?: strin
     
     const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
     const arrayBuffer = await imageResponse.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const base64 = arrayBufferToBase64(arrayBuffer);
     
     console.log('Discogs cover converted to base64');
     return `data:${contentType};base64,${base64}`;
