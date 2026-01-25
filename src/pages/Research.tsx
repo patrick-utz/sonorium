@@ -513,6 +513,7 @@ export default function Research() {
   };
 
   const recentSearches = cache.getRecentSearches();
+  const cacheTotal = cache.cacheStats.albumCount + cache.cacheStats.artistCount;
 
   return (
     <div className="space-y-4 pb-20">
@@ -528,20 +529,23 @@ export default function Research() {
         <div className="flex items-center gap-2">
           {/* Cache clear button (always visible) */}
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
-            className="h-8 gap-1.5 text-xs text-muted-foreground enabled:hover:text-destructive disabled:opacity-60"
-            disabled={(cache.cacheStats.albumCount + cache.cacheStats.artistCount) === 0}
+            className="h-9 gap-2 text-xs"
             title="Recherche-Cache leeren"
             onClick={() => {
+              if (cacheTotal === 0) {
+                toast({ title: "Cache ist leer", description: "Es gibt nichts zu löschen." });
+                return;
+              }
               cache.clearCache();
               toast({ title: "Cache geleert", description: "Alle gespeicherten Recherche-Ergebnisse wurden gelöscht." });
             }}
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Cache</span>
+            <span>Cache leeren</span>
             <Badge variant="secondary" className="text-[10px] px-1.5 h-4">
-              {cache.cacheStats.albumCount + cache.cacheStats.artistCount}
+              {cacheTotal}
             </Badge>
           </Button>
           
