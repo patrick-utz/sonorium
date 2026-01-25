@@ -1555,18 +1555,67 @@ Sei ein echter Experte. Liefere fundierte, detaillierte Analysen wie ein profess
     console.log('AI response received:', content);
 
     // Parse the JSON response
-    let completedData;
-    try {
-      completedData = JSON.parse(content);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
-      // Try to extract JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        completedData = JSON.parse(jsonMatch[0]);
-      } else {
+    const parseJsonStrict = (raw: string) => {
+      const cleaned = raw
+        .replace(/```json\s*/gi, "")
+        .replace(/```/g, "")
+        .trim();
+
+      try {
+        return JSON.parse(cleaned);
+      } catch {
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          return JSON.parse(jsonMatch[0]);
+        }
         throw new Error("Could not parse AI response as JSON");
       }
+    };
+
+    let completedData;
+    try {
+      completedData = parseJsonStrict(content);
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', parseError);
+
+      // Last resort: ask AI to repair its own JSON (prevents 500 loops on rare formatting glitches)
+      const repairSystem =
+        "You are a strict JSON repair tool. You receive invalid JSON and must output ONLY valid JSON (no markdown, no explanations). Preserve the original structure and values as much as possible. Ensure all strings are properly escaped.";
+      const repairUser =
+        `Fix this JSON so it is valid. Return only JSON.\n\nInvalid JSON:\n${content}`;
+
+      const repairResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            { role: "system", content: repairSystem },
+            { role: "user", content: repairUser },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0,
+          max_tokens: 8000,
+        }),
+      });
+
+      if (!repairResponse.ok) {
+        const t = await repairResponse.text();
+        console.error("JSON repair failed:", repairResponse.status, t);
+        throw new Error("AI response was invalid JSON and could not be repaired");
+      }
+
+      const repairData = await repairResponse.json();
+      const repairedContent = repairData.choices?.[0]?.message?.content;
+      if (!repairedContent) {
+        throw new Error("AI response was invalid JSON and repair returned no content");
+      }
+
+      // Re-parse repaired JSON
+      completedData = parseJsonStrict(repairedContent);
     }
 
     // Use MusicBrainz data if available
