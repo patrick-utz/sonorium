@@ -61,11 +61,15 @@ export function useResearchCache() {
   };
 
   const getArtistCache = useCallback(
-    (artist: string) => {
+    (artist: string, bypassCache = false) => {
+      if (bypassCache) return null;
       const key = getCacheKey("artist", artist);
       const entry = cache.artist[key];
       if (entry && Date.now() - entry.timestamp < CACHE_EXPIRY_MS) {
-        return entry.data;
+        // Don't return cached empty/error results
+        if (entry.data?.topRecommendations?.length > 0) {
+          return entry.data;
+        }
       }
       return null;
     },
@@ -84,11 +88,15 @@ export function useResearchCache() {
   }, []);
 
   const getAlbumCache = useCallback(
-    (artist: string, album: string, label?: string, catalog?: string) => {
+    (artist: string, album: string, label?: string, catalog?: string, bypassCache = false) => {
+      if (bypassCache) return null;
       const key = getCacheKey("album", artist, album, label || "", catalog || "");
       const entry = cache.album[key];
       if (entry && Date.now() - entry.timestamp < CACHE_EXPIRY_MS) {
-        return entry.data;
+        // Don't return cached empty/error results  
+        if (entry.data?.artist && entry.data?.album) {
+          return entry.data;
+        }
       }
       return null;
     },
