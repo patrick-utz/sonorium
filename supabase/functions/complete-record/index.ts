@@ -760,8 +760,12 @@ async function searchDiscogsByLabelAndCatalog(label: string, catalogNumber: stri
   }
 }
 
-// Search Discogs by artist and album
-async function searchDiscogsByArtistAlbum(artist: string, album: string): Promise<DiscogsRelease | null> {
+// Search Discogs by artist and album (optionally constrained by label/catno)
+async function searchDiscogsByArtistAlbum(
+  artist: string,
+  album: string,
+  opts?: { catalogNumber?: string; label?: string }
+): Promise<DiscogsRelease | null> {
   if (!DISCOGS_API_KEY) {
     console.log('Discogs API key not configured');
     return null;
@@ -769,7 +773,16 @@ async function searchDiscogsByArtistAlbum(artist: string, album: string): Promis
   
   try {
     console.log('Searching Discogs by artist/album:', artist, album);
-    const url = `https://api.discogs.com/database/search?artist=${encodeURIComponent(artist)}&release_title=${encodeURIComponent(album)}&type=release&format=vinyl`;
+    const params = new URLSearchParams({
+      artist,
+      release_title: album,
+      type: 'release',
+      format: 'vinyl',
+    });
+    if (opts?.catalogNumber) params.set('catno', opts.catalogNumber);
+    if (opts?.label) params.set('label', opts.label);
+
+    const url = `https://api.discogs.com/database/search?${params.toString()}`;
     
     const response = await fetch(url, {
       headers: {
@@ -777,6 +790,11 @@ async function searchDiscogsByArtistAlbum(artist: string, album: string): Promis
         'Authorization': `Discogs token=${DISCOGS_API_KEY}`
       }
     });
+
+    if (response.status === 429) {
+      console.log('Discogs rate limit hit (429) for artist/album search');
+      return null;
+    }
     
     if (!response.ok) {
       console.log('Discogs artist/album search failed:', response.status);
@@ -791,7 +809,15 @@ async function searchDiscogsByArtistAlbum(artist: string, album: string): Promis
     }
     
     // Try without vinyl format restriction
-    const url2 = `https://api.discogs.com/database/search?artist=${encodeURIComponent(artist)}&release_title=${encodeURIComponent(album)}&type=release`;
+    const params2 = new URLSearchParams({
+      artist,
+      release_title: album,
+      type: 'release',
+    });
+    if (opts?.catalogNumber) params2.set('catno', opts.catalogNumber);
+    if (opts?.label) params2.set('label', opts.label);
+
+    const url2 = `https://api.discogs.com/database/search?${params2.toString()}`;
     
     const response2 = await fetch(url2, {
       headers: {
@@ -799,6 +825,11 @@ async function searchDiscogsByArtistAlbum(artist: string, album: string): Promis
         'Authorization': `Discogs token=${DISCOGS_API_KEY}`
       }
     });
+
+    if (response2.status === 429) {
+      console.log('Discogs rate limit hit (429) for artist/album fallback search');
+      return null;
+    }
     
     if (response2.ok) {
       const data2: DiscogsSearchResult = await response2.json();
@@ -1012,7 +1043,13 @@ async function searchDiscogsCover(artist: string, album: string, barcode?: strin
 }
 
 // Get pressing information from Discogs
-async function getDiscogsPressInfo(artist: string, album: string, barcode?: string, catalogNumber?: string): Promise<{
+async function getDiscogsPressInfo(
+  artist: string,
+  album: string,
+  barcode?: string,
+  catalogNumber?: string,
+  label?: string
+): Promise<{
   label?: string;
   catalogNumber?: string;
   country?: string;
@@ -1037,18 +1074,30 @@ async function getDiscogsPressInfo(artist: string, album: string, barcode?: stri
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
-    
-    // Try catalog number
-    if (!release && catalogNumber) {
-      release = await searchDiscogsByCatalogNumber(catalogNumber);
+
+    // If we have label + catalog, prefer this over catalog-only (prevents wrong matches)
+    if (!release && catalogNumber && label) {
+      release = await searchDiscogsByLabelAndCatalog(label, catalogNumber);
       if (release) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
-    
-    // Try artist/album
+
+    // If we have explicit artist/album, prefer artist/album search (optionally constrained)
     if (!release && artist && album) {
-      release = await searchDiscogsByArtistAlbum(artist, album);
+      release = await searchDiscogsByArtistAlbum(artist, album, { catalogNumber, label });
+      if (!release) {
+        // fallback without constraints
+        release = await searchDiscogsByArtistAlbum(artist, album);
+      }
+    }
+    
+    // As a last resort (only when we don't have explicit artist/album), try catalog number only
+    if (!release && catalogNumber && !(artist && album)) {
+      release = await searchDiscogsByCatalogNumber(catalogNumber);
+      if (release) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
     
     if (!release) {
@@ -1364,7 +1413,13 @@ Wichtige Hinweise:
     // Step 0: Get Discogs pressing information first (if API key is configured)
     if (DISCOGS_API_KEY) {
       console.log('Fetching Discogs pressing information...');
-      discogsPressInfo = await getDiscogsPressInfo(artist || '', album || '', effectiveBarcode, effectiveCatalogNumber);
+      discogsPressInfo = await getDiscogsPressInfo(
+        artist || '',
+        album || '',
+        effectiveBarcode,
+        effectiveCatalogNumber,
+        label
+      );
       if (discogsPressInfo) {
         console.log('Got Discogs press info:', discogsPressInfo);
       }
