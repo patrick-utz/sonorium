@@ -53,11 +53,14 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 const MB_USER_AGENT = 'VinylCollector/1.0 (contact@vinylcollector.app)';
 
 // Search MusicBrainz by catalog number (e.g., "LITA 197")
-async function searchByCatalogNumber(catalogNumber: string): Promise<{ mbid: string; artist: string; album: string; year: number; label: string; catalogNumber: string } | null> {
+async function searchByCatalogNumber(
+  catalogNumber: string,
+  context?: { artist?: string; album?: string; label?: string }
+): Promise<{ mbid: string; artist: string; album: string; year: number; label: string; catalogNumber: string } | null> {
   try {
     console.log('Searching MusicBrainz by catalog number:', catalogNumber);
     const query = encodeURIComponent(`catno:${catalogNumber}`);
-    const url = `https://musicbrainz.org/ws/2/release/?query=${query}&fmt=json&limit=5`;
+    const url = `https://musicbrainz.org/ws/2/release/?query=${query}&fmt=json&limit=10`;
     
     const response = await fetch(url, {
       headers: { 'User-Agent': MB_USER_AGENT }
@@ -69,19 +72,98 @@ async function searchByCatalogNumber(catalogNumber: string): Promise<{ mbid: str
     }
     
     const data = await response.json();
-    const release = data.releases?.[0];
-    
-    if (release) {
-      console.log('Found release by catalog number:', release.title, 'by', release['artist-credit']?.[0]?.name);
+    const releases: any[] = data.releases || [];
+
+    if (releases.length === 0) return null;
+
+    // If we have context (artist/album/label from user input), score candidates.
+    if (context?.artist || context?.album || context?.label) {
+      const scored = releases
+        .map((release) => {
+          const candidateArtist =
+            release?.['artist-credit']
+              ?.map((a: any) => a?.name)
+              .filter(Boolean)
+              .join(', ') ||
+            release?.['artist-credit']?.[0]?.name ||
+            '';
+          const candidateAlbum = release?.title || '';
+          const candidateLabel = release?.['label-info']?.[0]?.label?.name || '';
+          const candidateCatno = release?.['label-info']?.[0]?.['catalog-number'] || '';
+
+          const artistSim = context.artist ? stringSimilarity(candidateArtist, context.artist) : 0.5;
+          const albumSim = context.album ? stringSimilarity(candidateAlbum, context.album) : 0.5;
+          const labelSim = context.label ? stringSimilarity(candidateLabel, context.label) : 0.5;
+
+          // Catalog number may contain spaces/dashes; consider a loose match.
+          const catNoSim = candidateCatno
+            ? stringSimilarity(candidateCatno, catalogNumber)
+            : 0.5;
+
+          // Album match is most important, then artist, then label, then catno.
+          const score = albumSim * 0.55 + artistSim * 0.30 + labelSim * 0.10 + catNoSim * 0.05;
+          return { release, score, artistSim, albumSim, labelSim, catNoSim, candidateArtist, candidateAlbum, candidateLabel, candidateCatno };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      const best = scored[0];
+      console.log(
+        'MusicBrainz catalog candidates (top 3):',
+        scored.slice(0, 3).map((s) => ({
+          score: Number(s.score.toFixed(3)),
+          artistSim: Number(s.artistSim.toFixed(3)),
+          albumSim: Number(s.albumSim.toFixed(3)),
+          labelSim: Number(s.labelSim.toFixed(3)),
+          catNoSim: Number(s.catNoSim.toFixed(3)),
+          artist: s.candidateArtist,
+          album: s.candidateAlbum,
+          label: s.candidateLabel,
+          catno: s.candidateCatno,
+        }))
+      );
+
+      // If the best match is still very weak, treat as not found to avoid poisoning the AI prompt.
+      // Threshold is intentionally permissive (multi-artist strings can reduce similarity).
+      if ((context.album && best.albumSim < 0.45) || (context.artist && best.artistSim < 0.35)) {
+        console.log('MusicBrainz catalog match too weak for provided context; ignoring result.');
+        return null;
+      }
+
+      const release = best.release;
+      console.log('Selected MusicBrainz release by catalog number:', release.title, 'by', release['artist-credit']?.[0]?.name);
       return {
         mbid: release.id,
-        artist: release['artist-credit']?.[0]?.name || '',
+        artist:
+          release?.['artist-credit']
+            ?.map((a: any) => a?.name)
+            .filter(Boolean)
+            .join(', ') ||
+          release['artist-credit']?.[0]?.name ||
+          '',
         album: release.title || '',
         year: release.date ? parseInt(release.date.substring(0, 4)) : 0,
         label: release['label-info']?.[0]?.label?.name || '',
-        catalogNumber: release['label-info']?.[0]?.['catalog-number'] || catalogNumber
+        catalogNumber: release['label-info']?.[0]?.['catalog-number'] || catalogNumber,
       };
     }
+
+    // No context: keep old behavior (first release)
+    const release = releases[0];
+    console.log('Found release by catalog number:', release.title, 'by', release['artist-credit']?.[0]?.name);
+    return {
+      mbid: release.id,
+      artist:
+        release?.['artist-credit']
+          ?.map((a: any) => a?.name)
+          .filter(Boolean)
+          .join(', ') ||
+        release['artist-credit']?.[0]?.name ||
+        '',
+      album: release.title || '',
+      year: release.date ? parseInt(release.date.substring(0, 4)) : 0,
+      label: release['label-info']?.[0]?.label?.name || '',
+      catalogNumber: release['label-info']?.[0]?.['catalog-number'] || catalogNumber,
+    };
     
     return null;
   } catch (error) {
@@ -346,7 +428,7 @@ async function getCoverArt(mbid: string): Promise<string | null> {
     
     const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
     const arrayBuffer = await imageResponse.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const base64 = arrayBufferToBase64(arrayBuffer);
     
     console.log('Cover art converted to base64 successfully');
     return `data:${contentType};base64,${base64}`;
@@ -1144,7 +1226,7 @@ async function getArtistImage(artist: string): Promise<string | null> {
     
     const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
     const arrayBuffer = await imageResponse.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const base64 = arrayBufferToBase64(arrayBuffer);
     
     console.log('Artist image converted to base64');
     return `data:${contentType};base64,${base64}`;
@@ -1291,16 +1373,37 @@ Wichtige Hinweise:
 
     // Step 1: Try catalog number first (most reliable for vinyl)
     if (effectiveCatalogNumber || effectiveBarcode) {
-      const searchTerm = effectiveCatalogNumber || effectiveBarcode;
-      console.log('Searching by catalog/barcode:', searchTerm);
-      
-      // Try catalog number search first
-      mbData = await searchByCatalogNumber(searchTerm!);
-      
-      // If catalog number didn't work, try barcode search
-      if (!mbData && effectiveBarcode) {
+      console.log('Searching by catalog/barcode:', effectiveCatalogNumber || effectiveBarcode);
+
+      // IMPORTANT: Only query "catno" when we actually have a catalog number.
+      if (effectiveCatalogNumber) {
+        const effectiveLabel = label || discogsPressInfo?.label;
+        mbData = await searchByCatalogNumber(effectiveCatalogNumber, {
+          artist,
+          album,
+          label: effectiveLabel,
+        });
+      } else if (effectiveBarcode) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         mbData = await searchByBarcode(effectiveBarcode);
+      }
+
+      // If we have user-provided artist/album and the MB candidate clearly doesn't match,
+      // ignore it so it can't poison downstream prompts.
+      if (mbData && artist && album) {
+        const artistSim = stringSimilarity(mbData.artist, artist);
+        const albumSim = stringSimilarity(mbData.album, album);
+        if (artistSim < 0.35 || albumSim < 0.45) {
+          console.log('MusicBrainz result does not match provided artist/album; ignoring.', {
+            artistSim,
+            albumSim,
+            providedArtist: artist,
+            providedAlbum: album,
+            mbArtist: mbData.artist,
+            mbAlbum: mbData.album,
+          });
+          mbData = null;
+        }
       }
       
       if (mbData?.mbid) {
@@ -1403,8 +1506,11 @@ Wichtige Hinweise:
 
     // Different prompt for catalog number/barcode lookup
     const searchIdentifier = catalogNumber || barcode;
-    const searchInstruction = searchIdentifier 
-      ? `\n\nWICHTIG: Der Nutzer hat "${searchIdentifier}" eingegeben (${catalogNumber ? 'Katalognummer' : 'Barcode'}). ${mbData ? `MusicBrainz hat identifiziert: "${mbData.album}" von "${mbData.artist}" (${mbData.year}, Label: ${mbData.label}).` : 'MusicBrainz konnte keine Übereinstimmung finden. Versuche das Album anhand dieser Nummer zu identifizieren.'}`
+    const hasExplicitArtistAlbum = Boolean(artist && album);
+    const searchInstruction = searchIdentifier
+      ? hasExplicitArtistAlbum
+        ? `\n\nWICHTIG: Der Nutzer hat "${searchIdentifier}" eingegeben (${catalogNumber ? 'Katalognummer' : 'Barcode'}) **für das Album** "${album}" von "${artist}". Nutze die Nummer nur zur Pressungs-/Label-Validierung und für Details (Land, Jahr, Format, Varianten) – **ändere Artist/Album niemals** und bewerte nur dieses Album.`
+        : `\n\nWICHTIG: Der Nutzer hat "${searchIdentifier}" eingegeben (${catalogNumber ? 'Katalognummer' : 'Barcode'}). ${mbData ? `MusicBrainz hat identifiziert: "${mbData.album}" von "${mbData.artist}" (${mbData.year}, Label: ${mbData.label}).` : 'MusicBrainz konnte keine Übereinstimmung finden. Versuche das Album anhand dieser Nummer zu identifizieren.'}`
       : '';
 
     const systemPrompt = `Du bist ein Musik-Experte, Audiophiler und Historiker mit tiefem Wissen über Jazz, Klassik, Rock und alle Genres. 
@@ -1413,13 +1519,18 @@ Du kennst auch Katalognummern von Plattenlabels (z.B. "LITA 197" für Light in t
 
 Deine Aufgabe ist es, Album-Informationen zu vervollständigen und AUSFÜHRLICHE Bewertungen zu liefern.
 
-WICHTIG: Schreibe ALLES auf Deutsch. Sei ausführlich und detailliert wie ein Musik-Magazin.${searchInstruction}
+    WICHTIG: Schreibe ALLES auf Deutsch. Sei ausführlich und detailliert wie ein Musik-Magazin.${searchInstruction}
+
+    KRITISCH:
+    - Wenn im Kontext bereits "Artist:" und/oder "Album:" genannt werden, dann übernimm diese Werte EXAKT in den Feldern "artist" und "album".
+    - Erfinde niemals einen anderen Künstler/Albumnamen und bewerte nur das im Kontext genannte Album.
+    - Wenn du dir nicht sicher bist (z.B. widersprüchliche Quellen), setze "confidence" auf "low" statt etwas zu halluzinieren.
 
 Liefere ein JSON-Objekt mit folgender Struktur:
 
 {
-  "artist": "string - nur wenn nicht angegeben",
-  "album": "string - nur wenn nicht angegeben", 
+      "artist": "string - wenn Artist bekannt ist, MUSS er exakt übernommen werden (nicht überschreiben)",
+      "album": "string - wenn Album bekannt ist, MUSS es exakt übernommen werden (nicht überschreiben)", 
   "year": number - Erscheinungsjahr,
   "genre": ["array", "der", "genres"],
   "label": "string - Plattenlabel",
@@ -1631,12 +1742,17 @@ Sei ein echter Experte. Liefere fundierte, detaillierte Analysen wie ein profess
       completedData = parseJsonStrict(repairedContent);
     }
 
-    // Use MusicBrainz data if available
+    // Enforce user-provided fields (prevents drift/hallucinated mismatches)
+    if (artist) completedData.artist = artist;
+    if (album) completedData.album = album;
+    if (label) completedData.label = label;
+    if (catalogNumber) completedData.catalogNumber = catalogNumber;
+
+    // Use MusicBrainz data if available (only to fill missing secondary fields)
     if (mbData) {
-      if (!completedData.artist) completedData.artist = mbData.artist;
-      if (!completedData.album) completedData.album = mbData.album;
       if (!completedData.year && mbData.year) completedData.year = mbData.year;
       if (!completedData.label && mbData.label) completedData.label = mbData.label;
+      if (!completedData.catalogNumber && mbData.catalogNumber) completedData.catalogNumber = mbData.catalogNumber;
     }
 
     // Use Discogs data if available (as enhancement/fallback)

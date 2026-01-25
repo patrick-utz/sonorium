@@ -15,6 +15,34 @@ interface ResearchCache {
   prices: Record<string, CacheEntry<any>>;
 }
 
+function normalizeForCompare(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/['’`´]/g, "'")
+    .replace(/[^a-z0-9äöüß\s'-]/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenSet(value: string) {
+  return new Set(
+    normalizeForCompare(value)
+      .split(" ")
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 3)
+  );
+}
+
+function tokenOverlapScore(a: string, b: string) {
+  const A = tokenSet(a);
+  const B = tokenSet(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let inter = 0;
+  for (const t of A) if (B.has(t)) inter++;
+  const union = new Set([...A, ...B]).size;
+  return union ? inter / union : 0;
+}
+
 export function useResearchCache() {
   const [cache, setCache] = useState<ResearchCache>(() => {
     try {
@@ -95,6 +123,22 @@ export function useResearchCache() {
       if (entry && Date.now() - entry.timestamp < CACHE_EXPIRY_MS) {
         // Don't return cached empty/error results  
         if (entry.data?.artist && entry.data?.album) {
+          // Defensive validation: if cached payload doesn't match the query, ignore + purge it.
+          // This prevents a rare wrong upstream match from poisoning the cache for 7 days.
+          const artistScore = tokenOverlapScore(entry.data.artist, artist);
+          const albumScore = tokenOverlapScore(entry.data.album, album);
+
+          // Album mismatch is the strongest signal; artist mismatch is secondary.
+          const looksMismatched = albumScore < 0.25 || artistScore < 0.15;
+          if (looksMismatched) {
+            setCache((prev) => {
+              const nextAlbum = { ...prev.album };
+              delete nextAlbum[key];
+              return { ...prev, album: nextAlbum };
+            });
+            return null;
+          }
+
           return entry.data;
         }
       }
