@@ -144,8 +144,9 @@ export default function Research() {
         throw new Error(errorData.error || `Fehler: ${response.status}`);
       }
 
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
+      const payload = await response.json();
+      if (payload.error) throw new Error(payload.error);
+      const data = payload.data ?? payload;
 
       setAlbumResult(data);
       setSearchQuery(data.artist || "");
@@ -199,8 +200,9 @@ export default function Research() {
         throw new Error(errorData.error || `Fehler: ${response.status}`);
       }
 
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
+      const payload = await response.json();
+      if (payload.error) throw new Error(payload.error);
+      const data = payload.data ?? payload;
 
       setAlbumResult(data);
       setSearchQuery(data.artist || "");
@@ -314,8 +316,13 @@ export default function Research() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
 
-      const searchText = `${searchQuery.trim()} ${albumQuery.trim()}`.trim();
+      const artist = searchQuery.trim();
+      const album = albumQuery.trim();
+      const searchText = `${artist} ${album}`.trim();
       const requestBody: any = {
+        // complete-record expects artist/album (searchText alone can lead to wrong matches)
+        artist,
+        album,
         searchText,
         format: profile?.mediaFormat === 'cd' ? 'cd' : 'vinyl',
       };
@@ -348,8 +355,9 @@ export default function Research() {
         throw new Error(errorData.error || `Fehler: ${response.status}`);
       }
 
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
+      const payload = await response.json();
+      if (payload.error) throw new Error(payload.error);
+      const data = payload.data ?? payload;
 
       setAlbumResult(data);
       cache.setAlbumCache(searchQuery, albumQuery, labelQuery, catalogQuery, data);
@@ -518,24 +526,24 @@ export default function Research() {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Cache indicator with clear button */}
-          {(cache.cacheStats.albumCount > 0 || cache.cacheStats.artistCount > 0) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
-              onClick={() => {
-                cache.clearCache();
-                toast({ title: "Cache geleert", description: "Alle gespeicherten Recherche-Ergebnisse wurden gelöscht." });
-              }}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Cache</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 h-4">
-                {cache.cacheStats.albumCount + cache.cacheStats.artistCount}
-              </Badge>
-            </Button>
-          )}
+          {/* Cache clear button (always visible) */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 text-xs text-muted-foreground enabled:hover:text-destructive disabled:opacity-60"
+            disabled={(cache.cacheStats.albumCount + cache.cacheStats.artistCount) === 0}
+            title="Recherche-Cache leeren"
+            onClick={() => {
+              cache.clearCache();
+              toast({ title: "Cache geleert", description: "Alle gespeicherten Recherche-Ergebnisse wurden gelöscht." });
+            }}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Cache</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 h-4">
+              {cache.cacheStats.albumCount + cache.cacheStats.artistCount}
+            </Badge>
+          </Button>
           
           <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
             <DialogTrigger asChild>
