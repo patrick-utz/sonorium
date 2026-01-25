@@ -19,23 +19,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const applySession = (nextSession: Session | null) => {
+      if (cancelled) return;
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      setLoading(false);
+    };
+
+    // Validates that the stored session is still accepted by the auth server.
+    // Fixes cases where local storage contains a stale session ("session_not_found"),
+    // which otherwise leads to 401 on backend function calls.
+    const validateOrClearSession = async (nextSession: Session | null) => {
+      if (!nextSession?.access_token) {
+        applySession(null);
+        return;
+      }
+
+      const { data, error } = await supabase.auth.getUser(nextSession.access_token);
+      if (error || !data?.user?.id) {
+        // Force a clean sign-out to clear any broken local state.
+        await supabase.auth.signOut();
+        applySession(null);
+        return;
+      }
+
+      applySession(nextSession);
+    };
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+      (_event, nextSession) => {
+        // Fire-and-forget; state updates are guarded by `cancelled`.
+        void validateOrClearSession(nextSession);
       }
     );
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      void validateOrClearSession(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {
