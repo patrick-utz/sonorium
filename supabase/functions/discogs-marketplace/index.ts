@@ -22,10 +22,11 @@ async function validateAuth(req: Request): Promise<{ userId: string } | Response
     { global: { headers: { Authorization: authHeader } } }
   );
 
-  // Use getUser() which validates the token against the auth server
-  const { data: { user }, error } = await supabase.auth.getUser();
+  // IMPORTANT: Pass JWT explicitly in edge runtimes.
+  const token = authHeader.replace('Bearer ', '');
+  const { data, error } = await supabase.auth.getUser(token);
   
-  if (error || !user?.id) {
+  if (error || !data?.user?.id) {
     console.error('Auth validation failed:', error?.message);
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
@@ -33,7 +34,7 @@ async function validateAuth(req: Request): Promise<{ userId: string } | Response
     });
   }
 
-  return { userId: user.id };
+  return { userId: data.user.id };
 }
 
 const DISCOGS_API_KEY = Deno.env.get('DISCOGS_API_KEY');
