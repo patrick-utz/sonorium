@@ -518,12 +518,23 @@ export default function Research() {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Cache indicator */}
-          {cache.cacheStats.albumCount > 0 && (
-            <Badge variant="secondary" className="text-xs gap-1">
-              <WifiOff className="w-3 h-3" />
-              {cache.cacheStats.albumCount + cache.cacheStats.artistCount}
-            </Badge>
+          {/* Cache indicator with clear button */}
+          {(cache.cacheStats.albumCount > 0 || cache.cacheStats.artistCount > 0) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+              onClick={() => {
+                cache.clearCache();
+                toast({ title: "Cache geleert", description: "Alle gespeicherten Recherche-Ergebnisse wurden gelöscht." });
+              }}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Cache</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 h-4">
+                {cache.cacheStats.albumCount + cache.cacheStats.artistCount}
+              </Badge>
+            </Button>
           )}
           
           <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
