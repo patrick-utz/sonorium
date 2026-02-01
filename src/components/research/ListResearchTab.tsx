@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,35 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRecords } from "@/context/RecordContext";
+
+const stripDiacritics = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+const normalizeForMatch = (s: string) => {
+  if (!s) return "";
+  return stripDiacritics(s)
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, " ") // remove (remaster), etc.
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\{[^}]*\}/g, " ")
+    .replace(/&/g, " and ")
+    .replace(/\bfeat\.?\b|\bft\.?\b/gi, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const normalizeArtist = (artist: string) => {
+  const a = normalizeForMatch(artist);
+  // handle "Last, First"
+  const comma = a.match(/^([^,]+),\s*(.+)$/);
+  const reordered = comma ? `${comma[2]} ${comma[1]}` : a;
+  return reordered.replace(/^the\s+/, "").trim();
+};
+
+const normalizeAlbum = (album: string) => normalizeForMatch(album);
+
+const makeKey = (artist: string, album: string) => `${normalizeArtist(artist)}|${normalizeAlbum(album)}`;
 
 interface ExtractedAlbum {
   artist: string;
@@ -72,6 +101,45 @@ export function ListResearchTab({ onAddToWishlist }: ListResearchTabProps) {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { records } = useRecords();
+
+  // Extra safety: derive owned/wishlist flags from local record state as well,
+  // so already-owned albums never appear and wishlist state is consistent.
+  const ownedKeySet = useMemo(() => {
+    return new Set(
+      records
+        .filter((r) => r.status === "owned")
+        .map((r) => makeKey(r.artist, r.album))
+    );
+  }, [records]);
+
+  const wishlistKeySet = useMemo(() => {
+    return new Set(
+      records
+        .filter((r) => r.status === "wishlist")
+        .map((r) => makeKey(r.artist, r.album))
+    );
+  }, [records]);
+
+  const displayAlbums = useMemo(() => {
+    if (!result?.albums) return [] as ExtractedAlbum[];
+    return result.albums
+      .map((a) => {
+        const key = makeKey(a.artist, a.album);
+        return {
+          ...a,
+          inCollection: Boolean(a.inCollection) || ownedKeySet.has(key),
+          inWishlist: Boolean(a.inWishlist) || wishlistKeySet.has(key),
+        };
+      })
+      // Never show owned items
+      .filter((a) => !a.inCollection);
+  }, [result, ownedKeySet, wishlistKeySet]);
+
+  const hiddenOwnedCount = useMemo(() => {
+    if (!result?.albums) return 0;
+    return Math.max(0, result.albums.length - displayAlbums.length);
+  }, [result, displayAlbums.length]);
 
   // Extract text from PDF by reading as text (simple extraction for vinyl lists)
   const extractTextFromPdf = async (file: File): Promise<string> => {
@@ -477,8 +545,13 @@ export function ListResearchTab({ onAddToWishlist }: ListResearchTabProps) {
                     <Store className="w-4 h-4 text-primary" />
                     {result.shopName || 'Liste'}
                   </CardTitle>
-                  <Badge variant="secondary">{result.totalAlbumsFound} Alben</Badge>
+                  <Badge variant="secondary">{displayAlbums.length} Alben</Badge>
                 </div>
+                {hiddenOwnedCount > 0 && (
+                  <CardDescription className="text-xs mt-1">
+                    {hiddenOwnedCount} bereits in deiner Sammlung ausgeblendet
+                  </CardDescription>
+                )}
                 {result.summary && (
                   <CardDescription className="text-sm mt-2">
                     {result.summary}
@@ -495,7 +568,7 @@ export function ListResearchTab({ onAddToWishlist }: ListResearchTabProps) {
               <CardContent className="py-0 pb-3">
                 <ScrollArea className="max-h-[60vh]">
                   <div className="space-y-2">
-                    {result.albums.map((album, idx) => (
+                    {displayAlbums.map((album, idx) => (
                       <motion.div
                         key={idx}
                         initial={{ opacity: 0, x: -10 }}
@@ -580,17 +653,23 @@ export function ListResearchTab({ onAddToWishlist }: ListResearchTabProps) {
                         )}
 
                         {/* Add Button */}
-                        {!album.inCollection && !album.inWishlist && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="mt-2 h-7 text-xs gap-1"
-                            onClick={() => handleAddToWishlist(album)}
-                          >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 h-7 text-xs gap-1"
+                          disabled={album.inWishlist}
+                          onClick={() => {
+                            if (album.inWishlist) return;
+                            handleAddToWishlist(album);
+                          }}
+                        >
+                          {album.inWishlist ? (
+                            <Heart className="w-3 h-3" />
+                          ) : (
                             <Plus className="w-3 h-3" />
-                            Zur Wunschliste
-                          </Button>
-                        )}
+                          )}
+                          {album.inWishlist ? "Schon auf Wunschliste" : "Zur Wunschliste"}
+                        </Button>
                       </motion.div>
                     ))}
                   </div>
