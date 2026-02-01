@@ -15,15 +15,13 @@ import {
   CheckCircle2, 
   Plus,
   Settings2,
-  Store,
   Disc3,
-  Album as AlbumIcon,
   XCircle,
   FileDown,
   User,
   Clock,
   Trash2,
-  WifiOff
+  ListFilter
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
@@ -42,8 +40,8 @@ import { QuickScanButton } from "@/components/research/QuickScanButton";
 import { PriceComparisonCard } from "@/components/research/PriceComparisonCard";
 import { useMarketplacePrices } from "@/hooks/useMarketplacePrices";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShopsConfig } from "@/components/research/ShopsConfig";
 import { MoodsConfig } from "@/components/MoodsConfig";
+import { ListResearchTab } from "@/components/research/ListResearchTab";
 
 interface PressingPrice {
   releaseId?: number;
@@ -83,7 +81,7 @@ interface AlbumSearchResult {
 
 export default function Research() {
   const [searchParams] = useSearchParams();
-  const [searchMode, setSearchMode] = useState<"artist" | "album" | "shops" | "moods">("album");
+  const [searchMode, setSearchMode] = useState<"artist" | "album" | "list" | "moods">("album");
   const [searchQuery, setSearchQuery] = useState("");
   const [albumQuery, setAlbumQuery] = useState("");
   const [labelQuery, setLabelQuery] = useState("");
@@ -105,8 +103,8 @@ export default function Research() {
   // Read tab from URL params
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "moods" || tab === "shops" || tab === "artist" || tab === "album") {
-      setSearchMode(tab);
+    if (tab === "moods" || tab === "list" || tab === "artist" || tab === "album") {
+      setSearchMode(tab as typeof searchMode);
     }
   }, [searchParams]);
 
@@ -590,7 +588,7 @@ export default function Research() {
       {/* Search Tabs */}
       <Card>
         <CardContent className="pt-4 pb-3">
-          <Tabs value={searchMode} onValueChange={(v) => setSearchMode(v as "artist" | "album" | "shops" | "moods")} className="w-full">
+          <Tabs value={searchMode} onValueChange={(v) => setSearchMode(v as "artist" | "album" | "list" | "moods")} className="w-full">
             <TabsList className="grid w-full grid-cols-4 h-9 mb-4">
               <TabsTrigger value="album" className="gap-1.5 text-xs">
                 <Disc3 className="w-3.5 h-3.5" />
@@ -602,9 +600,10 @@ export default function Research() {
                 <span className="hidden sm:inline">Künstler</span>
                 <span className="sm:hidden">Künstl.</span>
               </TabsTrigger>
-              <TabsTrigger value="shops" className="gap-1.5 text-xs">
-                <Store className="w-3.5 h-3.5" />
-                Shops
+              <TabsTrigger value="list" className="gap-1.5 text-xs">
+                <ListFilter className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Listen</span>
+                <span className="sm:hidden">Listen</span>
               </TabsTrigger>
               <TabsTrigger value="moods" className="gap-1.5 text-xs">
                 <Music className="w-3.5 h-3.5" />
@@ -682,9 +681,27 @@ export default function Research() {
               </div>
             </TabsContent>
 
-            {/* Shops Config */}
-            <TabsContent value="shops" className="mt-0">
-              <ShopsConfig />
+            {/* List Research - PDF/URL/Text */}
+            <TabsContent value="list" className="mt-0">
+              <ListResearchTab 
+                onAddToWishlist={(album) => {
+                  addRecord({
+                    artist: album.artist,
+                    album: album.album,
+                    year: album.year || new Date().getFullYear(),
+                    genre: [],
+                    label: album.label,
+                    catalogNumber: album.catalogNumber,
+                    format: profile?.mediaFormat === 'cd' ? 'cd' : 'vinyl',
+                    status: "wishlist",
+                    myRating: 0,
+                    personalNotes: album.personalNotes || '',
+                    tags: album.shopName ? [album.shopName] : [],
+                    isFavorite: false,
+                    purchasePrice: album.price,
+                  });
+                }}
+              />
             </TabsContent>
 
             {/* Moods Config */}
