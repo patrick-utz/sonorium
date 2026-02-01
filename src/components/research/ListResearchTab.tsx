@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,9 +11,7 @@ import {
   Link, 
   FileText, 
   Loader2, 
-  Star, 
   Plus, 
-  CheckCircle2, 
   AlertTriangle,
   Store,
   TrendingDown,
@@ -75,6 +73,60 @@ export function ListResearchTab({ onAddToWishlist }: ListResearchTabProps) {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Extract text from PDF by reading as text (simple extraction for vinyl lists)
+  const extractTextFromPdf = async (file: File): Promise<string> => {
+    // For PDF files, we read the raw bytes and extract text patterns
+    // This is a simple approach that works for most text-heavy PDFs like vinyl catalogs
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Convert bytes to string, filtering for printable characters
+    let rawText = '';
+    for (let i = 0; i < bytes.length; i++) {
+      const byte = bytes[i];
+      // Keep printable ASCII and common extended chars
+      if ((byte >= 32 && byte <= 126) || byte === 10 || byte === 13 || byte === 9) {
+        rawText += String.fromCharCode(byte);
+      } else if (byte >= 192 && byte <= 255) {
+        // Handle some UTF-8 chars
+        rawText += String.fromCharCode(byte);
+      }
+    }
+    
+    // Extract text between parentheses (common PDF text encoding)
+    const textMatches = rawText.match(/\(([^)]+)\)/g) || [];
+    const extractedText = textMatches
+      .map(match => match.slice(1, -1))
+      .filter(text => text.length > 1 && !/^[\\\/\d.]+$/.test(text))
+      .join(' ');
+    
+    // Also look for plain text sections
+    const plainTextSections = rawText.match(/BT[\s\S]*?ET/g) || [];
+    const additionalText = plainTextSections
+      .map(section => {
+        const innerMatches = section.match(/\(([^)]+)\)/g) || [];
+        return innerMatches.map(m => m.slice(1, -1)).join(' ');
+      })
+      .join(' ');
+    
+    const combinedText = extractedText + ' ' + additionalText;
+    
+    // Clean up the text
+    const cleanedText = combinedText
+      .replace(/\\n/g, '\n')
+      .replace(/\\r/g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/[^\x20-\x7E\xA0-\xFF\n]/g, '')
+      .trim();
+    
+    // If extraction yielded very little, inform user
+    if (cleanedText.length < 100) {
+      throw new Error('PDF-Text konnte nicht extrahiert werden. Bitte kopiere den Text manuell und verwende die Text-Eingabe.');
+    }
+    
+    return cleanedText;
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -99,21 +151,17 @@ export function ListResearchTab({ onAddToWishlist }: ListResearchTabProps) {
       }
 
       let content: string;
-      let contentType: 'pdf' | 'text';
+      const contentType = 'text'; // Always send as text now
 
       if (file.type === 'application/pdf') {
-        // Convert PDF to base64
-        const arrayBuffer = await file.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        let binary = '';
-        for (let i = 0; i < bytes.length; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        content = btoa(binary);
-        contentType = 'pdf';
+        // Extract text from PDF client-side
+        toast({ 
+          title: "PDF wird analysiert...", 
+          description: "Text wird extrahiert" 
+        });
+        content = await extractTextFromPdf(file);
       } else {
         content = await file.text();
-        contentType = 'text';
       }
 
       const response = await fetch(
