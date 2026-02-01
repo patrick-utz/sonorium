@@ -99,31 +99,43 @@ serve(async (req) => {
 
     console.log(`Analyzing list: type=${contentType}, shop=${shopName || 'auto-detect'}`);
 
-    // Fetch user's collection (4-5 star rated albums) for portfolio matching
-    const { data: collectionData } = await supabase
+    // Fetch user's high-rated albums (4-5 stars) for taste profiling
+    // We use BOTH owned and wishlist items with 4-5 stars to understand taste
+    const { data: tasteData } = await supabase
       .from('records')
-      .select('artist, album, genre, my_rating')
+      .select('artist, album, genre, my_rating, status')
       .eq('user_id', userId)
-      .in('my_rating', [4, 5])
-      .eq('status', 'owned');
+      .in('my_rating', [4, 5]);
 
-    const portfolio: PortfolioAlbum[] = (collectionData || []).map((r: any) => ({
+    const portfolio: PortfolioAlbum[] = (tasteData || []).map((r: any) => ({
       artist: r.artist,
       album: r.album,
       genre: r.genre || [],
       myRating: r.my_rating,
     }));
 
-    // Fetch existing collection and wishlist to mark duplicates
-    const { data: allRecords } = await supabase
+    // Fetch ALL owned albums to EXCLUDE from recommendations (user doesn't want to buy what they have)
+    const { data: ownedRecords } = await supabase
       .from('records')
-      .select('artist, album, status')
-      .eq('user_id', userId);
+      .select('artist, album')
+      .eq('user_id', userId)
+      .eq('status', 'owned');
 
-    const existingRecords = (allRecords || []).map((r: any) => ({
+    const ownedAlbums = (ownedRecords || []).map((r: any) => ({
       artist: r.artist.toLowerCase().trim(),
       album: r.album.toLowerCase().trim(),
-      status: r.status,
+    }));
+
+    // Fetch wishlist albums to mark as already on wishlist
+    const { data: wishlistRecords } = await supabase
+      .from('records')
+      .select('artist, album')
+      .eq('user_id', userId)
+      .eq('status', 'wishlist');
+
+    const wishlistAlbums = (wishlistRecords || []).map((r: any) => ({
+      artist: r.artist.toLowerCase().trim(),
+      album: r.album.toLowerCase().trim(),
     }));
 
     // Fetch user's audiophile profile for context
@@ -321,22 +333,31 @@ WICHTIG:
       }
     }
 
-    // Mark albums that are already in collection or wishlist
+    // Filter out albums already owned and mark wishlist items
     if (result.albums && Array.isArray(result.albums)) {
-      result.albums = result.albums.map((album: ExtractedAlbum) => {
-        const artistNorm = album.artist?.toLowerCase().trim() || '';
-        const albumNorm = album.album?.toLowerCase().trim() || '';
-        
-        const existing = existingRecords.find(
-          (r: { artist: string; album: string; status: string }) => r.artist === artistNorm && r.album === albumNorm
-        );
-        
-        return {
-          ...album,
-          inCollection: existing?.status === 'owned',
-          inWishlist: existing?.status === 'wishlist',
-        };
-      });
+      result.albums = result.albums
+        .map((album: ExtractedAlbum) => {
+          const artistNorm = album.artist?.toLowerCase().trim() || '';
+          const albumNorm = album.album?.toLowerCase().trim() || '';
+          
+          const isOwned = ownedAlbums.some(
+            (r: { artist: string; album: string }) => r.artist === artistNorm && r.album === albumNorm
+          );
+          const isOnWishlist = wishlistAlbums.some(
+            (r: { artist: string; album: string }) => r.artist === artistNorm && r.album === albumNorm
+          );
+          
+          return {
+            ...album,
+            inCollection: isOwned,
+            inWishlist: isOnWishlist,
+          };
+        })
+        // FILTER OUT albums already owned - user doesn't want to buy duplicates
+        .filter((album: MatchedAlbum) => !album.inCollection);
+      
+      // Update total count after filtering
+      result.totalAlbumsFound = result.albums.length;
     }
 
     console.log(`Successfully analyzed list: ${result.totalAlbumsFound} albums found`);
