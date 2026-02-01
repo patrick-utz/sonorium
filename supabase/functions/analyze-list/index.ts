@@ -167,18 +167,13 @@ serve(async (req) => {
       }
     }
 
-    // Prepare content for analysis
-    let textContent = content;
+    // Prepare content for analysis - handle PDFs as images
+    let messages: Array<{ role: string; content: any }> = [];
     
-    if (contentType === 'url' && sourceUrl) {
-      // For URLs, we pass the URL directly to the AI
-      textContent = `URL zum Analysieren: ${sourceUrl}\n\nBitte extrahiere alle Vinyl-/Schallplatten-Angebote von dieser URL.`;
-    }
-
     const systemPrompt = `Du bist ein Vinyl-Experte und analysierst Listen von Schallplatten-Angeboten.${portfolioContext}${equipmentContext}${preferencesContext}
 
 DEINE AUFGABE:
-1. Extrahiere ALLE Vinyl-Alben aus dem Inhalt (Text, PDF oder URL)
+1. Extrahiere ALLE Vinyl-Alben aus dem Inhalt (Text, PDF-Bilder oder URL)
 2. Identifiziere automatisch den Shop-Namen aus dem Inhalt (z.B. HHV, JPC, Discogs, etc.) falls nicht angegeben
 3. Bewerte jedes Album basierend auf dem Nutzer-Portfolio (Ähnlichkeit zu Favoriten, Genre-Match)
 4. Empfehle die beste Pressung falls bekannt
@@ -228,9 +223,37 @@ WICHTIG:
 - Behalte Originalpreise aus der Quelle
 - Bei URLs: Analysiere die verlinkte Seite vollständig`;
 
-    const userPrompt = shopName 
-      ? `Shop: ${shopName}\n\nInhalt:\n${textContent}`
-      : `Inhalt:\n${textContent}`;
+    if (contentType === 'url' && sourceUrl) {
+      // For URLs, pass the URL directly
+      const textContent = `URL zum Analysieren: ${sourceUrl}\n\nBitte extrahiere alle Vinyl-/Schallplatten-Angebote von dieser URL.`;
+      const userPrompt = shopName 
+        ? `Shop: ${shopName}\n\nInhalt:\n${textContent}`
+        : `Inhalt:\n${textContent}`;
+      
+      messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ];
+    } else {
+      // Text content (including extracted PDF text) - limit size if needed
+      let textContent = content;
+      const maxTextLength = 100000; // ~25k tokens - enough for most vinyl lists
+      if (textContent.length > maxTextLength) {
+        console.log(`Text content too long (${textContent.length} chars), truncating to ${maxTextLength}...`);
+        textContent = textContent.substring(0, maxTextLength) + "\n\n[... Text gekürzt - bitte kleinere Listen verwenden ...]";
+      }
+      
+      console.log(`Processing text content: ${textContent.length} chars`);
+      
+      const userPrompt = shopName 
+        ? `Shop: ${shopName}\n\nInhalt:\n${textContent}`
+        : `Inhalt:\n${textContent}`;
+      
+      messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ];
+    }
 
     console.log('Sending to AI for analysis...');
 
@@ -242,10 +265,7 @@ WICHTIG:
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
+        messages: messages,
         temperature: 0.3,
         max_tokens: 16000,
       }),
