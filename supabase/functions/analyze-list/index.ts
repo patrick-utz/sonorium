@@ -65,6 +65,34 @@ interface MatchedAlbum extends ExtractedAlbum {
   priceAssessment?: 'sehr gut' | 'gut' | 'fair' | 'teuer' | 'sehr teuer';
 }
 
+// Matching helpers: make owned/wishlist detection robust against punctuation, "(Remastered)", etc.
+const stripDiacritics = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+const normalizeForMatch = (s: string) => {
+  if (!s) return "";
+  return stripDiacritics(s)
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\{[^}]*\}/g, " ")
+    .replace(/&/g, " and ")
+    .replace(/\bfeat\.?\b|\bft\.?\b/gi, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const normalizeArtist = (artist: string) => {
+  const a = normalizeForMatch(artist);
+  const comma = a.match(/^([^,]+),\s*(.+)$/);
+  const reordered = comma ? `${comma[2]} ${comma[1]}` : a;
+  return reordered.replace(/^the\s+/, "").trim();
+};
+
+const normalizeAlbum = (album: string) => normalizeForMatch(album);
+
+const makeKey = (artist: string, album: string) => `${normalizeArtist(artist)}|${normalizeAlbum(album)}`;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -121,10 +149,11 @@ serve(async (req) => {
       .eq('user_id', userId)
       .eq('status', 'owned');
 
-    const ownedAlbums = (ownedRecords || []).map((r: any) => ({
-      artist: r.artist.toLowerCase().trim(),
-      album: r.album.toLowerCase().trim(),
+    const ownedPairs = (ownedRecords || []).map((r: any) => ({
+      artist: normalizeArtist(r.artist),
+      album: normalizeAlbum(r.album),
     }));
+    const ownedKeySet = new Set(ownedPairs.map((p: any) => `${p.artist}|${p.album}`));
 
     // Fetch wishlist albums to mark as already on wishlist
     const { data: wishlistRecords } = await supabase
@@ -133,10 +162,11 @@ serve(async (req) => {
       .eq('user_id', userId)
       .eq('status', 'wishlist');
 
-    const wishlistAlbums = (wishlistRecords || []).map((r: any) => ({
-      artist: r.artist.toLowerCase().trim(),
-      album: r.album.toLowerCase().trim(),
+    const wishlistPairs = (wishlistRecords || []).map((r: any) => ({
+      artist: normalizeArtist(r.artist),
+      album: normalizeAlbum(r.album),
     }));
+    const wishlistKeySet = new Set(wishlistPairs.map((p: any) => `${p.artist}|${p.album}`));
 
     // Fetch user's audiophile profile for context
     const { data: profileData } = await supabase
@@ -337,15 +367,21 @@ WICHTIG:
     if (result.albums && Array.isArray(result.albums)) {
       result.albums = result.albums
         .map((album: ExtractedAlbum) => {
-          const artistNorm = album.artist?.toLowerCase().trim() || '';
-          const albumNorm = album.album?.toLowerCase().trim() || '';
-          
-          const isOwned = ownedAlbums.some(
-            (r: { artist: string; album: string }) => r.artist === artistNorm && r.album === albumNorm
-          );
-          const isOnWishlist = wishlistAlbums.some(
-            (r: { artist: string; album: string }) => r.artist === artistNorm && r.album === albumNorm
-          );
+          const artistNorm = normalizeArtist(album.artist || '');
+          const albumNorm = normalizeAlbum(album.album || '');
+          const key = `${artistNorm}|${albumNorm}`;
+
+          // Owned matching: strict + light fuzzy (substring) for variants like "Rumours (2013 Remaster)"
+          const isOwned =
+            ownedKeySet.has(key) ||
+            ownedPairs.some(
+              (r: { artist: string; album: string }) =>
+                r.artist === artistNorm &&
+                (r.album === albumNorm || r.album.includes(albumNorm) || albumNorm.includes(r.album))
+            );
+
+          // Wishlist matching: keep strict to avoid false positives
+          const isOnWishlist = wishlistKeySet.has(key);
           
           return {
             ...album,
