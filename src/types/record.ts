@@ -55,6 +55,10 @@ export interface Record {
   // Medien
   coverArt?: string;
   labelPhoto?: string;
+  coverArtSource?: "discogs" | "musicbrainz" | "itunes" | "deezer" | "user-upload" | "user-url" | "ai-extracted" | "simplified";
+  coverArtVerified?: boolean; // User manually verified cover matches this pressing
+  coverArtVerifiedAt?: string; // Timestamp of verification
+  aiConfidence?: "high" | "medium" | "low"; // Confidence level of AI extraction
   
   // Bewertungen
   myRating: number; // 1-5

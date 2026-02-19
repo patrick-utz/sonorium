@@ -26,8 +26,11 @@ import { TagInput } from "@/components/TagInput";
 import { CameraCapture } from "@/components/CameraCapture";
 import { SmartScanner } from "@/components/SmartScanner";
 import { AlternativeReleases } from "@/components/AlternativeReleases";
+import { CoverVerificationModal } from "@/components/CoverVerificationModal";
+import { ConfidenceBadge } from "@/components/ConfidenceBadge";
+import { detectDuplicates, type DuplicateMatch, formatDuplicateMessage } from "@/lib/duplicateDetection";
 import { MoodInput } from "@/components/MoodInput";
-import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library, ShoppingCart, ExternalLink, Plus, Trash2, SaveIcon } from "lucide-react";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library, ShoppingCart, ExternalLink, Plus, Trash2, SaveIcon, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,7 +86,12 @@ export default function AddRecord() {
   const [pendingBarcodeData, setPendingBarcodeData] = useState<Partial<Record> | null>(null);
   const [alternativeReleases, setAlternativeReleases] = useState<AlternativeRelease[]>([]);
   const [selectedAlternative, setSelectedAlternative] = useState<AlternativeRelease | null>(null);
-  
+  const [showCoverVerification, setShowCoverVerification] = useState(false);
+  const [isReloadingCover, setIsReloadingCover] = useState(false);
+  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [acknowledgeDuplicate, setAcknowledgeDuplicate] = useState(false);
+
   // Autosave states
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
@@ -452,6 +460,54 @@ export default function AddRecord() {
     }
   };
 
+  const handleReloadCover = async () => {
+    if (!selectedAlternative || !pendingBarcodeData) return;
+
+    setIsReloadingCover(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('complete-record', {
+        body: {
+          artist: selectedAlternative.artist || pendingBarcodeData.artist,
+          album: selectedAlternative.title || pendingBarcodeData.album,
+          label: selectedAlternative.label || pendingBarcodeData.label,
+          catalogNumber: selectedAlternative.catalogNumber || pendingBarcodeData.catalogNumber,
+          year: selectedAlternative.year || pendingBarcodeData.year,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.data?.coverArtBase64 || data?.data?.coverArtUrl) {
+        const newCover = data.data.coverArtBase64 || data.data.coverArtUrl;
+        setPendingBarcodeData(prev => ({
+          ...prev,
+          coverArt: newCover,
+          coverArtSource: data.data.source || 'discogs',
+          aiConfidence: data.data.confidence || 'medium',
+        }));
+        toast({
+          title: "Cover neu geladen",
+          description: "Das Cover wurde erneut abgerufen.",
+        });
+      } else {
+        toast({
+          title: "Kein Cover gefunden",
+          description: "Für diese Pressung konnte kein Cover gefunden werden.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Cover reload error:', error);
+      toast({
+        title: "Fehler",
+        description: error instanceof Error ? error.message : "Cover konnte nicht neu geladen werden",
+        variant: "destructive",
+      });
+    } finally {
+      setIsReloadingCover(false);
+    }
+  };
+
   const handleStatusSelection = async (status: RecordStatus) => {
     if (pendingBarcodeData) {
       let finalCoverArt = pendingBarcodeData.coverArt;
@@ -495,6 +551,9 @@ export default function AddRecord() {
         tags: pendingBarcodeData.tags?.length ? pendingBarcodeData.tags : prev.tags,
         personalNotes: pendingBarcodeData.personalNotes || prev.personalNotes,
         coverArt: finalCoverArt || prev.coverArt,
+        coverArtSource: (pendingBarcodeData as any).coverArtSource || 'discogs',
+        coverArtVerified: (pendingBarcodeData as any).coverArtVerified || false,
+        aiConfidence: (pendingBarcodeData as any).aiConfidence || 'medium',
         audiophileAssessment: pendingBarcodeData.audiophileAssessment || prev.audiophileAssessment,
         artisticAssessment: pendingBarcodeData.artisticAssessment || prev.artisticAssessment,
         recordingQuality: pendingBarcodeData.recordingQuality || prev.recordingQuality,
@@ -530,6 +589,24 @@ export default function AddRecord() {
       return;
     }
 
+    // Check for duplicates when adding new record
+    if (!isEditing && !acknowledgeDuplicate) {
+      const matches = detectDuplicates(
+        records,
+        formData.artist,
+        formData.album,
+        formData.year,
+        formData.label,
+        formData.catalogNumber
+      );
+
+      if (matches.length > 0) {
+        setDuplicateMatches(matches);
+        setShowDuplicateWarning(true);
+        return; // Don't save yet
+      }
+    }
+
     const recordData = {
       ...formData,
     } as Omit<Record, "id" | "dateAdded">;
@@ -552,6 +629,9 @@ export default function AddRecord() {
       });
       navigate("/sammlung");
     }
+
+    // Reset duplicate acknowledgement
+    setAcknowledgeDuplicate(false);
   };
 
   const handleCameraCapture = (imageData: string) => {
@@ -642,24 +722,156 @@ export default function AddRecord() {
           
           <div className="flex flex-col gap-3 mt-4">
             <Button
-              onClick={() => handleStatusSelection("owned")}
+              onClick={() => {
+                setShowCoverVerification(true);
+                setShowStatusDialog(false);
+              }}
               className="gap-2 h-14 text-lg"
               variant="default"
+              disabled={!selectedAlternative || !pendingBarcodeData?.coverArt}
             >
-              <Library className="w-5 h-5" />
-              Zur Sammlung hinzufügen
+              <CheckCircle className="w-5 h-5" />
+              Weiter zur Cover-Überprüfung
             </Button>
             <Button
-              onClick={() => handleStatusSelection("wishlist")}
+              onClick={() => handleStatusSelection("owned")}
               className="gap-2 h-14 text-lg"
               variant="outline"
             >
-              <Heart className="w-5 h-5" />
-              Auf die Wunschliste
+              <Library className="w-5 h-5" />
+              Ohne Überprüfung hinzufügen
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate Warning Dialog */}
+      <Dialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500" />
+              Mögliche Duplikate gefunden
+            </DialogTitle>
+            <DialogDescription>
+              Dieses Album oder eine ähnliche Pressung existiert bereits in deiner Sammlung. Überprüfe die Treffer und bestätige, ob du fortfahren möchtest.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 max-h-60 overflow-y-auto">
+            {duplicateMatches.map((match) => (
+              <div
+                key={match.recordId}
+                className="p-3 border border-amber-200 bg-amber-50 dark:bg-amber-950/20 rounded-lg"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">
+                      {match.matchType === "exact" && "🔴 Exaktes Duplikat"}
+                      {match.matchType === "same-album-different-pressing" && "🟡 Andere Pressung"}
+                      {match.matchType === "potential" && "🟠 Ähnliches Album"}
+                    </p>
+                    <p className="text-foreground font-medium">
+                      {match.artist} - {match.album}
+                    </p>
+                    <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                      {match.year && <div>Jahr: {match.year}</div>}
+                      {match.label && <div>Label: {match.label}</div>}
+                      {match.catalogNumber && <div>Katalog: {match.catalogNumber}</div>}
+                      {match.dateAdded && (
+                        <div>Hinzugefügt: {new Date(match.dateAdded).toLocaleDateString("de-DE")}</div>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">{match.matchReason}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate(`/sammlung/${match.recordId}`)}
+                    className="text-primary hover:text-primary"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acknowledgeDuplicate}
+                onChange={(e) => setAcknowledgeDuplicate(e.target.checked)}
+                className="rounded border-border"
+              />
+              <span className="text-sm">
+                Ich möchte dieses Album trotzdem hinzufügen
+                {duplicateMatches.some((m) => m.matchType === "same-album-different-pressing")
+                  ? " (verschiedene Pressung)"
+                  : ""}
+              </span>
+            </label>
+
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowDuplicateWarning(false);
+                  setAcknowledgeDuplicate(false);
+                  setDuplicateMatches([]);
+                }}
+              >
+                Zurück bearbeiten
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                disabled={!acknowledgeDuplicate}
+                onClick={() => {
+                  setShowDuplicateWarning(false);
+                  handleSubmit(new Event("submit") as any);
+                }}
+              >
+                Hinzufügen bestätigen
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cover Verification Modal */}
+      <CoverVerificationModal
+        open={showCoverVerification}
+        onClose={() => {
+          setShowCoverVerification(false);
+          setShowStatusDialog(true);
+        }}
+        selectedRelease={selectedAlternative}
+        autoFetchedCover={pendingBarcodeData?.coverArt || null}
+        onConfirm={(verified, coverImage) => {
+          if (coverImage) {
+            setPendingBarcodeData(prev => ({
+              ...prev,
+              coverArt: coverImage,
+              coverArtVerified: verified,
+              coverArtVerifiedAt: new Date().toISOString(),
+            }));
+          } else {
+            setPendingBarcodeData(prev => ({
+              ...prev,
+              coverArtVerified: verified,
+              coverArtVerifiedAt: new Date().toISOString(),
+            }));
+          }
+          setShowCoverVerification(false);
+          handleStatusSelection("owned");
+        }}
+        onReloadCover={handleReloadCover}
+        isLoading={isReloadingCover}
+      />
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -869,6 +1081,22 @@ export default function AddRecord() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Confidence and Source Tracking */}
+          {(formData.aiConfidence || formData.coverArtSource || formData.coverArtVerified) && (
+            <Card className="bg-gradient-card border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Datenqualität</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ConfidenceBadge
+                  confidence={formData.aiConfidence as "high" | "medium" | "low" | undefined}
+                  source={formData.coverArtSource as any}
+                  verified={formData.coverArtVerified}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Basic Info */}
           <Card className="bg-gradient-card border-border/50">

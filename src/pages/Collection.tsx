@@ -3,6 +3,7 @@ import { compressImage } from "@/lib/imageUtils";
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
 import { StarRating } from "@/components/StarRating";
+import { BatchVerificationUI } from "@/components/BatchVerificationUI";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -83,6 +84,10 @@ export default function Collection() {
   const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
   const [isBatchEnriching, setIsBatchEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState({ current: 0, total: 0 });
+
+  // Batch verification state
+  const [showBatchVerification, setShowBatchVerification] = useState(false);
+  const [recordsToVerify, setRecordsToVerify] = useState<Record[]>([]);
 
   // Check if any filter is active
   const hasActiveFilters = formatFilter !== "all" || genreFilter !== "all" || tagFilter !== "all" || moodFilter !== "all" || decadeFilter !== "all" || showFavoritesOnly || searchQuery !== "";
@@ -243,6 +248,84 @@ export default function Collection() {
     } else {
       toast.error("KI-Anreicherung fehlgeschlagen");
     }
+  };
+
+  // Start batch verification for records with low confidence or unverified covers
+  const startBatchVerification = () => {
+    const unverifiedRecords = records.filter(
+      (record) =>
+        !record.coverArtVerified ||
+        record.aiConfidence === "low" ||
+        (record.aiConfidence === "medium" && !record.coverArtVerified)
+    );
+
+    if (unverifiedRecords.length === 0) {
+      toast.info("Alle Datensätze sind bereits verifiziert oder haben hohe Konfidenz!");
+      return;
+    }
+
+    setRecordsToVerify(unverifiedRecords);
+    setShowBatchVerification(true);
+  };
+
+  const handleBatchVerifyRecord = async (recordId: string, verified: boolean) => {
+    const record = records.find((r) => r.id === recordId);
+    if (record) {
+      updateRecord(recordId, {
+        ...record,
+        coverArtVerified: verified,
+        coverArtVerifiedAt: new Date().toISOString(),
+      });
+      // Remove from verification list
+      setRecordsToVerify((prev) => prev.filter((r) => r.id !== recordId));
+      toast.success("Datensatz verifiziert");
+    }
+  };
+
+  const handleBatchReloadCover = async (recordId: string) => {
+    const record = records.find((r) => r.id === recordId);
+    if (!record) return;
+
+    try {
+      const response = await supabase.functions.invoke("complete-record", {
+        body: {
+          artist: record.artist,
+          album: record.album,
+          year: record.year,
+          format: record.format,
+          label: record.label,
+          catalogNumber: record.catalogNumber,
+        },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+
+      const data = response.data?.data || response.data;
+      const coverArt = data?.coverArtBase64 || data?.coverArt;
+
+      if (coverArt) {
+        updateRecord(recordId, {
+          ...record,
+          coverArt,
+          coverArtSource: data?.source || "discogs",
+          aiConfidence: data?.confidence || "medium",
+        });
+        toast.success("Cover neu geladen");
+      } else {
+        toast.error("Kein Cover gefunden");
+      }
+    } catch (error) {
+      console.error("Cover reload error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Cover konnte nicht neu geladen werden"
+      );
+    }
+  };
+
+  const handleBatchDeleteRecord = (recordId: string) => {
+    deleteRecord(recordId);
+    setRecordsToVerify((prev) => prev.filter((r) => r.id !== recordId));
+    toast.success("Datensatz gelöscht");
   };
 
   const handleMoodChange = (value: string) => {
@@ -421,6 +504,17 @@ export default function Collection() {
                 </Button>
               </div>
             )}
+
+            {/* Verify Covers Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startBatchVerification}
+              className="gap-2"
+            >
+              <CheckSquare className="w-4 h-4" />
+              Covers überprüfen
+            </Button>
 
             {/* Favorites Toggle */}
             <Button
@@ -766,6 +860,21 @@ export default function Collection() {
         )}
       </AnimatePresence>
       </div>
+
+      {/* Batch Verification UI */}
+      {showBatchVerification && recordsToVerify.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-auto">
+            <BatchVerificationUI
+              records={recordsToVerify}
+              onVerifyRecord={handleBatchVerifyRecord}
+              onReloadCover={handleBatchReloadCover}
+              onDeleteRecord={handleBatchDeleteRecord}
+              onClose={() => setShowBatchVerification(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
