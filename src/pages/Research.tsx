@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,8 @@ import { useRecords } from "@/context/RecordContext";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
-import { AlternativeReleases } from "@/components/AlternativeReleases";
+// Lazy load AlternativeReleases component (large chunk with @zxing dependencies)
+const AlternativeReleases = lazy(() => import("@/components/AlternativeReleases").then(m => ({ default: m.AlternativeReleases })));
 import { AlternativeRelease, CriticReview, RecordRecommendation } from "@/types/record";
 import { useResearchCache } from "@/hooks/useResearchCache";
 import { CompactAlbumCard } from "@/components/research/CompactAlbumCard";
@@ -955,14 +956,16 @@ export default function Research() {
                 </CardHeader>
                 <CardContent className="py-0 pb-3">
                   <ScrollArea className="max-h-48">
-                    <AlternativeReleases
-                      releases={albumResult.alternativeReleases}
-                      onSelect={(release) => {
-                        if (release.label) setLabelQuery(release.label);
-                        if (release.catalogNumber) setCatalogQuery(release.catalogNumber);
-                        toast({ title: "Pressung ausgewählt", description: `${release.catalogNumber}` });
-                      }}
-                    />
+                    <Suspense fallback={<div className="p-4 text-center text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>}>
+                      <AlternativeReleases
+                        releases={albumResult.alternativeReleases}
+                        onSelect={(release) => {
+                          if (release.label) setLabelQuery(release.label);
+                          if (release.catalogNumber) setCatalogQuery(release.catalogNumber);
+                          toast({ title: "Pressung ausgewählt", description: `${release.catalogNumber}` });
+                        }}
+                      />
+                    </Suspense>
                   </ScrollArea>
                 </CardContent>
               </Card>

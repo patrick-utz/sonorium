@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import type * as XLSX from "xlsx";
 import { useRecords } from "@/context/RecordContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -7,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Download, FileSpreadsheet, FileText, Check, Save, Upload, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import * as XLSX from "xlsx";
 import { Record } from "@/types/record";
 import {
   AlertDialog,
@@ -107,7 +107,7 @@ export default function Export() {
     return labels;
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (selectedFields.length === 0) {
       toast({
         title: "Keine Felder ausgewählt",
@@ -117,34 +117,46 @@ export default function Export() {
       return;
     }
 
-    const data = prepareExportData();
-    const labels = getFieldLabels();
+    try {
+      // Dynamically import xlsx only when needed
+      const XLSX = (await import("xlsx")) as typeof import("xlsx");
 
-    // Transform data to use German labels as headers
-    const transformedData = data.map((row) => {
-      const newRow: globalThis.Record<string, any> = {};
-      Object.keys(row).forEach((key) => {
-        newRow[labels[key] || key] = row[key];
+      const data = prepareExportData();
+      const labels = getFieldLabels();
+
+      // Transform data to use German labels as headers
+      const transformedData = data.map((row) => {
+        const newRow: globalThis.Record<string, any> = {};
+        Object.keys(row).forEach((key) => {
+          newRow[labels[key] || key] = row[key];
+        });
+        return newRow;
       });
-      return newRow;
-    });
 
-    const ws = XLSX.utils.json_to_sheet(transformedData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sammlung");
+      const ws = XLSX.utils.json_to_sheet(transformedData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sammlung");
 
-    // Auto-size columns
-    const colWidths = Object.keys(transformedData[0] || {}).map((key) => ({
-      wch: Math.max(key.length, 15),
-    }));
-    ws["!cols"] = colWidths;
+      // Auto-size columns
+      const colWidths = Object.keys(transformedData[0] || {}).map((key) => ({
+        wch: Math.max(key.length, 15),
+      }));
+      ws["!cols"] = colWidths;
 
-    XLSX.writeFile(wb, `SONORIUM_Export_${new Date().toISOString().split("T")[0]}.xlsx`);
+      XLSX.writeFile(wb, `SONORIUM_Export_${new Date().toISOString().split("T")[0]}.xlsx`);
 
-    toast({
-      title: "Export erfolgreich",
-      description: `${records.length} Tonträger wurden exportiert.`,
-    });
+      toast({
+        title: "Export erfolgreich",
+        description: `${records.length} Tonträger wurden exportiert.`,
+      });
+    } catch (error) {
+      console.error("Excel export error:", error);
+      toast({
+        title: "Export-Fehler",
+        description: "Der Excel-Export konnte nicht durchgeführt werden.",
+        variant: "destructive",
+      });
+    }
   };
 
   const exportToCSV = () => {

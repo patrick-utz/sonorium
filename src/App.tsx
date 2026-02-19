@@ -7,17 +7,27 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { RecordProvider } from "@/context/RecordContext";
 import { AudiophileProfileProvider } from "@/context/AudiophileProfileContext";
 import { Layout } from "@/components/Layout";
-import Dashboard from "./pages/Dashboard";
-import Collection from "./pages/Collection";
-import RecordDetail from "./pages/RecordDetail";
-import Wishlist from "./pages/Wishlist";
-import AddRecord from "./pages/AddRecord";
-import Export from "./pages/Export";
-import Research from "./pages/Research";
-import Profile from "./pages/Profile";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
+import { lazy, Suspense } from "react";
+
+// Lazy load page components
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Collection = lazy(() => import("./pages/Collection"));
+const RecordDetail = lazy(() => import("./pages/RecordDetail"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
+const AddRecord = lazy(() => import("./pages/AddRecord"));
+const Export = lazy(() => import("./pages/Export"));
+const Research = lazy(() => import("./pages/Research"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Auth = lazy(() => import("./pages/Auth"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -66,7 +76,9 @@ function AppRoutes() {
         path="/login"
         element={
           <PublicRoute>
-            <Auth />
+            <Suspense fallback={<PageLoader />}>
+              <Auth />
+            </Suspense>
           </PublicRoute>
         }
       />
@@ -75,7 +87,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <Dashboard />
+              <Suspense fallback={<PageLoader />}>
+                <Dashboard />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         }
@@ -85,7 +99,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <Collection />
+              <Suspense fallback={<PageLoader />}>
+                <Collection />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         }
@@ -95,7 +111,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <RecordDetail />
+              <Suspense fallback={<PageLoader />}>
+                <RecordDetail />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         }
@@ -105,7 +123,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <Wishlist />
+              <Suspense fallback={<PageLoader />}>
+                <Wishlist />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         }
@@ -115,7 +135,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <Research />
+              <Suspense fallback={<PageLoader />}>
+                <Research />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         }
@@ -125,7 +147,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <AddRecord />
+              <Suspense fallback={<PageLoader />}>
+                <AddRecord />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         }
@@ -135,7 +159,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <AddRecord />
+              <Suspense fallback={<PageLoader />}>
+                <AddRecord />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         }
@@ -145,7 +171,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <Export />
+              <Suspense fallback={<PageLoader />}>
+                <Export />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         }
@@ -155,7 +183,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <Profile />
+              <Suspense fallback={<PageLoader />}>
+                <Profile />
+              </Suspense>
             </Layout>
           </ProtectedRoute>
         }

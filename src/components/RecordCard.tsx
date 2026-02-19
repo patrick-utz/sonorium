@@ -4,7 +4,7 @@ import { StarRating } from "./StarRating";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Trash2, Music, Heart, Star, ThumbsUp, Radio, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useState, memo } from "react";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 import {
   AlertDialog,
@@ -47,7 +47,7 @@ const getVinylRecommendationLabel = (rec: VinylRecommendation | undefined) => {
   }
 };
 
-export function RecordCard({ record, onClick, onDelete, onToggleFavorite, onRatingChange, onReloadCover, className }: RecordCardProps) {
+function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRatingChange, onReloadCover, className }: RecordCardProps) {
   const [isReloadingCover, setIsReloadingCover] = useState(false);
   const { profile } = useAudiophileProfile();
 
@@ -91,6 +91,8 @@ export function RecordCard({ record, onClick, onDelete, onToggleFavorite, onRati
           <img
             src={record.coverArt}
             alt={`${record.artist} - ${record.album}`}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
@@ -289,3 +291,7 @@ export function RecordCard({ record, onClick, onDelete, onToggleFavorite, onRati
     </motion.div>
   );
 }
+
+RecordCardComponent.displayName = "RecordCard";
+
+export const RecordCard = memo(RecordCardComponent);
