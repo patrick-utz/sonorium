@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
+import { RecordGridSkeleton } from "@/components/RecordCardSkeleton";
 import { StarRating } from "@/components/StarRating";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,12 @@ export default function Wishlist() {
   const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
   const [isBatchEnriching, setIsBatchEnriching] = useState(false);
 
+  // Pagination state for infinite scroll
+  const ITEMS_PER_PAGE = 48;
+  const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
   // Extract all unique genres from records
   const allGenres = Array.from(
     new Set(records.flatMap((record) => record.genre))
@@ -63,6 +70,14 @@ export default function Wishlist() {
   const allMoods = Array.from(
     new Set(records.flatMap((record) => record.moods || []))
   ).sort();
+
+  // Initialize loading state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 300); // 300ms loading state for perceived performance
+    return () => clearTimeout(timer);
+  }, []);
 
   // Filter and sort records
   const filteredRecords = records
@@ -95,6 +110,44 @@ export default function Wishlist() {
           return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
       }
     });
+
+  // Pagination: Only show the first displayCount items
+  const displayedRecords = filteredRecords.slice(0, displayCount);
+  const hasMoreRecords = filteredRecords.length > displayCount;
+
+  // Handle infinite scroll trigger
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreRecords && !isLoadingMore) {
+          setIsLoadingMore(true);
+          // Simulate small delay for UX feedback
+          setTimeout(() => {
+            setDisplayCount((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredRecords.length));
+            setIsLoadingMore(false);
+          }, 300);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    // Find the last record card and observe it
+    const lastCard = document.querySelector("[data-last-record-card-wishlist]");
+    if (lastCard) {
+      observer.observe(lastCard);
+    }
+
+    return () => {
+      if (lastCard) {
+        observer.unobserve(lastCard);
+      }
+    };
+  }, [hasMoreRecords, filteredRecords.length, isLoadingMore]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setDisplayCount(ITEMS_PER_PAGE);
+  }, [searchQuery, formatFilter, genreFilter, tagFilter, moodFilter, showFavoritesOnly, sortBy]);
 
   const handleMarkAsOwned = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -433,14 +486,22 @@ export default function Wishlist() {
             )}
           </motion.div>
         ) : viewMode === "grid" ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3"
-          >
-            {filteredRecords.map((record) => (
-              <div key={record.id} className="relative group">
+          <>
+            {isInitialLoading ? (
+              <RecordGridSkeleton count={ITEMS_PER_PAGE} />
+            ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3"
+            >
+              {displayedRecords.map((record, index) => (
+              <div
+                key={record.id}
+                className="relative group"
+                data-last-record-card-wishlist={index === displayedRecords.length - 1 ? "true" : undefined}
+              >
                 {isSelectMode && (
                   <div
                     className="absolute top-2 left-2 z-20"
@@ -473,21 +534,43 @@ export default function Wishlist() {
                   Gekauft!
                 </Button>
               </div>
-            ))}
-          </motion.div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="space-y-3"
-          >
-            {filteredRecords.map((record) => (
-              <div
-                key={record.id}
-                onClick={() => isSelectMode ? handleToggleSelect(record.id) : navigate(`/sammlung/${record.id}`)}
-                className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border/50 cursor-pointer hover:bg-card/80 transition-colors group"
+              ))}
+            </motion.div>
+            )}
+            {/* Infinite scroll loading indicator */}
+            {hasMoreRecords && isLoadingMore && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center py-8 gap-3"
               >
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  {displayCount}/{filteredRecords.length} Tonträger geladen...
+                </p>
+              </motion.div>
+            )}
+          </>
+
+        ) : (
+          <>
+            {isInitialLoading ? (
+              <RecordGridSkeleton count={6} />
+            ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-3"
+            >
+              {displayedRecords.map((record, index) => (
+                <div
+                  key={record.id}
+                  onClick={() => isSelectMode ? handleToggleSelect(record.id) : navigate(`/sammlung/${record.id}`)}
+                  className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border/50 cursor-pointer hover:bg-card/80 transition-colors group"
+                  data-last-record-card-wishlist={index === displayedRecords.length - 1 ? "true" : undefined}
+                >
                 {isSelectMode && (
                   <Checkbox
                     checked={selectedRecords.has(record.id)}
@@ -589,8 +672,24 @@ export default function Wishlist() {
                   Gekauft!
                 </Button>
               </div>
-            ))}
-          </motion.div>
+              ))}
+            </motion.div>
+            )}
+            {/* Infinite scroll loading indicator for List View */}
+            {hasMoreRecords && isLoadingMore && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center py-8 gap-3"
+              >
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  {displayCount}/{filteredRecords.length} Tonträger geladen...
+                </p>
+              </motion.div>
+            )}
+          </>
         )}
       </AnimatePresence>
       </div>
