@@ -30,7 +30,7 @@ import { CoverVerificationModal } from "@/components/CoverVerificationModal";
 import { ConfidenceBadge } from "@/components/ConfidenceBadge";
 import { detectDuplicates, type DuplicateMatch, formatDuplicateMessage } from "@/lib/duplicateDetection";
 import { MoodInput } from "@/components/MoodInput";
-import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library, ShoppingCart, ExternalLink, Plus, Trash2, SaveIcon, CheckCircle } from "lucide-react";
+import { ArrowLeft, Save, Camera, ImagePlus, Disc3, Disc, Sparkles, Loader2, Headphones, Palette, Music, Star, ScanBarcode, Search, Heart, Library, ShoppingCart, ExternalLink, Plus, Trash2, SaveIcon, CheckCircle, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
