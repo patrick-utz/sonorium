@@ -190,9 +190,24 @@ export default function RecordDetail() {
       animate={{ opacity: 1 }}
       className="max-w-4xl mx-auto space-y-6"
     >
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground px-1">
+        <button
+          onClick={() => navigate("/sammlung")}
+          className="hover:text-foreground transition-colors"
+        >
+          Sammlung
+        </button>
+        <span>/</span>
+        <span className="text-foreground font-medium truncate">
+          {record.artist} - {record.album}
+        </span>
+      </div>
+
       {/* Back Button */}
       <Button
         variant="ghost"
+        size="sm"
         onClick={() => navigate(-1)}
         className="gap-2 text-muted-foreground hover:text-foreground"
       >

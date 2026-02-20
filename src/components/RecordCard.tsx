@@ -3,7 +3,7 @@ import { FormatBadge } from "./FormatBadge";
 import { StarRating } from "./StarRating";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Trash2, Music, Heart, Star, ThumbsUp, Radio, RefreshCw } from "lucide-react";
+import { Trash2, Music, Heart, Star, ThumbsUp, Radio, RefreshCw, Eye, Share2 } from "lucide-react";
 import { useState, memo } from "react";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 import {
@@ -63,7 +63,7 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
   const handleReloadCover = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!onReloadCover || isReloadingCover) return;
-    
+
     setIsReloadingCover(true);
     try {
       await onReloadCover();
@@ -76,78 +76,108 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -8, scale: 1.02 }}
+      whileHover={{ y: -8, scale: 1.05 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
       onClick={onClick}
       className={cn(
         "group relative cursor-pointer rounded-xl overflow-hidden",
-        "bg-card shadow-card hover:shadow-hover transition-shadow duration-300",
+        "bg-card shadow-card hover:shadow-lg transition-all duration-300",
+        "border border-border/30 hover:border-primary/50",
         "max-w-xs", // Limit max width to 320px for better overview (like Tidal)
         className
       )}
     >
       {/* Cover Image - Click to open detail */}
-      <div className="aspect-square relative overflow-hidden">
+      <div className="aspect-square relative overflow-hidden bg-gradient-vinyl">
         {record.coverArt ? (
           <img
             src={record.coverArt}
             alt={`${record.artist} - ${record.album}`}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-vinyl flex items-center justify-center">
+          <div className="w-full h-full flex items-center justify-center">
             <div className="w-1/2 h-1/2 vinyl-disc" />
           </div>
         )}
-        
-        {/* Favorite toggle button - click heart to toggle */}
+
+        {/* Gradient overlay on hover */}
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"
+          initial={{ opacity: 0 }}
+          whileHover={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        />
+
+        {/* Center action button on hover */}
+        <motion.button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick?.();
+          }}
+          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          whileHover={{ scale: 1.1 }}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 0 }}
+        >
+          <div className="p-4 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all">
+            <Eye className="w-6 h-6 text-white" />
+          </div>
+        </motion.button>
+
+        {/* Top-left: Favorite button (always visible) */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onToggleFavorite?.();
           }}
           className={cn(
-            "absolute top-3 left-3 p-2 rounded-full backdrop-blur-sm transition-all duration-300",
-            record.isFavorite 
-              ? "bg-background/90" 
-              : "bg-background/60 opacity-0 group-hover:opacity-100 hover:bg-background/90"
+            "absolute top-3 left-3 p-2.5 rounded-full transition-all duration-300",
+            "backdrop-blur-md z-10",
+            record.isFavorite
+              ? "bg-pink-500/90 hover:bg-pink-600"
+              : "bg-white/20 opacity-0 group-hover:opacity-100 hover:bg-white/40"
           )}
           title={record.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
         >
           <Heart className={cn(
             "w-4 h-4 transition-colors",
-            record.isFavorite ? "heart-favorite fill-current" : "text-foreground/70 hover:text-foreground"
+            record.isFavorite ? "fill-white text-white" : "text-white"
           )} />
         </button>
-        
-        {/* Overlay on hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-        {/* Reload Cover Button */}
+        {/* Top-right: Format badge */}
+        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+          <FormatBadge format={record.format} />
+        </div>
+
+        {/* Bottom-left: Reload cover button */}
         {onReloadCover && (
-          <button
+          <motion.button
             onClick={handleReloadCover}
             disabled={isReloadingCover}
-            className="absolute top-3 left-14 p-2 rounded-full bg-primary/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-primary hover:scale-110"
+            className="absolute bottom-3 left-3 p-2.5 rounded-full bg-blue-500/90 backdrop-blur-md hover:bg-blue-600 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 disabled:opacity-50"
             title="Cover nachladen"
+            whileHover={{ scale: 1.1 }}
           >
-            <RefreshCw className={cn("w-4 h-4 text-primary-foreground", isReloadingCover && "animate-spin")} />
-          </button>
+            <RefreshCw className={cn("w-4 h-4 text-white", isReloadingCover && "animate-spin")} />
+          </motion.button>
         )}
 
-        {/* Delete Button */}
+        {/* Bottom-right: Delete button */}
         {onDelete && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <button
+              <motion.button
                 onClick={(e) => e.stopPropagation()}
-                className="absolute bottom-3 left-3 p-2 rounded-full bg-destructive/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-destructive hover:scale-110"
+                className="absolute bottom-3 right-3 p-2.5 rounded-full bg-red-500/90 backdrop-blur-md hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10"
                 title="Löschen"
+                whileHover={{ scale: 1.1 }}
               >
-                <Trash2 className="w-4 h-4 text-destructive-foreground" />
-              </button>
+                <Trash2 className="w-4 h-4 text-white" />
+              </motion.button>
             </AlertDialogTrigger>
             <AlertDialogContent onClick={(e) => e.stopPropagation()}>
               <AlertDialogHeader>
@@ -166,20 +196,14 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
           </AlertDialog>
         )}
 
-        
-        {/* Format Badge */}
-        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <FormatBadge format={record.format} />
-        </div>
-        
-        {/* Info on hover - only year and label, no stars */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none">
-          <p className="text-primary-foreground/80 text-sm">{record.year}</p>
-          <p className="text-primary-foreground/60 text-xs truncate">{record.label}</p>
+        {/* Info on hover - only year and label */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none bg-gradient-to-t from-black/90 to-transparent">
+          <p className="text-white/90 text-xs font-medium">{record.year}</p>
+          <p className="text-white/60 text-xs truncate">{record.label}</p>
         </div>
       </div>
-      
-      {/* Card Footer - Click to open detail */}
+
+      {/* Card Footer */}
       <div className="p-4 space-y-2">
         {/* Mood color indicators */}
         {recordMoodsWithColors.length > 0 && (
@@ -217,14 +241,14 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
             </>
           )}
         </div>
-        
+
         {/* Vinyl Recommendation + Rating Row */}
         <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-3">
             {/* Star Rating - always show */}
-            <StarRating 
-              rating={record.myRating} 
-              size="sm" 
+            <StarRating
+              rating={record.myRating}
+              size="sm"
               interactive={!!onRatingChange}
               onChange={onRatingChange}
             />
@@ -248,7 +272,7 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
             </span>
           )}
         </div>
-        
+
         {/* Streaming Links */}
         <div className="flex items-center gap-2 pt-2 flex-wrap">
           <button

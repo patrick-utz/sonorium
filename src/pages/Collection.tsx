@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { compressImage } from "@/lib/imageUtils";
 import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
+import { RecordGridSkeleton } from "@/components/RecordCardSkeleton";
 import { StarRating } from "@/components/StarRating";
 import { BatchVerificationUI } from "@/components/BatchVerificationUI";
 import { Input } from "@/components/ui/input";
@@ -92,6 +93,8 @@ export default function Collection() {
   // Pagination state for infinite scroll
   const ITEMS_PER_PAGE = 48; // 6x8 grid, shows ~2 screens of content
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Check if any filter is active
   const hasActiveFilters = formatFilter !== "all" || genreFilter !== "all" || tagFilter !== "all" || moodFilter !== "all" || decadeFilter !== "all" || showFavoritesOnly || searchQuery !== "";
@@ -113,6 +116,14 @@ export default function Collection() {
   const allDecades = Array.from(
     new Set(records.map((record) => getDecade(record.year)))
   ).sort((a, b) => parseInt(b) - parseInt(a)); // Newest first
+
+  // Initialize loading state (small delay for better UX)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 300); // 300ms loading state for perceived performance
+    return () => clearTimeout(timer);
+  }, []);
 
   // Read filters from URL params on mount
   useEffect(() => {
@@ -432,13 +443,17 @@ export default function Collection() {
   const displayedRecords = filteredRecords.slice(0, displayCount);
   const hasMoreRecords = filteredRecords.length > displayCount;
 
-  // Handle infinite scroll trigger
+  // Handle infinite scroll trigger with loading state
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMoreRecords) {
-          // Load 24 more items when user scrolls near the bottom
-          setDisplayCount((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredRecords.length));
+        if (entries[0].isIntersecting && hasMoreRecords && !isLoadingMore) {
+          setIsLoadingMore(true);
+          // Simulate small delay for UX feedback
+          setTimeout(() => {
+            setDisplayCount((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredRecords.length));
+            setIsLoadingMore(false);
+          }, 300);
         }
       },
       { threshold: 0.1 }
@@ -455,7 +470,7 @@ export default function Collection() {
         observer.unobserve(lastCard);
       }
     };
-  }, [hasMoreRecords, filteredRecords.length]);
+  }, [hasMoreRecords, filteredRecords.length, isLoadingMore]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -737,83 +752,130 @@ export default function Collection() {
 
         {/* Active Filters as Badges */}
         {hasActiveFilters && (
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-sm text-muted-foreground">Filter:</span>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex flex-wrap gap-2 items-center px-3 py-2 bg-primary/5 border border-primary/20 rounded-lg backdrop-blur-sm"
+          >
+            <span className="text-xs font-medium text-muted-foreground">Aktive Filter:</span>
             
             {searchQuery && (
-              <Badge variant="secondary" className="gap-1 pr-1">
-                Suche: "{searchQuery}"
-                <button onClick={() => setSearchQuery("")} className="ml-1 hover:text-foreground">
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+              >
+                <Badge className="gap-1.5 pr-1.5 bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border-cyan-500/30">
+                  "{searchQuery}"
+                  <button onClick={() => setSearchQuery("")} className="ml-1 hover:opacity-70 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              </motion.div>
             )}
             
             {showFavoritesOnly && (
-              <Badge variant="secondary" className="gap-1 pr-1">
-                <Heart className="w-3 h-3 fill-current" />
-                Favoriten
-                <button onClick={() => setShowFavoritesOnly(false)} className="ml-1 hover:text-foreground">
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+              >
+                <Badge className="gap-1.5 pr-1.5 bg-pink-500/20 text-pink-300 hover:bg-pink-500/30 border-pink-500/30">
+                  <Heart className="w-3 h-3 fill-current" />
+                  Favoriten
+                  <button onClick={() => setShowFavoritesOnly(false)} className="ml-1 hover:opacity-70 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              </motion.div>
             )}
             
             {formatFilter !== "all" && (
-              <Badge variant="secondary" className="gap-1 pr-1">
-                Format: {formatFilter}
-                <button onClick={() => setFormatFilter("all")} className="ml-1 hover:text-foreground">
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+              >
+                <Badge className="gap-1.5 pr-1.5 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border-blue-500/30">
+                  {formatFilter}
+                  <button onClick={() => setFormatFilter("all")} className="ml-1 hover:opacity-70 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              </motion.div>
             )}
             
             {genreFilter !== "all" && (
-              <Badge variant="secondary" className="gap-1 pr-1">
-                Genre: {genreFilter}
-                <button onClick={() => handleGenreChange("all")} className="ml-1 hover:text-foreground">
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+              >
+                <Badge className="gap-1.5 pr-1.5 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border-purple-500/30">
+                  {genreFilter}
+                  <button onClick={() => handleGenreChange("all")} className="ml-1 hover:opacity-70 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              </motion.div>
             )}
             
             {tagFilter !== "all" && (
-              <Badge variant="secondary" className="gap-1 pr-1">
-                Tag: {tagFilter}
-                <button onClick={() => handleTagChange("all")} className="ml-1 hover:text-foreground">
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+              >
+                <Badge className="gap-1.5 pr-1.5 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border-amber-500/30">
+                  {tagFilter}
+                  <button onClick={() => handleTagChange("all")} className="ml-1 hover:opacity-70 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              </motion.div>
             )}
             
             {moodFilter !== "all" && (
-              <Badge variant="secondary" className="gap-1 pr-1">
-                Stimmung: {moodFilter}
-                <button onClick={() => handleMoodChange("all")} className="ml-1 hover:text-foreground">
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+              >
+                <Badge className="gap-1.5 pr-1.5 bg-green-500/20 text-green-300 hover:bg-green-500/30 border-green-500/30">
+                  {moodFilter}
+                  <button onClick={() => handleMoodChange("all")} className="ml-1 hover:opacity-70 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              </motion.div>
             )}
             
             {decadeFilter !== "all" && (
-              <Badge variant="secondary" className="gap-1 pr-1">
-                Dekade: {decadeFilter}
-                <button onClick={() => setDecadeFilter("all")} className="ml-1 hover:text-foreground">
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+              >
+                <Badge className="gap-1.5 pr-1.5 bg-orange-500/20 text-orange-300 hover:bg-orange-500/30 border-orange-500/30">
+                  {decadeFilter}
+                  <button onClick={() => setDecadeFilter("all")} className="ml-1 hover:opacity-70 transition-opacity">
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              </motion.div>
             )}
-            
+
             <Button
               variant="ghost"
               size="sm"
               onClick={resetAllFilters}
-              className="gap-1 text-muted-foreground hover:text-foreground"
+              className="gap-1 text-muted-foreground hover:text-foreground text-xs ml-auto"
             >
               <RotateCcw className="w-3 h-3" />
-              Alle zurücksetzen
+              Alle löschen
             </Button>
-          </div>
+          </motion.div>
         )}
       </div>
 
@@ -839,6 +901,9 @@ export default function Collection() {
           </motion.div>
         ) : viewMode === "grid" ? (
           <>
+            {isInitialLoading ? (
+              <RecordGridSkeleton count={ITEMS_PER_PAGE} />
+            ) : (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -879,21 +944,19 @@ export default function Collection() {
                 </div>
               ))}
             </motion.div>
-            {/* Load More indicator or button for infinite scroll */}
-            {hasMoreRecords && (
+            )}
+            {/* Infinite scroll loading indicator */}
+            {hasMoreRecords && isLoadingMore && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex justify-center py-8"
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center py-8 gap-3"
               >
-                <Button
-                  variant="outline"
-                  onClick={() => setDisplayCount((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredRecords.length))}
-                  className="gap-2"
-                >
-                  <Loader2 className="w-4 h-4" />
-                  {displayCount}/{filteredRecords.length} Tonträger anzeigen
-                </Button>
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  {displayCount}/{filteredRecords.length} Tonträger geladen...
+                </p>
               </motion.div>
             )}
           </>
@@ -924,18 +987,19 @@ export default function Collection() {
               ))}
             </motion.div>
 
-            {/* Load More indicator for List View */}
-            {hasMoreRecords && (
-              <div className="flex justify-center py-8">
-                <Button
-                  variant="outline"
-                  onClick={() => setDisplayCount((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredRecords.length))}
-                  className="gap-2"
-                >
-                  <Loader2 className="w-4 h-4" />
-                  {displayCount}/{filteredRecords.length} Tonträger anzeigen
-                </Button>
-              </div>
+            {/* Infinite scroll loading indicator for List View */}
+            {hasMoreRecords && isLoadingMore && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center py-8 gap-3"
+              >
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  {displayCount}/{filteredRecords.length} Tonträger geladen...
+                </p>
+              </motion.div>
             )}
           </>
         )}
