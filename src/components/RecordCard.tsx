@@ -82,6 +82,7 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
       className={cn(
         "group relative cursor-pointer rounded-xl overflow-hidden",
         "bg-card shadow-card hover:shadow-hover transition-shadow duration-300",
+        "max-w-xs", // Limit max width to 320px for better overview (like Tidal)
         className
       )}
     >
