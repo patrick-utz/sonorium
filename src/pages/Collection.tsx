@@ -89,6 +89,10 @@ export default function Collection() {
   const [showBatchVerification, setShowBatchVerification] = useState(false);
   const [recordsToVerify, setRecordsToVerify] = useState<Record[]>([]);
 
+  // Pagination state for infinite scroll
+  const ITEMS_PER_PAGE = 48; // 6x8 grid, shows ~2 screens of content
+  const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
+
   // Check if any filter is active
   const hasActiveFilters = formatFilter !== "all" || genreFilter !== "all" || tagFilter !== "all" || moodFilter !== "all" || decadeFilter !== "all" || showFavoritesOnly || searchQuery !== "";
 
@@ -423,6 +427,40 @@ export default function Collection() {
       }
       return sortDirection === "asc" ? comparison : -comparison;
     });
+
+  // Pagination: Only show the first displayCount items
+  const displayedRecords = filteredRecords.slice(0, displayCount);
+  const hasMoreRecords = filteredRecords.length > displayCount;
+
+  // Handle infinite scroll trigger
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreRecords) {
+          // Load 24 more items when user scrolls near the bottom
+          setDisplayCount((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredRecords.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    // Find the last record card and observe it
+    const lastCard = document.querySelector("[data-last-record-card]");
+    if (lastCard) {
+      observer.observe(lastCard);
+    }
+
+    return () => {
+      if (lastCard) {
+        observer.unobserve(lastCard);
+      }
+    };
+  }, [hasMoreRecords, filteredRecords.length]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setDisplayCount(ITEMS_PER_PAGE);
+  }, [searchQuery, formatFilter, genreFilter, tagFilter, moodFilter, decadeFilter, showFavoritesOnly, sortBy, sortDirection]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)]">
@@ -800,63 +838,106 @@ export default function Collection() {
             </p>
           </motion.div>
         ) : viewMode === "grid" ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3"
-          >
-            {filteredRecords.map((record) => (
-              <div key={record.id} className="relative">
-                {isSelectMode && (
-                  <div 
-                    className="absolute top-2 left-2 z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleRecordSelection(record.id);
-                    }}
-                  >
-                    <Checkbox
-                      checked={selectedRecords.has(record.id)}
-                      className="h-5 w-5 bg-background/80 border-2"
-                    />
-                  </div>
-                )}
-                <RecordCard
-                  record={record}
-                  onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
-                  onReloadCover={() => handleReloadCover(record)}
-                  onDelete={() => deleteRecord(record.id)}
-                  onToggleFavorite={() => toggleFavorite(record.id)}
-                  onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
-                  className={cn(
-                    isSelectMode && selectedRecords.has(record.id) && "ring-2 ring-primary"
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3"
+            >
+              {displayedRecords.map((record, index) => (
+                <div
+                  key={record.id}
+                  className="relative"
+                  data-last-record-card={index === displayedRecords.length - 1 ? "true" : undefined}
+                >
+                  {isSelectMode && (
+                    <div
+                      className="absolute top-2 left-2 z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleRecordSelection(record.id);
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedRecords.has(record.id)}
+                        className="h-5 w-5 bg-background/80 border-2"
+                      />
+                    </div>
                   )}
-                />
-              </div>
-            ))}
-          </motion.div>
+                  <RecordCard
+                    record={record}
+                    onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
+                    onReloadCover={() => handleReloadCover(record)}
+                    onDelete={() => deleteRecord(record.id)}
+                    onToggleFavorite={() => toggleFavorite(record.id)}
+                    onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
+                    className={cn(
+                      isSelectMode && selectedRecords.has(record.id) && "ring-2 ring-primary"
+                    )}
+                  />
+                </div>
+              ))}
+            </motion.div>
+            {/* Load More indicator or button for infinite scroll */}
+            {hasMoreRecords && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex justify-center py-8"
+              >
+                <Button
+                  variant="outline"
+                  onClick={() => setDisplayCount((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredRecords.length))}
+                  className="gap-2"
+                >
+                  <Loader2 className="w-4 h-4" />
+                  {displayCount}/{filteredRecords.length} Tonträger anzeigen
+                </Button>
+              </motion.div>
+            )}
+          </>
         ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="space-y-2"
-          >
-            {filteredRecords.map((record) => (
-              <ListItem
-                key={record.id}
-                record={record}
-                configuredMoods={configuredMoods}
-                onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
-                isSelectMode={isSelectMode}
-                isSelected={selectedRecords.has(record.id)}
-                onToggleSelect={() => toggleRecordSelection(record.id)}
-                onToggleFavorite={() => toggleFavorite(record.id)}
-                onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
-              />
-            ))}
-          </motion.div>
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-2"
+            >
+              {displayedRecords.map((record, index) => (
+                <div
+                  key={record.id}
+                  data-last-record-card={index === displayedRecords.length - 1 ? "true" : undefined}
+                >
+                  <ListItem
+                    record={record}
+                    configuredMoods={configuredMoods}
+                    onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
+                    isSelectMode={isSelectMode}
+                    isSelected={selectedRecords.has(record.id)}
+                    onToggleSelect={() => toggleRecordSelection(record.id)}
+                    onToggleFavorite={() => toggleFavorite(record.id)}
+                    onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
+                  />
+                </div>
+              ))}
+            </motion.div>
+
+            {/* Load More indicator for List View */}
+            {hasMoreRecords && (
+              <div className="flex justify-center py-8">
+                <Button
+                  variant="outline"
+                  onClick={() => setDisplayCount((prev) => Math.min(prev + ITEMS_PER_PAGE, filteredRecords.length))}
+                  className="gap-2"
+                >
+                  <Loader2 className="w-4 h-4" />
+                  {displayCount}/{filteredRecords.length} Tonträger anzeigen
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </AnimatePresence>
       </div>
