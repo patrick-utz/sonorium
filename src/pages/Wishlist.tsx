@@ -128,21 +128,21 @@ export default function Wishlist() {
           }, 300);
         }
       },
-      { threshold: 0.1 }
+      { rootMargin: "500px 0px 500px 0px" }
     );
 
-    // Find the last record card and observe it
-    const lastCard = document.querySelector("[data-last-record-card-wishlist]");
-    if (lastCard) {
-      observer.observe(lastCard);
+    // Find the sentinel element and observe it
+    const sentinel = document.querySelector("[data-infinite-scroll-sentinel]");
+    if (sentinel) {
+      observer.observe(sentinel);
     }
 
     return () => {
-      if (lastCard) {
-        observer.unobserve(lastCard);
+      if (sentinel) {
+        observer.unobserve(sentinel);
       }
     };
-  }, [hasMoreRecords, filteredRecords.length, isLoadingMore]);
+  }, [hasMoreRecords, filteredRecords.length, isLoadingMore, displayCount]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -537,6 +537,8 @@ export default function Wishlist() {
               ))}
             </motion.div>
             )}
+            {/* Infinite scroll sentinel - stable target for observer */}
+            {hasMoreRecords && <div data-infinite-scroll-sentinel className="h-px" />}
             {/* Infinite scroll loading indicator */}
             {hasMoreRecords && isLoadingMore && (
               <motion.div
@@ -564,12 +566,11 @@ export default function Wishlist() {
               exit={{ opacity: 0 }}
               className="space-y-3"
             >
-              {displayedRecords.map((record, index) => (
+              {displayedRecords.map((record) => (
                 <div
                   key={record.id}
                   onClick={() => isSelectMode ? handleToggleSelect(record.id) : navigate(`/sammlung/${record.id}`)}
                   className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border/50 cursor-pointer hover:bg-card/80 transition-colors group"
-                  data-last-record-card-wishlist={index === displayedRecords.length - 1 ? "true" : undefined}
                 >
                 {isSelectMode && (
                   <Checkbox
@@ -675,6 +676,8 @@ export default function Wishlist() {
               ))}
             </motion.div>
             )}
+            {/* Infinite scroll sentinel - stable target for observer */}
+            {hasMoreRecords && <div data-infinite-scroll-sentinel className="h-px" />}
             {/* Infinite scroll loading indicator for List View */}
             {hasMoreRecords && isLoadingMore && (
               <motion.div

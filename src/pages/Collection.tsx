@@ -456,21 +456,21 @@ export default function Collection() {
           }, 300);
         }
       },
-      { threshold: 0.1 }
+      { rootMargin: "500px 0px 500px 0px" }
     );
 
-    // Find the last record card and observe it
-    const lastCard = document.querySelector("[data-last-record-card]");
-    if (lastCard) {
-      observer.observe(lastCard);
+    // Find the sentinel element and observe it
+    const sentinel = document.querySelector("[data-infinite-scroll-sentinel]");
+    if (sentinel) {
+      observer.observe(sentinel);
     }
 
     return () => {
-      if (lastCard) {
-        observer.unobserve(lastCard);
+      if (sentinel) {
+        observer.unobserve(sentinel);
       }
     };
-  }, [hasMoreRecords, filteredRecords.length, isLoadingMore]);
+  }, [hasMoreRecords, filteredRecords.length, isLoadingMore, displayCount]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -945,6 +945,8 @@ export default function Collection() {
               ))}
             </motion.div>
             )}
+            {/* Infinite scroll sentinel - stable target for observer */}
+            {hasMoreRecords && <div data-infinite-scroll-sentinel className="h-px" />}
             {/* Infinite scroll loading indicator */}
             {hasMoreRecords && isLoadingMore && (
               <motion.div
@@ -968,10 +970,9 @@ export default function Collection() {
               exit={{ opacity: 0 }}
               className="space-y-2"
             >
-              {displayedRecords.map((record, index) => (
+              {displayedRecords.map((record) => (
                 <div
                   key={record.id}
-                  data-last-record-card={index === displayedRecords.length - 1 ? "true" : undefined}
                 >
                   <ListItem
                     record={record}
@@ -987,6 +988,8 @@ export default function Collection() {
               ))}
             </motion.div>
 
+            {/* Infinite scroll sentinel - stable target for observer */}
+            {hasMoreRecords && <div data-infinite-scroll-sentinel className="h-px" />}
             {/* Infinite scroll loading indicator for List View */}
             {hasMoreRecords && isLoadingMore && (
               <motion.div
