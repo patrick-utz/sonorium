@@ -212,21 +212,22 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
         </div>
       </div>
 
-      {/* Card Footer */}
-      <div className="p-4 space-y-2">
-        {/* Mood color indicators */}
+      {/* Card Footer - Tidal-inspired minimal text info */}
+      <div className="p-3 space-y-2">
+        {/* Mood color indicators - discreet bottom-right positioning (Tidal-style) */}
         {recordMoodsWithColors.length > 0 && (
           <TooltipProvider delayDuration={200}>
-            <div className="flex items-center gap-1.5 mb-1">
+            <div className="flex items-center gap-1 mb-1">
               {recordMoodsWithColors.map((mood, idx) => (
                 <Tooltip key={idx}>
                   <TooltipTrigger asChild>
-                    <div
-                      className="w-2 h-2 rounded-full cursor-default"
+                    <motion.div
+                      className="w-1.5 h-1.5 rounded-full cursor-default"
+                      whileHover={{ scale: 1.3 }}
                       style={{ backgroundColor: mood?.color ? `hsl(${mood.color})` : 'hsl(var(--muted-foreground))' }}
                     />
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="flex items-center gap-1.5">
+                  <TooltipContent side="top" className="flex items-center gap-1.5 text-xs">
                     <span>{mood?.icon}</span>
                     <span>{mood?.name}</span>
                   </TooltipContent>
@@ -236,35 +237,33 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
           </TooltipProvider>
         )}
 
-        {/* Cover Source Badge */}
+        {/* Minimal text info - like Tidal (just album + artist) */}
+        <motion.div
+          initial={{ opacity: 0.85 }}
+          whileHover={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+        >
+          <h3 className="font-medium text-sm text-foreground truncate leading-tight">
+            {record.album}
+          </h3>
+          <p className="text-xs text-muted-foreground truncate">
+            {record.artist}
+          </p>
+        </motion.div>
+
+        {/* Cover Source Badge - positioned bottom-right (Tidal-inspired) */}
         {(record.coverArtSource || record.coverArtVerified || record.aiConfidence) && (
-          <div className="mb-2">
+          <div className="flex justify-end mt-1">
             <CoverSourceBadge
               coverSource={record.coverArtSource}
               coverArtVerified={record.coverArtVerified}
               coverArtVerifiedAt={record.coverArtVerifiedAt}
               aiConfidence={record.aiConfidence}
-              size="sm"
+              size="xs"
               showTooltip={true}
             />
           </div>
         )}
-
-        <h3 className="font-semibold text-foreground truncate">
-          {record.album}
-        </h3>
-        <p className="text-muted-foreground text-sm truncate">
-          {record.artist}
-        </p>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{record.year}</span>
-          {record.label && (
-            <>
-              <span>•</span>
-              <span className="truncate">{record.label}</span>
-            </>
-          )}
-        </div>
 
         {/* Vinyl Recommendation + Rating Row */}
         <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
