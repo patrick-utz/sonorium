@@ -1,10 +1,10 @@
-import { Record, VinylRecommendation } from "@/types/record";
+import { Record } from "@/types/record";
 import { FormatBadge } from "./FormatBadge";
 import { StarRating } from "./StarRating";
 import { CoverSourceBadge } from "./CoverSourceBadge";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Trash2, Music, Heart, Star, ThumbsUp, Radio, RefreshCw, Eye, Share2 } from "lucide-react";
+import { Trash2, Heart, RefreshCw, Eye } from "lucide-react";
 import { useState, memo } from "react";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 import {
@@ -34,19 +34,6 @@ interface RecordCardProps {
   onReloadCover?: () => Promise<void>;
   className?: string;
 }
-
-const getVinylRecommendationLabel = (rec: VinylRecommendation | undefined) => {
-  switch (rec) {
-    case "must-have":
-      return { label: "MUST-HAVE", icon: Star, colorClass: "text-amber-500" };
-    case "nice-to-have":
-      return { label: "NICE TO HAVE", icon: ThumbsUp, colorClass: "text-emerald-500" };
-    case "stream-instead":
-      return { label: "STREAM", icon: Radio, colorClass: "text-blue-400" };
-    default:
-      return null;
-  }
-};
 
 function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRatingChange, onReloadCover, className }: RecordCardProps) {
   const [isReloadingCover, setIsReloadingCover] = useState(false);
@@ -265,75 +252,15 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
           </div>
         )}
 
-        {/* Vinyl Recommendation + Rating Row */}
-        <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center gap-3">
-            {/* Star Rating - always show */}
-            <StarRating
-              rating={record.myRating}
-              size="sm"
-              interactive={!!onRatingChange}
-              onChange={onRatingChange}
-            />
-            {/* Vinyl Recommendation - show if available */}
-            {record.vinylRecommendation && (() => {
-              const recInfo = getVinylRecommendationLabel(record.vinylRecommendation);
-              if (!recInfo) return null;
-              const Icon = recInfo.icon;
-              return (
-                <span className={cn("text-xs font-medium flex items-center gap-1", recInfo.colorClass)}>
-                  <Icon className="w-3.5 h-3.5" />
-                  {recInfo.label}
-                </span>
-              );
-            })()}
-          </div>
-          {record.recordingQuality && (
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <span className="text-primary">♪</span>
-              {record.recordingQuality}/5
-            </span>
-          )}
-        </div>
-
-        {/* Streaming Links */}
-        <div className="flex items-center gap-2 pt-2 flex-wrap">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const query = encodeURIComponent(`${record.artist} ${record.album}`);
-              window.open(`https://open.spotify.com/search/${query}`, '_blank');
-            }}
-            className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-[#1DB954]/10 text-[#1DB954] hover:bg-[#1DB954]/20 transition-colors"
-            title="Auf Spotify suchen"
-          >
-            <Music className="w-3 h-3" />
-            Spotify
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const query = encodeURIComponent(`${record.artist} ${record.album}`);
-              window.open(`https://tidal.com/search?q=${query}`, '_blank');
-            }}
-            className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-[#00FFFF]/10 text-[#00BFBF] hover:bg-[#00FFFF]/20 transition-colors"
-            title="Auf Tidal suchen"
-          >
-            <Music className="w-3 h-3" />
-            Tidal
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const query = encodeURIComponent(`${record.artist} ${record.album}`);
-              window.open(`https://music.apple.com/search?term=${query}`, '_blank');
-            }}
-            className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-[#FA2D48]/10 text-[#FA2D48] hover:bg-[#FA2D48]/20 transition-colors"
-            title="Auf Apple Music suchen"
-          >
-            <Music className="w-3 h-3" />
-            Apple
-          </button>
+        {/* Star Rating Only - Clean Card Footer */}
+        <div className="flex items-center justify-center pt-2" onClick={(e) => e.stopPropagation()}>
+          {/* Star Rating - always show */}
+          <StarRating
+            rating={record.myRating}
+            size="sm"
+            interactive={!!onRatingChange}
+            onChange={onRatingChange}
+          />
         </div>
       </div>
     </motion.div>
