@@ -1,6 +1,7 @@
 import { Record, VinylRecommendation } from "@/types/record";
 import { FormatBadge } from "./FormatBadge";
 import { StarRating } from "./StarRating";
+import { CoverSourceBadge } from "./CoverSourceBadge";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Trash2, Music, Heart, Star, ThumbsUp, Radio, RefreshCw, Eye, Share2 } from "lucide-react";
@@ -226,6 +227,21 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
             </div>
           </TooltipProvider>
         )}
+
+        {/* Cover Source Badge */}
+        {(record.coverArtSource || record.coverArtVerified || record.aiConfidence) && (
+          <div className="mb-2">
+            <CoverSourceBadge
+              coverSource={record.coverArtSource}
+              coverArtVerified={record.coverArtVerified}
+              coverArtVerifiedAt={record.coverArtVerifiedAt}
+              aiConfidence={record.aiConfidence}
+              size="sm"
+              showTooltip={true}
+            />
+          </div>
+        )}
+
         <h3 className="font-semibold text-foreground truncate">
           {record.album}
         </h3>
