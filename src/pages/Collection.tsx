@@ -727,7 +727,7 @@ export default function Collection() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
               >
-                <Badge className="gap-1.5 pr-1.5 bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border-cyan-500/30">
+                <Badge className="gap-1.5 pr-1.5 bg-primary/20 text-primary hover:bg-primary/30 border-primary/30">
                   "{searchQuery}"
                   <button onClick={() => setSearchQuery("")} className="ml-1 hover:opacity-70 transition-opacity">
                     <X className="w-3 h-3" />
@@ -742,7 +742,7 @@ export default function Collection() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
               >
-                <Badge className="gap-1.5 pr-1.5 bg-pink-500/20 text-pink-300 hover:bg-pink-500/30 border-pink-500/30">
+                <Badge className="gap-1.5 pr-1.5 bg-destructive/20 text-destructive hover:bg-destructive/30 border-destructive/30">
                   <Heart className="w-3 h-3 fill-current" />
                   Favoriten
                   <button onClick={() => setShowFavoritesOnly(false)} className="ml-1 hover:opacity-70 transition-opacity">
@@ -758,7 +758,7 @@ export default function Collection() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
               >
-                <Badge className="gap-1.5 pr-1.5 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border-blue-500/30">
+                <Badge className="gap-1.5 pr-1.5 bg-primary/20 text-primary hover:bg-primary/30 border-primary/30">
                   {formatFilter}
                   <button onClick={() => setFormatFilter("all")} className="ml-1 hover:opacity-70 transition-opacity">
                     <X className="w-3 h-3" />
@@ -773,7 +773,7 @@ export default function Collection() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
               >
-                <Badge className="gap-1.5 pr-1.5 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border-purple-500/30">
+                <Badge className="gap-1.5 pr-1.5 bg-accent/20 text-accent hover:bg-accent/30 border-accent/30">
                   {genreFilter}
                   <button onClick={() => handleGenreChange("all")} className="ml-1 hover:opacity-70 transition-opacity">
                     <X className="w-3 h-3" />
@@ -788,7 +788,7 @@ export default function Collection() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
               >
-                <Badge className="gap-1.5 pr-1.5 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border-amber-500/30">
+                <Badge className="gap-1.5 pr-1.5 bg-primary/15 text-primary hover:bg-primary/25 border-primary/25">
                   {tagFilter}
                   <button onClick={() => handleTagChange("all")} className="ml-1 hover:opacity-70 transition-opacity">
                     <X className="w-3 h-3" />
@@ -803,7 +803,7 @@ export default function Collection() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
               >
-                <Badge className="gap-1.5 pr-1.5 bg-green-500/20 text-green-300 hover:bg-green-500/30 border-green-500/30">
+                <Badge className="gap-1.5 pr-1.5 bg-accent/15 text-accent hover:bg-accent/25 border-accent/25">
                   {moodFilter}
                   <button onClick={() => handleMoodChange("all")} className="ml-1 hover:opacity-70 transition-opacity">
                     <X className="w-3 h-3" />
@@ -818,7 +818,7 @@ export default function Collection() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
               >
-                <Badge className="gap-1.5 pr-1.5 bg-orange-500/20 text-orange-300 hover:bg-orange-500/30 border-orange-500/30">
+                <Badge className="gap-1.5 pr-1.5 bg-primary/15 text-primary hover:bg-primary/25 border-primary/25">
                   {decadeFilter}
                   <button onClick={() => setDecadeFilter("all")} className="ml-1 hover:opacity-70 transition-opacity">
                     <X className="w-3 h-3" />
