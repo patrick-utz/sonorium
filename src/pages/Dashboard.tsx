@@ -224,6 +224,60 @@ export default function Dashboard() {
 
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-8 pt-4">
+        {/* Recently Added Section - Tidal-inspired "Neu hinzugefügt" */}
+        {records.length > 0 && (
+          <motion.section variants={itemVariants}>
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => navigate("/sammlung?sort=dateAdded")}
+                className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+              >
+                <span className="text-lg">✨</span>
+                <h2 className="text-lg font-semibold text-foreground">Neu hinzugefügt</h2>
+              </button>
+              <button
+                onClick={() => navigate("/sammlung?sort=dateAdded")}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Alle anzeigen →
+              </button>
+            </div>
+            <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+              <div className="flex gap-4 pb-4">
+                {records
+                  .sort((a, b) => (b.addedAt ? new Date(b.addedAt).getTime() : 0) - (a.addedAt ? new Date(a.addedAt).getTime() : 0))
+                  .slice(0, 10)
+                  .map((record) => (
+                    <div
+                      key={record.id}
+                      className="relative group cursor-pointer flex-shrink-0 w-36 md:w-44"
+                      onClick={() => navigate(`/sammlung/${record.id}`)}
+                    >
+                      <div className="aspect-square rounded-lg overflow-hidden bg-muted">
+                        {record.coverArt ? (
+                          <img
+                            src={record.coverArt}
+                            alt={record.album}
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Disc3 className="w-12 h-12 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-2">
+                        <p className="text-sm font-medium text-foreground truncate">{record.album}</p>
+                        <p className="text-xs text-muted-foreground truncate">{record.artist}</p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </motion.section>
+        )}
+
         {/* Favorites Section */}
         {favoriteRecords.length > 0 && (
           <motion.section variants={itemVariants}>
