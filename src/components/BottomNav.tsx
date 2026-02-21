@@ -67,11 +67,11 @@ export function BottomNav() {
                   )}
                 >
                   <div className="relative">
-                    <Icon className={cn("w-5 h-5", isActive && "text-primary")} />
+                    <Icon className={cn("w-6 h-6 transition-all", isActive ? "text-primary scale-110" : "text-muted-foreground")} />
                     {isActive && (
                       <motion.div
                         layoutId="bottomNavIndicator"
-                        className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"
+                        className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary"
                         transition={{ type: "spring", bounce: 0.3, duration: 0.4 }}
                       />
                     )}

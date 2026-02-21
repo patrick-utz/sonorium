@@ -491,14 +491,14 @@ export default function Collection() {
         </div>
 
         {/* Filters - Row 1: Search + Actions */}
-        <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="flex flex-col gap-2 md:gap-3">
+          <div className="relative w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               placeholder="Suchen nach Künstler, Album, Genre, Stichwort..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-card border-border/50"
+              className="pl-12 py-3 text-base bg-gradient-to-r from-card via-card to-card/80 border border-primary/20 rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent transition-all"
             />
           </div>
 
@@ -611,8 +611,8 @@ export default function Collection() {
           </div>
         </div>
 
-        {/* Filters - Row 2: Filter Dropdowns */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-1.5 md:gap-3">
+        {/* Filters - Row 2: Quick Filter Bar (Tidal-inspired - only essential filters) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-3 md:max-w-3xl">
           <Select
             value={formatFilter}
             onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
@@ -647,46 +647,7 @@ export default function Collection() {
             </Select>
           )}
 
-          {allTags.length > 0 && (
-            <Select
-              value={tagFilter}
-              onValueChange={handleTagChange}
-            >
-              <SelectTrigger className="w-full bg-card border-border/50">
-                <Tag className="w-4 h-4 mr-2 flex-shrink-0" />
-                <SelectValue placeholder="Stichwort" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover max-h-[300px]">
-                <SelectItem value="all">Alle Stichworte</SelectItem>
-                {allTags.map((tag) => (
-                  <SelectItem key={tag} value={tag}>
-                    {tag}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          {/* Decade Filter */}
-          {allDecades.length > 0 && (
-            <Select
-              value={decadeFilter}
-              onValueChange={(v) => setDecadeFilter(v)}
-            >
-              <SelectTrigger className="w-full bg-card border-border/50">
-                <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
-                <SelectValue placeholder="Dekade" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover max-h-[300px]">
-                <SelectItem value="all">Alle Dekaden</SelectItem>
-                {allDecades.map((decade) => (
-                  <SelectItem key={decade} value={decade}>
-                    {decade}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          {/* Tags and Decades moved to optional "More Filters" (hidden by default - Tidal-inspired simplicity) */}
 
           {/* Sort with direction */}
           <div className="flex col-span-2 sm:col-span-1">
@@ -908,7 +869,7 @@ export default function Collection() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3"
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4"
             >
               {displayedRecords.map((record, index) => (
                 <div

@@ -84,7 +84,7 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
         "group relative cursor-pointer rounded-xl overflow-hidden",
         "bg-card shadow-card hover:shadow-lg transition-all duration-300",
         "border border-border/30 hover:border-primary/50",
-        "max-w-xs", // Limit max width to 320px for better overview (like Tidal)
+        "w-full", // Full width for responsive grid (Tidal-inspired larger covers)
         className
       )}
     >
@@ -128,26 +128,34 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
           </div>
         </motion.button>
 
-        {/* Top-left: Favorite button (always visible) */}
-        <button
+        {/* Top-left: Favorite button (always visible when favorited) */}
+        <motion.button
           onClick={(e) => {
             e.stopPropagation();
             onToggleFavorite?.();
           }}
+          whileHover={{ scale: 1.2 }}
+          whileTap={{ scale: 0.95 }}
           className={cn(
             "absolute top-3 left-3 p-2.5 rounded-full transition-all duration-300",
             "backdrop-blur-md z-10",
             record.isFavorite
-              ? "bg-pink-500/90 hover:bg-pink-600"
-              : "bg-white/20 opacity-0 group-hover:opacity-100 hover:bg-white/40"
+              ? "bg-red-500/95 hover:bg-red-600 shadow-lg shadow-red-500/50"
+              : "bg-white/10 opacity-0 group-hover:opacity-100 hover:bg-red-500/70"
           )}
           title={record.isFavorite ? "Von Favoriten entfernen" : "Zu Favoriten hinzufügen"}
         >
-          <Heart className={cn(
-            "w-4 h-4 transition-colors",
-            record.isFavorite ? "fill-white text-white" : "text-white"
-          )} />
-        </button>
+          <motion.div
+            initial={false}
+            animate={record.isFavorite ? { scale: [1, 1.2, 1] } : {}}
+            transition={{ duration: 0.3 }}
+          >
+            <Heart className={cn(
+              "w-5 h-5 transition-colors",
+              record.isFavorite ? "fill-white text-white" : "text-white"
+            )} />
+          </motion.div>
+        </motion.button>
 
         {/* Top-right: Format badge */}
         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
