@@ -20,6 +20,11 @@ function dbToRecord(row: any): Record {
     formatDetails: row.format_details,
     pressing: row.pressing,
     coverArt: row.cover_art,
+    labelPhoto: row.label_photo,
+    coverArtSource: row.cover_art_source as Record['coverArtSource'],
+    coverArtVerified: row.cover_art_verified ?? false,
+    coverArtVerifiedAt: row.cover_art_verified_at,
+    aiConfidence: row.ai_confidence as Record['aiConfidence'],
     myRating: row.my_rating || 3,
     recordingQuality: row.recording_quality,
     masteringQuality: row.mastering_quality,
@@ -28,6 +33,7 @@ function dbToRecord(row: any): Record {
     criticReviews: row.critic_reviews,
     status: row.status || "owned",
     dateAdded: row.date_added,
+    purchaseDate: row.purchase_date,
     purchasePrice: row.purchase_price,
     purchaseLocation: row.purchase_location,
     vinylRecommendation: row.vinyl_recommendation,
@@ -39,6 +45,8 @@ function dbToRecord(row: any): Record {
     audiophileAssessment: row.audiophile_assessment,
     artisticAssessment: row.artistic_assessment,
     recommendations: row.recommendations,
+    discogsReleaseId: row.discogs_release_id,
+    barcode: row.barcode,
   };
 }
 
@@ -52,10 +60,16 @@ function recordToDb(record: Partial<Record>, userId: string): any {
     genre: record.genre || [],
     label: record.label,
     catalog_number: record.catalogNumber,
+    barcode: record.barcode,
     format: record.format,
     format_details: record.formatDetails,
     pressing: record.pressing,
-    cover_art: record.coverArt,
+    cover_art: record.coverArt || null,
+    label_photo: record.labelPhoto || null,
+    cover_art_source: record.coverArtSource || null,
+    cover_art_verified: record.coverArtVerified ?? false,
+    cover_art_verified_at: record.coverArtVerifiedAt || null,
+    ai_confidence: record.aiConfidence || null,
     my_rating: record.myRating,
     recording_quality: record.recordingQuality,
     mastering_quality: record.masteringQuality,
@@ -64,6 +78,7 @@ function recordToDb(record: Partial<Record>, userId: string): any {
     critic_reviews: record.criticReviews,
     status: record.status,
     date_added: record.dateAdded || new Date().toISOString().split("T")[0],
+    purchase_date: record.purchaseDate || null,
     purchase_price: record.purchasePrice,
     purchase_location: record.purchaseLocation,
     vinyl_recommendation: record.vinylRecommendation,
@@ -75,6 +90,7 @@ function recordToDb(record: Partial<Record>, userId: string): any {
     audiophile_assessment: record.audiophileAssessment,
     artistic_assessment: record.artisticAssessment,
     recommendations: record.recommendations,
+    discogs_release_id: record.discogsReleaseId,
   };
 }
 
