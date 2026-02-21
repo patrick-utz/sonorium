@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type * as XLSX from "xlsx";
 import { useRecords } from "@/context/RecordContext";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { BackupSchedulerUI } from "@/components/BackupSchedulerUI";
+import { BackupHistoryUI } from "@/components/BackupHistoryUI";
+import {
+  getBackupSchedulerState,
+  saveBackupSchedulerState,
+  addBackupToHistory,
+  deleteBackupFromHistory,
+} from "@/lib/backupScheduler";
+import type { BackupMetadata } from "@/lib/backupScheduler";
 
 const exportFields = [
   { id: "artist", label: "Künstler", default: true },
@@ -55,6 +64,40 @@ export default function Export() {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [pendingImport, setPendingImport] = useState<Record[] | null>(null);
   const [importMode, setImportMode] = useState<"merge" | "replace">("merge");
+  const [backupSchedulerState, setBackupSchedulerState] = useState(
+    getBackupSchedulerState()
+  );
+
+  // Initialize backup scheduler on component mount
+  useEffect(() => {
+    const state = getBackupSchedulerState();
+    setBackupSchedulerState(state);
+  }, []);
+
+  const handleBackupSchedulerChange = (newState: typeof backupSchedulerState) => {
+    saveBackupSchedulerState(newState);
+    setBackupSchedulerState(newState);
+  };
+
+  const handleDeleteBackup = (backupId: string) => {
+    deleteBackupFromHistory(backupId);
+    const updatedState = getBackupSchedulerState();
+    setBackupSchedulerState(updatedState);
+    toast({
+      title: "Sicherung gelöscht",
+      description: "Die Sicherung wurde aus dem Verlauf entfernt.",
+    });
+  };
+
+  const handleRestoreBackup = (backup: BackupMetadata) => {
+    // Find the backup in history and suggest restoring it
+    toast({
+      title: "Sicherung wiederherstellen",
+      description: `${backup.recordCount} Tonträger aus ${backup.filename} werden wiederhergestellt.`,
+    });
+    // The actual restore happens via file selection
+    fileInputRef.current?.click();
+  };
 
   const toggleField = (fieldId: string) => {
     setSelectedFields((prev) =>
@@ -212,12 +255,25 @@ export default function Export() {
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const filename = `SONORIUM_Backup_${new Date().toISOString().split("T")[0]}.json`;
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `SONORIUM_Backup_${new Date().toISOString().split("T")[0]}.json`;
+    link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
+
+    // Add to backup history
+    const newBackup = addBackupToHistory(
+      records.length,
+      filename,
+      blob.size,
+      backupSchedulerState.frequency
+    );
+
+    // Update backup scheduler state
+    const updatedState = getBackupSchedulerState();
+    setBackupSchedulerState(updatedState);
 
     toast({
       title: "Sicherung erstellt",
@@ -347,6 +403,19 @@ export default function Export() {
           />
         </CardContent>
       </Card>
+
+      {/* Backup Scheduler */}
+      <BackupSchedulerUI
+        state={backupSchedulerState}
+        onStateChange={handleBackupSchedulerChange}
+      />
+
+      {/* Backup History */}
+      <BackupHistoryUI
+        backups={backupSchedulerState.backupHistory}
+        onDelete={handleDeleteBackup}
+        onRestore={handleRestoreBackup}
+      />
 
       {/* Field Selection */}
       <Card className="bg-gradient-card border-border/50">
