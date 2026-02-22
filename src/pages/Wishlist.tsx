@@ -280,7 +280,16 @@ export default function Wishlist() {
         },
       });
 
+      if (response.error) {
+        throw new Error(response.error.message || "Fehler bei der KI-Anreicherung");
+      }
+
       const data = response.data;
+
+      if (!data || !data.assignments || data.assignments.length === 0) {
+        toast.error("Keine Stimmungen zugewiesen");
+        return;
+      }
 
       // Directly apply all assignments without review
       for (const assignment of data.assignments) {
@@ -291,7 +300,7 @@ export default function Wishlist() {
       setSelectedRecords(new Set());
       toast.success(`${data.assignments.length} Alben mit Stimmungen aktualisiert`);
     } catch (error) {
-      toast.error("Fehler beim Zuweisen von Stimmungen");
+      toast.error(`Fehler beim Zuweisen von Stimmungen: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
       console.error(error);
     } finally {
       setIsBatchEnriching(false);
@@ -316,7 +325,16 @@ export default function Wishlist() {
         },
       });
 
+      if (response.error) {
+        throw new Error(response.error.message || "Fehler bei der KI-Anreicherung");
+      }
+
       const data = response.data;
+
+      if (!data || !data.assignments || data.assignments.length === 0) {
+        toast.error("Keine Genres zugewiesen");
+        return;
+      }
 
       // Directly apply all assignments without review
       for (const assignment of data.assignments) {
@@ -327,7 +345,7 @@ export default function Wishlist() {
       setSelectedRecords(new Set());
       toast.success(`${data.assignments.length} Alben mit Genres aktualisiert`);
     } catch (error) {
-      toast.error("Fehler beim Standardisieren von Genres");
+      toast.error(`Fehler beim Standardisieren von Genres: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
       console.error(error);
     } finally {
       setIsBatchEnriching(false);
