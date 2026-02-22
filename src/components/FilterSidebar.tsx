@@ -28,6 +28,8 @@ interface FilterSidebarProps {
   onMoodChange: (mood: string) => void;
   onResetFilters: () => void;
   hasActiveFilters: boolean;
+  isOpen?: boolean;
+  onToggleOpen?: (open: boolean) => void;
 }
 
 export function FilterSidebar({
@@ -45,23 +47,28 @@ export function FilterSidebar({
   onMoodChange,
   onResetFilters,
   hasActiveFilters,
+  isOpen = false,
+  onToggleOpen,
 }: FilterSidebarProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  // Use controlled state if provided, otherwise use internal state
+  const open = onToggleOpen ? isOpen : internalOpen;
+  const setOpen = onToggleOpen ? onToggleOpen : setInternalOpen;
 
   return (
     <motion.div
       initial={false}
-      animate={{ width: isOpen ? 250 : 70 }}
+      animate={{ width: open ? 250 : 70 }}
       transition={{ duration: 0.3 }}
       className="hidden md:flex flex-col border-r border-border/50 bg-card/30 overflow-hidden min-h-[calc(100vh-6rem)]"
     >
-      {!isOpen && (
+      {!open && (
         // Collapsed State - Narrow Column with Expand Button
         <div className="flex flex-col items-center justify-center flex-1 gap-4 py-4 px-2">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setIsOpen(true)}
+            onClick={() => setOpen(true)}
             title="Filter anzeigen"
             className="h-10 w-10 rounded-lg hover:bg-accent/20"
           >
@@ -70,7 +77,7 @@ export function FilterSidebar({
         </div>
       )}
 
-      {isOpen && (
+      {open && (
         // Expanded State - Full Sidebar with All Controls
         <div className="flex flex-col gap-4 p-4 overflow-y-auto" >
             {/* Header with Close Button */}
@@ -91,7 +98,7 @@ export function FilterSidebar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => setOpen(false)}
                   title="Filter ausblenden"
                   className="h-6 w-6 p-0"
                 >

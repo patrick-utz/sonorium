@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Sparkles, Heart, Loader2, CheckSquare, Square, ArrowUpDown, X, RotateCcw, Calendar } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Sparkles, Heart, Loader2, CheckSquare, Square, ArrowUpDown, X, RotateCcw, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Record, RecordFormat } from "@/types/record";
@@ -91,6 +91,9 @@ export default function Collection() {
   // Batch verification state
   const [showBatchVerification, setShowBatchVerification] = useState(false);
   const [recordsToVerify, setRecordsToVerify] = useState<Record[]>([]);
+
+  // Filter sidebar state - can be toggled by clicking the page title
+  const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
 
   // Pagination state for infinite scroll
   const ITEMS_PER_PAGE = 48; // 6x8 grid, shows ~2 screens of content
@@ -497,6 +500,8 @@ export default function Collection() {
         onMoodChange={handleMoodChange}
         onResetFilters={resetAllFilters}
         hasActiveFilters={hasActiveFilters}
+        isOpen={isFilterSidebarOpen}
+        onToggleOpen={setIsFilterSidebarOpen}
       />
 
       {/* Main Content Area */}
@@ -504,9 +509,20 @@ export default function Collection() {
         {/* Sticky Header with shadow */}
         <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
         <div className="pt-2 md:pt-0">
-          <h1 className="text-2xl md:text-4xl font-bold gradient-text">
-            Deine Sammlung
-          </h1>
+          <div
+            className="group cursor-pointer transition-opacity hover:opacity-80"
+            onClick={() => setIsFilterSidebarOpen(!isFilterSidebarOpen)}
+            title="Klick zum Umschalten der Filter"
+          >
+            <h1 className="text-2xl md:text-4xl font-bold gradient-text flex items-center gap-2">
+              Deine Sammlung
+              {isFilterSidebarOpen ? (
+                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 opacity-0 group-hover:opacity-100 transition-opacity" />
+              ) : (
+                <ChevronRight className="w-5 h-5 md:w-6 md:h-6 opacity-0 group-hover:opacity-100 transition-opacity" />
+              )}
+            </h1>
+          </div>
           <p className="text-muted-foreground text-sm md:text-base mt-0.5 md:mt-1">
             {records.length} Tonträger
           </p>
