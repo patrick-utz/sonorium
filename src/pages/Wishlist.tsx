@@ -265,11 +265,14 @@ export default function Wishlist() {
         genreFilter={genreFilter}
         sortBy={sortBy}
         sortDirection="asc"
+        moodFilter={moodFilter}
         allGenres={allGenres}
+        configuredMoods={configuredMoods}
         onFormatChange={setFormatFilter}
         onGenreChange={setGenreFilter}
         onSortChange={setSortBy}
         onSortDirectionChange={() => {}}
+        onMoodChange={(mood) => setMoodFilter(mood === "all" ? "all" : mood)}
         onResetFilters={() => {
           setSearchQuery("");
           setFormatFilter("all");
@@ -451,9 +454,9 @@ export default function Wishlist() {
           </Select>
         </div>
 
-        {/* Mood Filter Buttons - Row 3 */}
+        {/* Mood Filter Buttons - Mobile only (sidebar shows them on desktop) */}
         {configuredMoods.filter(m => m.enabled).length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex md:hidden flex-wrap gap-2">
             {configuredMoods
               .filter(m => m.enabled)
               .sort((a, b) => a.priority - b.priority)
@@ -472,7 +475,7 @@ export default function Wishlist() {
                     style={mood.color ? {
                       borderColor: `hsl(${mood.color})`,
                       borderLeftWidth: '3px',
-                      ...(isActive && { 
+                      ...(isActive && {
                         backgroundColor: `hsl(${mood.color} / 0.15)`,
                       })
                     } : undefined}

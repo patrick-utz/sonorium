@@ -487,11 +487,14 @@ export default function Collection() {
         genreFilter={genreFilter}
         sortBy={sortBy}
         sortDirection={sortDirection}
+        moodFilter={moodFilter}
         allGenres={allGenres}
+        configuredMoods={configuredMoods}
         onFormatChange={setFormatFilter}
         onGenreChange={handleGenreChange}
         onSortChange={setSortBy}
         onSortDirectionChange={toggleSortDirection}
+        onMoodChange={handleMoodChange}
         onResetFilters={resetAllFilters}
         hasActiveFilters={hasActiveFilters}
       />
@@ -618,11 +621,10 @@ export default function Collection() {
           </div>
         </div>
 
-        {/* Filters removed - now in desktop sidebar via FilterSidebar component */}
-
-        {/* Mood Filter Buttons - Row 3 */}
+        {/* Filters and Moods now in desktop sidebar via FilterSidebar component */}
+        {/* Mobile: Show mood buttons as they're important for discovery on small screens */}
         {configuredMoods.filter(m => m.enabled).length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex md:hidden flex-wrap gap-2">
             {configuredMoods
               .filter(m => m.enabled)
               .sort((a, b) => a.priority - b.priority)
@@ -641,7 +643,7 @@ export default function Collection() {
                     style={mood.color ? {
                       borderColor: `hsl(${mood.color})`,
                       borderLeftWidth: '3px',
-                      ...(isActive && { 
+                      ...(isActive && {
                         backgroundColor: `hsl(${mood.color} / 0.15)`,
                         ringColor: `hsl(${mood.color})`
                       })
