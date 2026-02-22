@@ -42,6 +42,7 @@ function dbToRecord(row: any): Record {
     tags: row.tags || [],
     moods: row.moods || [],
     isFavorite: row.is_favorite || false,
+    isOrdered: row.is_ordered || false,
     audiophileAssessment: row.audiophile_assessment,
     artisticAssessment: row.artistic_assessment,
     recommendations: row.recommendations,
@@ -87,6 +88,7 @@ function recordToDb(record: Partial<Record>, userId: string): any {
     tags: record.tags || [],
     moods: record.moods || [],
     is_favorite: record.isFavorite || false,
+    is_ordered: record.isOrdered || false,
     audiophile_assessment: record.audiophileAssessment,
     artistic_assessment: record.artisticAssessment,
     recommendations: record.recommendations,
@@ -244,6 +246,13 @@ export function useRecordsSync() {
     await updateRecord(id, { isFavorite: !record.isFavorite });
   };
 
+  // Toggle ordered status
+  const toggleOrdered = async (id: string) => {
+    const record = records.find((r) => r.id === id);
+    if (!record) return;
+    await updateRecord(id, { isOrdered: !record.isOrdered });
+  };
+
   // Get helpers
   const getRecordById = (id: string) => records.find((r) => r.id === id);
   const getOwnedRecords = () => records.filter((r) => r.status === "owned");
@@ -347,6 +356,7 @@ export function useRecordsSync() {
     updateRecord,
     deleteRecord,
     toggleFavorite,
+    toggleOrdered,
     getRecordById,
     getOwnedRecords,
     getWishlistRecords,
@@ -494,6 +504,13 @@ export function useRecordsSyncCached() {
     await updateRecord(id, { isFavorite: !record.isFavorite });
   };
 
+  // Toggle ordered status
+  const toggleOrdered = async (id: string) => {
+    const record = records.find((r) => r.id === id);
+    if (!record) return;
+    await updateRecord(id, { isOrdered: !record.isOrdered });
+  };
+
   // Get helpers
   const getRecordById = (id: string) => records.find((r) => r.id === id);
   const getOwnedRecords = () => records.filter((r) => r.status === "owned");
@@ -586,6 +603,7 @@ export function useRecordsSyncCached() {
     updateRecord,
     deleteRecord,
     toggleFavorite,
+    toggleOrdered,
     getRecordById,
     getOwnedRecords,
     getWishlistRecords,

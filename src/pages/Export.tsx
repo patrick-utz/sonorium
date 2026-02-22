@@ -306,15 +306,15 @@ export default function Export() {
   };
 
   // Export 5-star Wishlist albums for family/friends (gifts)
-  const exportWishlistFiveStars = async () => {
-    const fiveStarWishlist = records.filter(
-      (r) => r.status === "wishlist" && r.myRating === 5
+  const exportWishlistFavorites = async () => {
+    const wishlistFavorites = records.filter(
+      (r) => r.status === "wishlist" && r.isFavorite === true && r.isOrdered !== true
     );
 
-    if (fiveStarWishlist.length === 0) {
+    if (wishlistFavorites.length === 0) {
       toast({
-        title: "Keine 5-Stern Wunschliste gefunden",
-        description: "Du hast noch keine Alben mit 5 Sternen auf deiner Wunschliste.",
+        title: "Keine Favoriten-Alben gefunden",
+        description: "Du hast noch keine favorisierten Alben ohne Bestellung auf deiner Wunschliste.",
         variant: "destructive",
       });
       return;
@@ -323,7 +323,7 @@ export default function Export() {
     try {
       const XLSX = (await import("xlsx")) as typeof import("xlsx");
 
-      const data = fiveStarWishlist.map((record) => ({
+      const data = wishlistFavorites.map((record) => ({
         Künstler: record.artist,
         Album: record.album,
         Format: record.format ? record.format.charAt(0).toUpperCase() + record.format.slice(1) : "—",
@@ -353,7 +353,7 @@ export default function Export() {
 
       toast({
         title: "Export erfolgreich",
-        description: `${fiveStarWishlist.length} 5-Stern Wunschlisten-Alben für deine Familie wurden exportiert.`,
+        description: `${wishlistFavorites.length} Favoriten-Alben (ohne Bestellung) für deine Familie wurden exportiert.`,
       });
     } catch (error) {
       console.error("Wishlist export error:", error);
@@ -503,13 +503,13 @@ export default function Export() {
 
             <Card
               className="bg-background/50 border-border/50 cursor-pointer hover:shadow-vinyl transition-shadow"
-              onClick={exportWishlistFiveStars}
+              onClick={exportWishlistFavorites}
             >
               <CardContent className="p-4 text-center">
                 <FileSpreadsheet className="w-10 h-10 mx-auto mb-2 text-blue-500" />
                 <h3 className="font-semibold mb-1">Wunschliste exportieren</h3>
                 <p className="text-xs text-muted-foreground">
-                  5 Sterne für Familie
+                  Nur Favoriten ohne 📦
                 </p>
               </CardContent>
             </Card>
