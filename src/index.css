@@ -3,10 +3,6 @@
 @import "@fontsource/inter/500.css";
 @import "@fontsource/inter/600.css";
 @import "@fontsource/inter/700.css";
-@import "@fontsource/playfair-display/400.css";
-@import "@fontsource/playfair-display/500.css";
-@import "@fontsource/playfair-display/600.css";
-@import "@fontsource/playfair-display/700.css";
 
 @tailwind base;
 @tailwind components;
@@ -161,15 +157,15 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  /* Typography scale */
+  /* Typography scale - Modern sans-serif (Tidal-inspired) */
   h1 {
-    font-family: "Playfair Display", Georgia, serif;
-    @apply text-3xl md:text-4xl font-semibold tracking-tight;
+    font-family: "Inter", system-ui, sans-serif;
+    @apply text-3xl md:text-4xl font-bold tracking-tight;
   }
 
   h2 {
-    font-family: "Playfair Display", Georgia, serif;
-    @apply text-2xl md:text-3xl font-medium tracking-tight;
+    font-family: "Inter", system-ui, sans-serif;
+    @apply text-2xl md:text-3xl font-semibold tracking-tight;
   }
 
   h3 {
