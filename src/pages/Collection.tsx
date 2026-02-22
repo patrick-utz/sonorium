@@ -87,6 +87,7 @@ export default function Collection() {
   // Batch selection state
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   const [isBatchEnriching, setIsBatchEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState({ current: 0, total: 0 });
 
@@ -181,8 +182,26 @@ export default function Collection() {
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === "asc" ? "desc" : "asc");
   };
-  // Toggle selection for a record
-  const toggleRecordSelection = (recordId: string) => {
+  // Toggle selection for a record with Shift+Click range selection support
+  const toggleRecordSelection = (recordId: string, event?: React.MouseEvent) => {
+    const currentIndex = filteredRecords.findIndex(r => r.id === recordId);
+
+    // Shift+Click: Select range from last selected to current
+    if (event?.shiftKey && lastSelectedIndex !== null && currentIndex !== -1) {
+      const start = Math.min(lastSelectedIndex, currentIndex);
+      const end = Math.max(lastSelectedIndex, currentIndex);
+      const newSet = new Set(selectedRecords);
+
+      for (let i = start; i <= end; i++) {
+        newSet.add(filteredRecords[i].id);
+      }
+
+      setSelectedRecords(newSet);
+      setLastSelectedIndex(currentIndex);
+      return;
+    }
+
+    // Normal click: Toggle single selection
     setSelectedRecords(prev => {
       const newSet = new Set(prev);
       if (newSet.has(recordId)) {
@@ -192,6 +211,10 @@ export default function Collection() {
       }
       return newSet;
     });
+
+    if (currentIndex !== -1) {
+      setLastSelectedIndex(currentIndex);
+    }
   };
 
   // Select/deselect all filtered records
@@ -207,6 +230,7 @@ export default function Collection() {
   const exitSelectMode = () => {
     setIsSelectMode(false);
     setSelectedRecords(new Set());
+    setLastSelectedIndex(null);
   };
 
   // Batch AI enrichment
@@ -1004,7 +1028,7 @@ export default function Collection() {
                       className="absolute top-2 left-2 z-10"
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleRecordSelection(record.id);
+                        toggleRecordSelection(record.id, e as unknown as React.MouseEvent);
                       }}
                     >
                       <Checkbox
@@ -1015,7 +1039,7 @@ export default function Collection() {
                   )}
                   <RecordCard
                     record={record}
-                    onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
+                    onClick={(e) => isSelectMode ? toggleRecordSelection(record.id, e as unknown as React.MouseEvent) : navigate(`/sammlung/${record.id}`)}
                     onReloadCover={() => handleReloadCover(record)}
                     onDelete={() => deleteRecord(record.id)}
                     onToggleFavorite={() => toggleFavorite(record.id)}
@@ -1061,9 +1085,10 @@ export default function Collection() {
                     record={record}
                     configuredMoods={configuredMoods}
                     onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
+                    onClickWithEvent={(e) => isSelectMode ? toggleRecordSelection(record.id, e) : navigate(`/sammlung/${record.id}`)}
                     isSelectMode={isSelectMode}
                     isSelected={selectedRecords.has(record.id)}
-                    onToggleSelect={() => toggleRecordSelection(record.id)}
+                    onToggleSelect={(e) => toggleRecordSelection(record.id, e)}
                     onToggleFavorite={() => toggleFavorite(record.id)}
                     onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
                   />
@@ -1140,14 +1165,15 @@ interface ListItemProps {
   record: Record;
   configuredMoods: MoodCategory[];
   onClick: () => void;
+  onClickWithEvent?: (e: React.MouseEvent) => void;
   isSelectMode?: boolean;
   isSelected?: boolean;
-  onToggleSelect?: () => void;
+  onToggleSelect?: (e?: React.MouseEvent) => void;
   onToggleFavorite?: () => void;
   onRatingChange?: (rating: number) => void;
 }
 
-function ListItem({ record, configuredMoods, onClick, isSelectMode, isSelected, onToggleSelect, onToggleFavorite, onRatingChange }: ListItemProps) {
+function ListItem({ record, configuredMoods, onClick, onClickWithEvent, isSelectMode, isSelected, onToggleSelect, onToggleFavorite, onRatingChange }: ListItemProps) {
   // Get configured moods that match this record's moods (with colors)
   const recordMoodsWithColors = (record.moods || [])
     .map(moodName => {
@@ -1161,17 +1187,17 @@ function ListItem({ record, configuredMoods, onClick, isSelectMode, isSelected, 
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      onClick={onClick}
+      onClick={(e) => onClickWithEvent ? onClickWithEvent(e) : onClick()}
       className={cn(
         "group flex items-center gap-4 p-3 rounded-lg bg-card border border-border/50 cursor-pointer hover:shadow-card transition-all",
         isSelectMode && isSelected && "ring-2 ring-primary"
       )}
     >
       {isSelectMode && (
-        <div 
+        <div
           onClick={(e) => {
             e.stopPropagation();
-            onToggleSelect?.();
+            onToggleSelect?.(e);
           }}
         >
           <Checkbox
