@@ -706,15 +706,12 @@ export default function Collection() {
               </div>
             )}
 
-            {/* Favorites Toggle */}
+            {/* Favoriten Filter */}
             <Button
               variant={showFavoritesOnly ? "default" : "outline"}
               size="sm"
               onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              className={cn(
-                "gap-2",
-                showFavoritesOnly && "bg-red-500 hover:bg-red-600 text-white"
-              )}
+              className="gap-2"
             >
               <Heart className={cn("w-4 h-4", showFavoritesOnly && "fill-current")} />
               Favoriten
