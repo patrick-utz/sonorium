@@ -509,19 +509,6 @@ export default function Wishlist() {
                   onReloadCover={() => handleReloadCover(record)}
                   onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
                 />
-                {/* Package icon - always visible, toggle ordered status */}
-                {record.isOrdered && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleOrdered(record.id);
-                    }}
-                    className="absolute top-3 left-14 p-2.5 rounded-full bg-amber-500/95 hover:bg-amber-600 backdrop-blur-md transition-all duration-300 shadow-lg z-10 group-hover:opacity-100"
-                    title="Paket markiert - klick zum entfernen"
-                  >
-                    <Package className="w-5 h-5 text-white fill-current" />
-                  </button>
-                )}
                 <Button
                   size="sm"
                   onClick={(e) => handleMarkAsOwned(record.id, e)}

@@ -145,7 +145,7 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onTo
           </motion.div>
         </motion.button>
 
-        {/* Top-left-2: Package button (visible when ordered) */}
+        {/* Top-right-2: Package button (visible when ordered) */}
         {onToggleOrdered && (
           <motion.button
             onClick={(e) => {
@@ -155,7 +155,7 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onTo
             whileHover={{ scale: 1.2 }}
             whileTap={{ scale: 0.95 }}
             className={cn(
-              "absolute top-3 left-14 p-2.5 rounded-full transition-all duration-300",
+              "absolute top-3 right-14 p-2.5 rounded-full transition-all duration-300",
               "backdrop-blur-md z-10",
               record.isOrdered
                 ? "bg-amber-500/95 hover:bg-amber-600 shadow-lg shadow-amber-500/50"
