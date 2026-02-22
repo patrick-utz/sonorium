@@ -4,7 +4,7 @@ import { RecordCard } from "@/components/RecordCard";
 import { RecordGridSkeleton } from "@/components/RecordCardSkeleton";
 import { StarRating } from "@/components/StarRating";
 import { EditDropdown } from "@/components/EditDropdown";
-import { FilterSidebar } from "@/components/FilterSidebar";
+import { FilterBar } from "@/components/FilterBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -58,8 +58,8 @@ export default function Wishlist() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  // Filter sidebar state - can be toggled by clicking the page title
-  const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
+  // Filter bar collapsed/expanded state
+  const [isFilterBarOpen, setIsFilterBarOpen] = useState(false);
 
   // Extract all unique genres from records
   const allGenres = Array.from(
@@ -262,53 +262,15 @@ export default function Wishlist() {
 
   return (
     <div className="flex h-[calc(100vh-6rem)]">
-      {/* Desktop Sidebar with Filters - Hidden on mobile/tablet */}
-      <FilterSidebar
-        formatFilter={formatFilter}
-        genreFilter={genreFilter}
-        sortBy={sortBy}
-        sortDirection="asc"
-        moodFilter={moodFilter}
-        allGenres={allGenres}
-        configuredMoods={configuredMoods}
-        onFormatChange={setFormatFilter}
-        onGenreChange={setGenreFilter}
-        onSortChange={setSortBy}
-        onSortDirectionChange={() => {}}
-        onMoodChange={(mood) => setMoodFilter(mood === "all" ? "all" : mood)}
-        onResetFilters={() => {
-          setSearchQuery("");
-          setFormatFilter("all");
-          setGenreFilter("all");
-          setTagFilter("all");
-          setMoodFilter("all");
-          setShowFavoritesOnly(false);
-        }}
-        hasActiveFilters={formatFilter !== "all" || genreFilter !== "all" || tagFilter !== "all" || moodFilter !== "all" || showFavoritesOnly || searchQuery !== ""}
-        isOpen={isFilterSidebarOpen}
-        onToggleOpen={setIsFilterSidebarOpen}
-      />
-
-      {/* Main Content Area */}
+      {/* Main Content Area - Full Width */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Sticky Header with shadow */}
         <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
         <div className="pt-2 md:pt-0">
-          <div
-            className="group cursor-pointer transition-opacity hover:opacity-80"
-            onClick={() => setIsFilterSidebarOpen(!isFilterSidebarOpen)}
-            title="Klick zum Umschalten der Filter"
-          >
-            <h1 className="text-2xl md:text-4xl font-bold gradient-text flex items-center gap-2 md:gap-3">
-              <Heart className="w-6 h-6 md:w-8 md:h-8 text-accent fill-accent" />
-              Wunschliste
-              {isFilterSidebarOpen ? (
-                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 opacity-0 group-hover:opacity-100 transition-opacity" />
-              ) : (
-                <ChevronRight className="w-5 h-5 md:w-6 md:h-6 opacity-0 group-hover:opacity-100 transition-opacity" />
-              )}
-            </h1>
-          </div>
+          <h1 className="text-2xl md:text-4xl font-bold gradient-text flex items-center gap-2 md:gap-3">
+            <Heart className="w-6 h-6 md:w-8 md:h-8 text-accent fill-accent" />
+            Wunschliste
+          </h1>
           <p className="text-muted-foreground text-sm md:text-base mt-0.5 md:mt-1">
             {records.length} Tonträger
           </p>
@@ -383,8 +345,20 @@ export default function Wishlist() {
               </Button>
             </div>
 
+            {/* Filter Toggle Button - Show/Hide FilterBar */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsFilterBarOpen(!isFilterBarOpen)}
+              title="Filter anzeigen/verstecken"
+              className="gap-2 hidden sm:flex"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Filter {isFilterBarOpen ? "−" : "+"}
+            </Button>
+
             {/* Bearbeiten Dropdown - Hidden on mobile */}
-            <div className="hidden sm:block ml-auto">
+            <div className="hidden sm:block">
               <EditDropdown
                 isSelectMode={isSelectMode}
                 onSelectModeChange={(enabled) => {
@@ -398,6 +372,41 @@ export default function Wishlist() {
             </div>
           </div>
         </div>
+
+        {/* FilterBar - Expandable horizontal filter controls */}
+        {isFilterBarOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="px-3 py-2 bg-card/50 border-t border-border/30"
+          >
+            <FilterBar
+              formatFilter={formatFilter}
+              genreFilter={genreFilter}
+              sortBy={sortBy}
+              sortDirection="asc"
+              moodFilter={moodFilter}
+              allGenres={allGenres}
+              configuredMoods={configuredMoods}
+              onFormatChange={setFormatFilter}
+              onGenreChange={setGenreFilter}
+              onSortChange={setSortBy}
+              onSortDirectionChange={() => {}}
+              onMoodChange={(mood) => setMoodFilter(mood === "all" ? "all" : mood)}
+              onResetFilters={() => {
+                setSearchQuery("");
+                setFormatFilter("all");
+                setGenreFilter("all");
+                setTagFilter("all");
+                setMoodFilter("all");
+                setShowFavoritesOnly(false);
+              }}
+              hasActiveFilters={formatFilter !== "all" || genreFilter !== "all" || tagFilter !== "all" || moodFilter !== "all" || showFavoritesOnly || searchQuery !== ""}
+            />
+          </motion.div>
+        )}
 
         {/* Mood Filter Buttons - Mobile only (sidebar shows them on desktop) */}
         {configuredMoods.filter(m => m.enabled).length > 0 && (

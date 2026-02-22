@@ -6,7 +6,7 @@ import { RecordGridSkeleton } from "@/components/RecordCardSkeleton";
 import { StarRating } from "@/components/StarRating";
 import { BatchVerificationUI } from "@/components/BatchVerificationUI";
 import { EditDropdown } from "@/components/EditDropdown";
-import { FilterSidebar } from "@/components/FilterSidebar";
+import { FilterBar } from "@/components/FilterBar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -92,8 +92,8 @@ export default function Collection() {
   const [showBatchVerification, setShowBatchVerification] = useState(false);
   const [recordsToVerify, setRecordsToVerify] = useState<Record[]>([]);
 
-  // Filter sidebar state - can be toggled by clicking the page title
-  const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
+  // Filter bar collapsed/expanded state
+  const [isFilterBarOpen, setIsFilterBarOpen] = useState(false);
 
   // Pagination state for infinite scroll
   const ITEMS_PER_PAGE = 48; // 6x8 grid, shows ~2 screens of content
@@ -484,45 +484,14 @@ export default function Collection() {
 
   return (
     <div className="flex h-[calc(100vh-6rem)]">
-      {/* Desktop Sidebar with Filters - Hidden on mobile/tablet */}
-      <FilterSidebar
-        formatFilter={formatFilter}
-        genreFilter={genreFilter}
-        sortBy={sortBy}
-        sortDirection={sortDirection}
-        moodFilter={moodFilter}
-        allGenres={allGenres}
-        configuredMoods={configuredMoods}
-        onFormatChange={setFormatFilter}
-        onGenreChange={handleGenreChange}
-        onSortChange={setSortBy}
-        onSortDirectionChange={toggleSortDirection}
-        onMoodChange={handleMoodChange}
-        onResetFilters={resetAllFilters}
-        hasActiveFilters={hasActiveFilters}
-        isOpen={isFilterSidebarOpen}
-        onToggleOpen={setIsFilterSidebarOpen}
-      />
-
-      {/* Main Content Area */}
+      {/* Main Content Area - Full Width */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Sticky Header with shadow */}
         <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
         <div className="pt-2 md:pt-0">
-          <div
-            className="group cursor-pointer transition-opacity hover:opacity-80"
-            onClick={() => setIsFilterSidebarOpen(!isFilterSidebarOpen)}
-            title="Klick zum Umschalten der Filter"
-          >
-            <h1 className="text-2xl md:text-4xl font-bold gradient-text flex items-center gap-2">
-              Deine Sammlung
-              {isFilterSidebarOpen ? (
-                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 opacity-0 group-hover:opacity-100 transition-opacity" />
-              ) : (
-                <ChevronRight className="w-5 h-5 md:w-6 md:h-6 opacity-0 group-hover:opacity-100 transition-opacity" />
-              )}
-            </h1>
-          </div>
+          <h1 className="text-2xl md:text-4xl font-bold gradient-text">
+            Deine Sammlung
+          </h1>
           <p className="text-muted-foreground text-sm md:text-base mt-0.5 md:mt-1">
             {records.length} Tonträger
           </p>
@@ -626,8 +595,20 @@ export default function Collection() {
               </Button>
             </div>
 
+            {/* Filter Toggle Button - Show/Hide FilterBar */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsFilterBarOpen(!isFilterBarOpen)}
+              title="Filter anzeigen/verstecken"
+              className="gap-2 hidden sm:flex"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Filter {isFilterBarOpen ? "−" : "+"}
+            </Button>
+
             {/* Bearbeiten Dropdown - Hidden on mobile */}
-            <div className="hidden sm:block ml-auto">
+            <div className="hidden sm:block">
               <EditDropdown
                 isSelectMode={isSelectMode}
                 onSelectModeChange={setIsSelectMode}
@@ -637,7 +618,34 @@ export default function Collection() {
           </div>
         </div>
 
-        {/* Filters and Moods now in desktop sidebar via FilterSidebar component */}
+        {/* FilterBar - Expandable horizontal filter controls */}
+        {isFilterBarOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="px-3 py-2 bg-card/50 border-t border-border/30"
+          >
+            <FilterBar
+              formatFilter={formatFilter}
+              genreFilter={genreFilter}
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+              moodFilter={moodFilter}
+              allGenres={allGenres}
+              configuredMoods={configuredMoods}
+              onFormatChange={setFormatFilter}
+              onGenreChange={handleGenreChange}
+              onSortChange={setSortBy}
+              onSortDirectionChange={toggleSortDirection}
+              onMoodChange={handleMoodChange}
+              onResetFilters={resetAllFilters}
+              hasActiveFilters={hasActiveFilters}
+            />
+          </motion.div>
+        )}
+
         {/* Mobile: Show mood buttons as they're important for discovery on small screens */}
         {configuredMoods.filter(m => m.enabled).length > 0 && (
           <div className="flex md:hidden flex-wrap gap-2">
