@@ -245,6 +245,66 @@ export default function Export() {
     });
   };
 
+  // Export top-rated albums (4-5 stars) for quick reference
+  const exportTopRatedAlbums = async () => {
+    const topRatedRecords = records.filter((r) => r.myRating && r.myRating >= 4);
+
+    if (topRatedRecords.length === 0) {
+      toast({
+        title: "Keine Top-Alben gefunden",
+        description: "Du hast noch keine Alben mit 4 oder 5 Sternen bewertet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const XLSX = (await import("xlsx")) as typeof import("xlsx");
+
+      const data = topRatedRecords.map((record) => ({
+        Künstler: record.artist,
+        Album: record.album,
+        Pressung: record.pressing || record.formatDetails || "—",
+        Katalognummer: record.catalogNumber || "—",
+        Verlag: record.label || "—",
+        Jahr: record.year,
+        Format: record.format,
+        Bewertung: "⭐".repeat(record.myRating || 0),
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Top-Alben");
+
+      // Auto-size columns
+      const colWidths = [
+        { wch: 25 }, // Künstler
+        { wch: 30 }, // Album
+        { wch: 25 }, // Pressung
+        { wch: 18 }, // Katalognummer
+        { wch: 20 }, // Verlag
+        { wch: 8 },  // Jahr
+        { wch: 12 }, // Format
+        { wch: 12 }, // Bewertung
+      ];
+      ws["!cols"] = colWidths;
+
+      XLSX.writeFile(wb, `SONORIUM_TopAlbums_${new Date().toISOString().split("T")[0]}.xlsx`);
+
+      toast({
+        title: "Export erfolgreich",
+        description: `${topRatedRecords.length} Top-Alben (4-5 Sterne) wurden exportiert.`,
+      });
+    } catch (error) {
+      console.error("Top albums export error:", error);
+      toast({
+        title: "Export-Fehler",
+        description: "Der Export der Top-Alben konnte nicht durchgeführt werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Backup functions
   const createBackup = () => {
     const backup = {
@@ -358,16 +418,29 @@ export default function Export() {
         </CardContent>
       </Card>
 
-      {/* Backup Section */}
+      {/* Export Section */}
       <Card className="bg-gradient-card border-border/50">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Datensicherung</CardTitle>
+          <CardTitle className="text-lg">Datenexport</CardTitle>
           <CardDescription>
-            Erstelle eine vollständige Sicherung deiner Sammlung oder stelle eine frühere Sicherung wieder her
+            Exportiere deine Top-Alben (4-5 Sterne) als Excel-Liste oder erstelle eine vollständige Sicherung deiner Sammlung
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-3 gap-4">
+            <Card
+              className="bg-background/50 border-border/50 cursor-pointer hover:shadow-vinyl transition-shadow"
+              onClick={exportTopRatedAlbums}
+            >
+              <CardContent className="p-4 text-center">
+                <FileSpreadsheet className="w-10 h-10 mx-auto mb-2 text-green-500" />
+                <h3 className="font-semibold mb-1">Top-Alben exportieren</h3>
+                <p className="text-xs text-muted-foreground">
+                  4-5 Sterne als Excel-Liste
+                </p>
+              </CardContent>
+            </Card>
+
             <Card
               className="bg-background/50 border-border/50 cursor-pointer hover:shadow-vinyl transition-shadow"
               onClick={createBackup}
