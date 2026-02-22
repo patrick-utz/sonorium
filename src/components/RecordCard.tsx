@@ -145,7 +145,7 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onTo
           </motion.div>
         </motion.button>
 
-        {/* Top-right-2: Package button (visible when ordered) */}
+        {/* Bottom-left: Package button (visible when ordered) - in fallline with Favorite */}
         {onToggleOrdered && (
           <motion.button
             onClick={(e) => {
@@ -155,7 +155,7 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onTo
             whileHover={{ scale: 1.2 }}
             whileTap={{ scale: 0.95 }}
             className={cn(
-              "absolute top-3 right-14 p-2.5 rounded-full transition-all duration-300",
+              "absolute bottom-3 left-3 p-2.5 rounded-full transition-all duration-300",
               "backdrop-blur-md z-10",
               record.isOrdered
                 ? "bg-amber-500/95 hover:bg-amber-600 shadow-lg shadow-amber-500/50"
@@ -181,12 +181,12 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onTo
           <FormatBadge format={record.format} />
         </div>
 
-        {/* Bottom-left: Reload cover button */}
+        {/* Bottom-right: Reload cover button (left of Trash) */}
         {onReloadCover && (
           <motion.button
             onClick={handleReloadCover}
             disabled={isReloadingCover}
-            className="absolute bottom-3 left-3 p-2.5 rounded-full bg-blue-500/90 backdrop-blur-md hover:bg-blue-600 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 disabled:opacity-50"
+            className="absolute bottom-3 right-14 p-2.5 rounded-full bg-blue-500/90 backdrop-blur-md hover:bg-blue-600 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 disabled:opacity-50"
             title="Cover nachladen"
             whileHover={{ scale: 1.1 }}
           >
@@ -194,7 +194,7 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onTo
           </motion.button>
         )}
 
-        {/* Bottom-right: Delete button */}
+        {/* Bottom-right: Delete button (right of Reload) */}
         {onDelete && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
