@@ -5,6 +5,8 @@ import { RecordCard } from "@/components/RecordCard";
 import { RecordGridSkeleton } from "@/components/RecordCardSkeleton";
 import { StarRating } from "@/components/StarRating";
 import { BatchVerificationUI } from "@/components/BatchVerificationUI";
+import { BatchMoodsAssignUI } from "@/components/BatchMoodsAssignUI";
+import { GenreStandardizationUI } from "@/components/GenreStandardizationUI";
 import { EditDropdown } from "@/components/EditDropdown";
 import { FilterBar } from "@/components/FilterBar";
 import { Input } from "@/components/ui/input";
@@ -91,6 +93,14 @@ export default function Collection() {
   // Batch verification state
   const [showBatchVerification, setShowBatchVerification] = useState(false);
   const [recordsToVerify, setRecordsToVerify] = useState<Record[]>([]);
+
+  // Batch moods assignment state
+  const [showMoodsAssignUI, setShowMoodsAssignUI] = useState(false);
+  const [moodsAssignRecords, setMoodsAssignRecords] = useState<Record[]>([]);
+
+  // Batch genre standardization state
+  const [showGenreStandardization, setShowGenreStandardization] = useState(false);
+  const [genreStandardizationRecords, setGenreStandardizationRecords] = useState<Record[]>([]);
 
   // Filter bar collapsed/expanded state
   const [isFilterBarOpen, setIsFilterBarOpen] = useState(false);
@@ -346,6 +356,147 @@ export default function Collection() {
     deleteRecord(recordId);
     setRecordsToVerify((prev) => prev.filter((r) => r.id !== recordId));
     toast.success("Datensatz gelöscht");
+  };
+
+  // Batch moods assignment
+  const startBatchAssignMoods = () => {
+    // Find records to assign moods to (select mode allows user to choose)
+    const recordsToUpdate = selectedRecords.size > 0
+      ? records.filter(r => selectedRecords.has(r.id))
+      : records;
+
+    if (recordsToUpdate.length === 0) {
+      toast.error("Keine Alben zum Aktualisieren");
+      return;
+    }
+
+    setMoodsAssignRecords(recordsToUpdate);
+    setShowMoodsAssignUI(true);
+  };
+
+  const handleBatchAssignMoods = async (selectedMoods: string[], deleteTags: boolean) => {
+    if (selectedMoods.length === 0) {
+      toast.error("Bitte wähle mindestens eine Stimmung aus");
+      return;
+    }
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < moodsAssignRecords.length; i++) {
+      const record = moodsAssignRecords[i];
+      try {
+        const newMoods = Array.from(new Set([...(record.moods || []), ...selectedMoods]));
+        const updateData: Partial<Record> = {
+          moods: newMoods,
+        };
+        if (deleteTags) {
+          updateData.tags = [];
+        }
+        updateRecord(record.id, updateData);
+        successCount++;
+      } catch (error) {
+        console.error(`Mood assignment error for ${record.album}:`, error);
+        errorCount++;
+      }
+    }
+
+    setShowMoodsAssignUI(false);
+    setMoodsAssignRecords([]);
+    exitSelectMode();
+
+    if (successCount > 0 && errorCount === 0) {
+      toast.success(`${successCount} Alben aktualisiert`);
+    } else if (successCount > 0 && errorCount > 0) {
+      toast.warning(`${successCount} Alben aktualisiert, ${errorCount} fehlgeschlagen`);
+    } else {
+      toast.error("Stimmungszuweisung fehlgeschlagen");
+    }
+  };
+
+  // Batch genre standardization
+  const startBatchStandardizeGenres = () => {
+    const recordsToUpdate = selectedRecords.size > 0
+      ? records.filter(r => selectedRecords.has(r.id))
+      : records;
+
+    if (recordsToUpdate.length === 0) {
+      toast.error("Keine Alben zum Aktualisieren");
+      return;
+    }
+
+    setGenreStandardizationRecords(recordsToUpdate);
+    setShowGenreStandardization(true);
+  };
+
+  const handleBatchStandardizeGenres = async (mappings: { [key: string]: string }) => {
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < genreStandardizationRecords.length; i++) {
+      const record = genreStandardizationRecords[i];
+      try {
+        const newGenres = (record.genre || []).map(g => mappings[g] || g);
+        updateRecord(record.id, { genre: newGenres });
+        successCount++;
+      } catch (error) {
+        console.error(`Genre standardization error for ${record.album}:`, error);
+        errorCount++;
+      }
+    }
+
+    setShowGenreStandardization(false);
+    setGenreStandardizationRecords([]);
+    exitSelectMode();
+
+    if (successCount > 0 && errorCount === 0) {
+      toast.success(`${successCount} Alben aktualisiert`);
+    } else if (successCount > 0 && errorCount > 0) {
+      toast.warning(`${successCount} Alben aktualisiert, ${errorCount} fehlgeschlagen`);
+    } else {
+      toast.error("Genre-Standardisierung fehlgeschlagen");
+    }
+  };
+
+  // Batch delete tags
+  const handleBatchDeleteTags = async () => {
+    if (selectedRecords.size === 0) {
+      toast.error("Bitte wähle mindestens ein Album aus");
+      return;
+    }
+
+    const recordsToUpdate = records.filter(r => selectedRecords.has(r.id));
+    let successCount = 0;
+
+    for (const record of recordsToUpdate) {
+      try {
+        updateRecord(record.id, { tags: [] });
+        successCount++;
+      } catch (error) {
+        console.error(`Tag deletion error for ${record.album}:`, error);
+      }
+    }
+
+    exitSelectMode();
+    toast.success(`${successCount} Alben aktualisiert - Tags gelöscht`);
+  };
+
+  // Batch fix favorites
+  const handleBatchFixFavorites = async () => {
+    let successCount = 0;
+
+    for (const record of records) {
+      if (record.isFavorite) {
+        try {
+          updateRecord(record.id, { isFavorite: true });
+          successCount++;
+        } catch (error) {
+          console.error(`Favorite fix error for ${record.album}:`, error);
+        }
+      }
+    }
+
+    toast.success(`${successCount} Favoriten überprüft und gespeichert`);
   };
 
   const handleMoodChange = (value: string) => {
@@ -613,6 +764,10 @@ export default function Collection() {
                 isSelectMode={isSelectMode}
                 onSelectModeChange={setIsSelectMode}
                 onVerifyCovers={startBatchVerification}
+                onAssignMoods={startBatchAssignMoods}
+                onStandardizeGenres={startBatchStandardizeGenres}
+                onDeleteTags={handleBatchDeleteTags}
+                onFixFavorites={handleBatchFixFavorites}
               />
             </div>
           </div>
@@ -953,6 +1108,31 @@ export default function Collection() {
             />
           </div>
         </div>
+      )}
+
+      {/* Batch Moods Assignment UI */}
+      {showMoodsAssignUI && moodsAssignRecords.length > 0 && (
+        <BatchMoodsAssignUI
+          records={moodsAssignRecords}
+          allMoods={configuredMoods}
+          onAssignMoods={handleBatchAssignMoods}
+          onClose={() => {
+            setShowMoodsAssignUI(false);
+            setMoodsAssignRecords([]);
+          }}
+        />
+      )}
+
+      {/* Genre Standardization UI */}
+      {showGenreStandardization && genreStandardizationRecords.length > 0 && (
+        <GenreStandardizationUI
+          records={genreStandardizationRecords}
+          onStandardizeGenres={handleBatchStandardizeGenres}
+          onClose={() => {
+            setShowGenreStandardization(false);
+            setGenreStandardizationRecords([]);
+          }}
+        />
       )}
       </div>
     </div>
