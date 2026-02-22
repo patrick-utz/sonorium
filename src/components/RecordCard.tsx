@@ -4,7 +4,7 @@ import { StarRating } from "./StarRating";
 import { CoverSourceBadge } from "./CoverSourceBadge";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Trash2, Heart, RefreshCw, Eye } from "lucide-react";
+import { Trash2, Heart, RefreshCw, Eye, Package } from "lucide-react";
 import { useState, memo } from "react";
 import { useAudiophileProfile } from "@/context/AudiophileProfileContext";
 import {
@@ -30,12 +30,13 @@ interface RecordCardProps {
   onClick?: () => void;
   onDelete?: () => void;
   onToggleFavorite?: () => void;
+  onToggleOrdered?: () => void;
   onRatingChange?: (rating: number) => void;
   onReloadCover?: () => Promise<void>;
   className?: string;
 }
 
-function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRatingChange, onReloadCover, className }: RecordCardProps) {
+function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onToggleOrdered, onRatingChange, onReloadCover, className }: RecordCardProps) {
   const [isReloadingCover, setIsReloadingCover] = useState(false);
   const { profile } = useAudiophileProfile();
 
@@ -143,6 +144,37 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
             )} />
           </motion.div>
         </motion.button>
+
+        {/* Top-left-2: Package button (visible when ordered) */}
+        {onToggleOrdered && (
+          <motion.button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleOrdered();
+            }}
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.95 }}
+            className={cn(
+              "absolute top-3 left-14 p-2.5 rounded-full transition-all duration-300",
+              "backdrop-blur-md z-10",
+              record.isOrdered
+                ? "bg-amber-500/95 hover:bg-amber-600 shadow-lg shadow-amber-500/50"
+                : "bg-white/10 opacity-0 group-hover:opacity-100 hover:bg-amber-500/70"
+            )}
+            title={record.isOrdered ? "Paketmark entfernen" : "Als Paket markieren"}
+          >
+            <motion.div
+              initial={false}
+              animate={record.isOrdered ? { scale: [1, 1.2, 1] } : {}}
+              transition={{ duration: 0.3 }}
+            >
+              <Package className={cn(
+                "w-5 h-5 transition-colors",
+                record.isOrdered ? "fill-white text-white" : "text-white"
+              )} />
+            </motion.div>
+          </motion.button>
+        )}
 
         {/* Top-right: Format badge */}
         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">

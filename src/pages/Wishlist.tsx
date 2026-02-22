@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Heart, ShoppingCart, Music, Tag, Sparkles, SlidersHorizontal, Grid3X3, List, CheckSquare, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Heart, ShoppingCart, Music, Tag, Sparkles, SlidersHorizontal, Grid3X3, List, CheckSquare, Loader2, ChevronLeft, ChevronRight, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { RecordFormat } from "@/types/record";
@@ -34,7 +34,7 @@ type SortOption = "artist" | "album" | "year" | "dateAdded" | "rating";
 type ViewMode = "grid" | "list";
 
 export default function Wishlist() {
-  const { getWishlistRecords, updateRecord, deleteRecord, toggleFavorite } = useRecords();
+  const { getWishlistRecords, updateRecord, deleteRecord, toggleFavorite, toggleOrdered } = useRecords();
   const { profile } = useAudiophileProfile();
   const navigate = useNavigate();
   const records = getWishlistRecords();
@@ -505,9 +505,23 @@ export default function Wishlist() {
                   onClick={() => isSelectMode ? handleToggleSelect(record.id) : navigate(`/sammlung/${record.id}`)}
                   onDelete={() => deleteRecord(record.id)}
                   onToggleFavorite={() => toggleFavorite(record.id)}
+                  onToggleOrdered={() => toggleOrdered(record.id)}
                   onReloadCover={() => handleReloadCover(record)}
                   onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
                 />
+                {/* Package icon - always visible, toggle ordered status */}
+                {record.isOrdered && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleOrdered(record.id);
+                    }}
+                    className="absolute top-3 left-14 p-2.5 rounded-full bg-amber-500/95 hover:bg-amber-600 backdrop-blur-md transition-all duration-300 shadow-lg z-10 group-hover:opacity-100"
+                    title="Paket markiert - klick zum entfernen"
+                  >
+                    <Package className="w-5 h-5 text-white fill-current" />
+                  </button>
+                )}
                 <Button
                   size="sm"
                   onClick={(e) => handleMarkAsOwned(record.id, e)}
@@ -646,7 +660,27 @@ export default function Wishlist() {
                     record.isFavorite ? "heart-favorite fill-current" : "text-muted-foreground hover:text-foreground"
                   )} />
                 </button>
-                
+
+                {/* Package Toggle */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleOrdered(record.id);
+                  }}
+                  className={cn(
+                    "p-1.5 rounded-full transition-colors",
+                    record.isOrdered
+                      ? "bg-amber-500/20 text-amber-600 hover:bg-amber-500/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                  title={record.isOrdered ? "Paketmark entfernen" : "Als Paket markieren"}
+                >
+                  <Package className={cn(
+                    "w-4 h-4 transition-colors",
+                    record.isOrdered && "fill-current"
+                  )} />
+                </button>
+
                 <Button
                   size="sm"
                   onClick={(e) => handleMarkAsOwned(record.id, e)}

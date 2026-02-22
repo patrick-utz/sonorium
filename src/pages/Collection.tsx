@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Sparkles, Heart, Loader2, CheckSquare, Square, ArrowUpDown, X, RotateCcw, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, Music, Tag, Sparkles, Heart, Loader2, CheckSquare, Square, ArrowUpDown, X, RotateCcw, Calendar, ChevronLeft, ChevronRight, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Record, RecordFormat } from "@/types/record";
@@ -66,7 +66,7 @@ const getDecade = (year: number): string => {
 };
 
 export default function Collection() {
-  const { getOwnedRecords, updateRecord, deleteRecord, toggleFavorite } = useRecords();
+  const { getOwnedRecords, updateRecord, deleteRecord, toggleFavorite, toggleOrdered } = useRecords();
   const { profile } = useAudiophileProfile();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1043,6 +1043,7 @@ export default function Collection() {
                     onReloadCover={() => handleReloadCover(record)}
                     onDelete={() => deleteRecord(record.id)}
                     onToggleFavorite={() => toggleFavorite(record.id)}
+                    onToggleOrdered={() => toggleOrdered(record.id)}
                     onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
                     className={cn(
                       isSelectMode && selectedRecords.has(record.id) && "ring-2 ring-primary"
@@ -1090,6 +1091,7 @@ export default function Collection() {
                     isSelected={selectedRecords.has(record.id)}
                     onToggleSelect={(e) => toggleRecordSelection(record.id, e)}
                     onToggleFavorite={() => toggleFavorite(record.id)}
+                    onToggleOrdered={() => toggleOrdered(record.id)}
                     onRatingChange={(rating) => updateRecord(record.id, { myRating: rating })}
                   />
                 </div>
@@ -1170,10 +1172,11 @@ interface ListItemProps {
   isSelected?: boolean;
   onToggleSelect?: (e?: React.MouseEvent) => void;
   onToggleFavorite?: () => void;
+  onToggleOrdered?: () => void;
   onRatingChange?: (rating: number) => void;
 }
 
-function ListItem({ record, configuredMoods, onClick, onClickWithEvent, isSelectMode, isSelected, onToggleSelect, onToggleFavorite, onRatingChange }: ListItemProps) {
+function ListItem({ record, configuredMoods, onClick, onClickWithEvent, isSelectMode, isSelected, onToggleSelect, onToggleFavorite, onToggleOrdered, onRatingChange }: ListItemProps) {
   // Get configured moods that match this record's moods (with colors)
   const recordMoodsWithColors = (record.moods || [])
     .map(moodName => {
@@ -1271,7 +1274,27 @@ function ListItem({ record, configuredMoods, onClick, onClickWithEvent, isSelect
           record.isFavorite ? "heart-favorite fill-current" : "text-muted-foreground hover:text-foreground"
         )} />
       </button>
-      
+
+      {/* Package Toggle */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleOrdered?.();
+        }}
+        className={cn(
+          "p-1.5 rounded-full transition-colors",
+          record.isOrdered
+            ? "bg-amber-500/20 text-amber-600 hover:bg-amber-500/30"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        )}
+        title={record.isOrdered ? "Paketmark entfernen" : "Als Paket markieren"}
+      >
+        <Package className={cn(
+          "w-4 h-4 transition-colors",
+          record.isOrdered && "fill-current"
+        )} />
+      </button>
+
       <div className="text-sm text-muted-foreground hidden md:block">{record.year}</div>
       <div className="text-sm text-muted-foreground hidden lg:block capitalize">
         {record.format}
