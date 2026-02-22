@@ -305,6 +305,66 @@ export default function Export() {
     }
   };
 
+  // Export 5-star Wishlist albums for family/friends (gifts)
+  const exportWishlistFiveStars = async () => {
+    const fiveStarWishlist = records.filter(
+      (r) => r.status === "wishlist" && r.myRating === 5
+    );
+
+    if (fiveStarWishlist.length === 0) {
+      toast({
+        title: "Keine 5-Stern Wunschliste gefunden",
+        description: "Du hast noch keine Alben mit 5 Sternen auf deiner Wunschliste.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const XLSX = (await import("xlsx")) as typeof import("xlsx");
+
+      const data = fiveStarWishlist.map((record) => ({
+        Künstler: record.artist,
+        Album: record.album,
+        Format: record.format ? record.format.charAt(0).toUpperCase() + record.format.slice(1) : "—",
+        Pressung: record.pressing || record.formatDetails || "—",
+        Label: record.label || "—",
+        Katalognummer: record.catalogNumber || "—",
+        Jahr: record.year,
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Wunschliste");
+
+      // Auto-size columns
+      const colWidths = [
+        { wch: 25 }, // Künstler
+        { wch: 30 }, // Album
+        { wch: 10 }, // Format
+        { wch: 25 }, // Pressung
+        { wch: 20 }, // Label
+        { wch: 18 }, // Katalognummer
+        { wch: 8 },  // Jahr
+      ];
+      ws["!cols"] = colWidths;
+
+      XLSX.writeFile(wb, `SONORIUM_Wunschliste_${new Date().toISOString().split("T")[0]}.xlsx`);
+
+      toast({
+        title: "Export erfolgreich",
+        description: `${fiveStarWishlist.length} 5-Stern Wunschlisten-Alben für deine Familie wurden exportiert.`,
+      });
+    } catch (error) {
+      console.error("Wishlist export error:", error);
+      toast({
+        title: "Export-Fehler",
+        description: "Der Export der Wunschliste konnte nicht durchgeführt werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Backup functions
   const createBackup = () => {
     const backup = {
@@ -423,11 +483,11 @@ export default function Export() {
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Datenexport</CardTitle>
           <CardDescription>
-            Exportiere deine Top-Alben (4-5 Sterne) als Excel-Liste oder erstelle eine vollständige Sicherung deiner Sammlung
+            Exportiere deine Top-Alben als Excel-Listen für Sammlung und Wunschliste, oder erstelle eine Sicherung
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card
               className="bg-background/50 border-border/50 cursor-pointer hover:shadow-vinyl transition-shadow"
               onClick={exportTopRatedAlbums}
@@ -436,7 +496,20 @@ export default function Export() {
                 <FileSpreadsheet className="w-10 h-10 mx-auto mb-2 text-green-500" />
                 <h3 className="font-semibold mb-1">Top-Vinyl exportieren</h3>
                 <p className="text-xs text-muted-foreground">
-                  4-5 Sterne Vinyl nur
+                  4-5 Sterne Sammlung
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="bg-background/50 border-border/50 cursor-pointer hover:shadow-vinyl transition-shadow"
+              onClick={exportWishlistFiveStars}
+            >
+              <CardContent className="p-4 text-center">
+                <FileSpreadsheet className="w-10 h-10 mx-auto mb-2 text-blue-500" />
+                <h3 className="font-semibold mb-1">Wunschliste exportieren</h3>
+                <p className="text-xs text-muted-foreground">
+                  5 Sterne für Familie
                 </p>
               </CardContent>
             </Card>
