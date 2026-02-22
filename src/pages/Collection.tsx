@@ -7,6 +7,8 @@ import { StarRating } from "@/components/StarRating";
 import { BatchVerificationUI } from "@/components/BatchVerificationUI";
 import { BatchMoodsAssignUI } from "@/components/BatchMoodsAssignUI";
 import { GenreStandardizationUI } from "@/components/GenreStandardizationUI";
+import { BatchAssignMoodsWithReviewUI } from "@/components/BatchAssignMoodsWithReviewUI";
+import { BatchAssignGenresWithReviewUI } from "@/components/BatchAssignGenresWithReviewUI";
 import { EditDropdown } from "@/components/EditDropdown";
 import { FilterBar } from "@/components/FilterBar";
 import { Input } from "@/components/ui/input";
@@ -102,6 +104,13 @@ export default function Collection() {
   // Batch genre standardization state
   const [showGenreStandardization, setShowGenreStandardization] = useState(false);
   const [genreStandardizationRecords, setGenreStandardizationRecords] = useState<Record[]>([]);
+
+  // New AI-powered batch operations state
+  const [showMoodsAssignAI, setShowMoodsAssignAI] = useState(false);
+  const [moodsAssignAIRecords, setMoodsAssignAIRecords] = useState<Record[]>([]);
+
+  const [showGenresAssignAI, setShowGenresAssignAI] = useState(false);
+  const [genresAssignAIRecords, setGenresAssignAIRecords] = useState<Record[]>([]);
 
   // Filter bar collapsed/expanded state
   const [isFilterBarOpen, setIsFilterBarOpen] = useState(false);
@@ -523,6 +532,94 @@ export default function Collection() {
     toast.success(`${successCount} Favoriten überprüft und gespeichert`);
   };
 
+  // AI-powered batch moods assignment
+  const startBatchAssignMoodsAI = () => {
+    const recordsToUpdate = selectedRecords.size > 0
+      ? records.filter(r => selectedRecords.has(r.id))
+      : records;
+
+    if (recordsToUpdate.length === 0) {
+      toast.error("Keine Alben zum Aktualisieren");
+      return;
+    }
+
+    setMoodsAssignAIRecords(recordsToUpdate);
+    setShowMoodsAssignAI(true);
+  };
+
+  const handleBatchAssignMoodsAI = async (
+    assignments: { recordId: string; moods: string[] }[]
+  ) => {
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const assignment of assignments) {
+      try {
+        updateRecord(assignment.recordId, { moods: assignment.moods });
+        successCount++;
+      } catch (error) {
+        console.error(`Mood assignment error for ${assignment.recordId}:`, error);
+        errorCount++;
+      }
+    }
+
+    setShowMoodsAssignAI(false);
+    setMoodsAssignAIRecords([]);
+    exitSelectMode();
+
+    if (successCount > 0 && errorCount === 0) {
+      toast.success(`${successCount} Alben mit Stimmungen aktualisiert`);
+    } else if (successCount > 0 && errorCount > 0) {
+      toast.warning(`${successCount} aktualisiert, ${errorCount} fehlgeschlagen`);
+    } else {
+      toast.error("Stimmungszuweisung fehlgeschlagen");
+    }
+  };
+
+  // AI-powered batch genres assignment
+  const startBatchAssignGenresAI = () => {
+    const recordsToUpdate = selectedRecords.size > 0
+      ? records.filter(r => selectedRecords.has(r.id))
+      : records;
+
+    if (recordsToUpdate.length === 0) {
+      toast.error("Keine Alben zum Aktualisieren");
+      return;
+    }
+
+    setGenresAssignAIRecords(recordsToUpdate);
+    setShowGenresAssignAI(true);
+  };
+
+  const handleBatchAssignGenresAI = async (
+    assignments: { recordId: string; genres: string[] }[]
+  ) => {
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const assignment of assignments) {
+      try {
+        updateRecord(assignment.recordId, { genre: assignment.genres });
+        successCount++;
+      } catch (error) {
+        console.error(`Genre assignment error for ${assignment.recordId}:`, error);
+        errorCount++;
+      }
+    }
+
+    setShowGenresAssignAI(false);
+    setGenresAssignAIRecords([]);
+    exitSelectMode();
+
+    if (successCount > 0 && errorCount === 0) {
+      toast.success(`${successCount} Alben mit Genres aktualisiert`);
+    } else if (successCount > 0 && errorCount > 0) {
+      toast.warning(`${successCount} aktualisiert, ${errorCount} fehlgeschlagen`);
+    } else {
+      toast.error("Genre-Zuweisung fehlgeschlagen");
+    }
+  };
+
   const handleMoodChange = (value: string) => {
     setMoodFilter(value);
     if (searchParams.has("mood")) {
@@ -785,8 +882,8 @@ export default function Collection() {
                 isSelectMode={isSelectMode}
                 onSelectModeChange={setIsSelectMode}
                 onVerifyCovers={startBatchVerification}
-                onAssignMoods={startBatchAssignMoods}
-                onStandardizeGenres={startBatchStandardizeGenres}
+                onAssignMoods={startBatchAssignMoodsAI}
+                onStandardizeGenres={startBatchAssignGenresAI}
                 onDeleteTags={handleBatchDeleteTags}
                 onFixFavorites={handleBatchFixFavorites}
               />
@@ -1156,6 +1253,33 @@ export default function Collection() {
             setShowGenreStandardization(false);
             setGenreStandardizationRecords([]);
           }}
+        />
+      )}
+
+      {/* New AI-powered Moods Assignment Modal */}
+      {showMoodsAssignAI && (
+        <BatchAssignMoodsWithReviewUI
+          records={moodsAssignAIRecords}
+          userMoods={configuredMoods}
+          isOpen={showMoodsAssignAI}
+          onClose={() => {
+            setShowMoodsAssignAI(false);
+            setMoodsAssignAIRecords([]);
+          }}
+          onApply={handleBatchAssignMoodsAI}
+        />
+      )}
+
+      {/* New AI-powered Genres Assignment Modal */}
+      {showGenresAssignAI && (
+        <BatchAssignGenresWithReviewUI
+          records={genresAssignAIRecords}
+          isOpen={showGenresAssignAI}
+          onClose={() => {
+            setShowGenresAssignAI(false);
+            setGenresAssignAIRecords([]);
+          }}
+          onApply={handleBatchAssignGenresAI}
         />
       )}
       </div>
