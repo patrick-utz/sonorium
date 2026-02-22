@@ -96,10 +96,42 @@ export default function Research() {
   const [pressingPrices, setPressingPrices] = useState<Record<string, PressingPrice>>({});
   const [expandedAlbumIndex, setExpandedAlbumIndex] = useState<number | null>(null);
   const { profile, hasProfile } = useAudiophileProfile();
-  const { addRecord } = useRecords();
+  const { addRecord, records } = useRecords();
   const cache = useResearchCache();
   const marketplace = useMarketplacePrices();
   const [marketplacePrices, setMarketplacePrices] = useState<MarketplacePrice[]>([]);
+
+  // Filter recommendations: hide albums user already owns (unless better pressing), only show if rated 5 stars
+  const getFilteredRecommendations = useCallback((albums: AlbumRecommendation[]) => {
+    return albums.filter(album => {
+      // Find if user owns this album
+      const ownedAlbum = records.find(
+        r => r.artist.toLowerCase().trim() === album.artist.toLowerCase().trim() &&
+             r.album.toLowerCase().trim() === album.album.toLowerCase().trim()
+      );
+
+      // If user owns it, only show if:
+      // 1. It's a 5-star album (myRating === 5)
+      // 2. We have a better pressing available
+      if (ownedAlbum) {
+        const has5Stars = ownedAlbum.myRating === 5;
+        const bestPressingFromResult = album.bestPressings?.[0];
+
+        // Only show if 5-star rated AND have a better pressing
+        if (!has5Stars) return false;
+
+        // Check if result has a better pressing (reference quality preferred)
+        if (bestPressingFromResult?.quality === 'reference' ||
+            (bestPressingFromResult?.quality === 'excellent' && ownedAlbum.format !== 'vinyl')) {
+          return true;
+        }
+        return false;
+      }
+
+      // If user doesn't own it, show the recommendation
+      return true;
+    });
+  }, [records]);
 
   // Read tab from URL params
   useEffect(() => {
@@ -792,7 +824,12 @@ export default function Research() {
               <h3 className="text-sm font-medium text-muted-foreground px-1">
                 Top Empfehlungen
               </h3>
-              {result.topRecommendations.map((album, idx) => (
+              {getFilteredRecommendations(result.topRecommendations).length === 0 ? (
+                <p className="text-sm text-muted-foreground px-1 py-2">
+                  Keine neuen Empfehlungen. Du hast alle Top-Alben bereits in deiner Sammlung! 🎵
+                </p>
+              ) : (
+                getFilteredRecommendations(result.topRecommendations).map((album, idx) => (
                 <div key={idx}>
                   <CompactAlbumCard
                     album={album}
@@ -813,7 +850,8 @@ export default function Research() {
                     )}
                   </AnimatePresence>
                 </div>
-              ))}
+              ))
+              )}
             </div>
 
             {/* Quick Tips */}
