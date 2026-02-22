@@ -649,14 +649,14 @@ export default function Collection() {
         </div>
 
         {/* Filters - Row 1: Search + Actions */}
-        <div className="flex flex-col gap-2 md:gap-3">
-          <div className="relative w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Suchen nach Künstler, Album, Genre, Stichwort..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 py-3 text-base bg-gradient-to-r from-card via-card to-card/80 border border-primary/20 rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent transition-all"
+              className="pl-9 bg-card border-border/50"
             />
           </div>
 
