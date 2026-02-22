@@ -5,6 +5,8 @@ import { RecordCard } from "@/components/RecordCard";
 import { RecordGridSkeleton } from "@/components/RecordCardSkeleton";
 import { StarRating } from "@/components/StarRating";
 import { BatchVerificationUI } from "@/components/BatchVerificationUI";
+import { EditDropdown } from "@/components/EditDropdown";
+import { FilterSidebar } from "@/components/FilterSidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -478,9 +480,26 @@ export default function Collection() {
   }, [searchQuery, formatFilter, genreFilter, tagFilter, moodFilter, decadeFilter, showFavoritesOnly, sortBy, sortDirection]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)]">
-      {/* Sticky Header with shadow */}
-      <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
+    <div className="flex h-[calc(100vh-6rem)]">
+      {/* Desktop Sidebar with Filters - Hidden on mobile/tablet */}
+      <FilterSidebar
+        formatFilter={formatFilter}
+        genreFilter={genreFilter}
+        sortBy={sortBy}
+        sortDirection={sortDirection}
+        allGenres={allGenres}
+        onFormatChange={setFormatFilter}
+        onGenreChange={handleGenreChange}
+        onSortChange={setSortBy}
+        onSortDirectionChange={toggleSortDirection}
+        onResetFilters={resetAllFilters}
+        hasActiveFilters={hasActiveFilters}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Sticky Header with shadow */}
+        <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
         <div className="pt-2 md:pt-0">
           <h1 className="text-2xl md:text-4xl font-bold gradient-text">
             Deine Sammlung
@@ -502,20 +521,10 @@ export default function Collection() {
             />
           </div>
 
-          <div className="flex gap-1.5 md:gap-2 flex-wrap">
-            {/* Batch Selection Mode */}
-            {!isSelectMode ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsSelectMode(true)}
-                className="gap-2"
-              >
-                <CheckSquare className="w-4 h-4" />
-                Auswählen
-              </Button>
-            ) : (
-              <div className="flex gap-2 items-center">
+          <div className="flex gap-1.5 md:gap-2 flex-wrap items-center">
+            {/* Batch Selection Mode - Only on Desktop */}
+            {isSelectMode && (
+              <div className="hidden sm:flex gap-2 items-center">
                 <Button
                   variant="outline"
                   size="sm"
@@ -558,17 +567,6 @@ export default function Collection() {
               </div>
             )}
 
-            {/* Verify Covers Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={startBatchVerification}
-              className="gap-2"
-            >
-              <CheckSquare className="w-4 h-4" />
-              Covers überprüfen
-            </Button>
-
             {/* Favorites Toggle */}
             <Button
               variant={showFavoritesOnly ? "default" : "outline"}
@@ -583,7 +581,7 @@ export default function Collection() {
               Favoriten
             </Button>
 
-            {/* View Mode Toggle */}
+            {/* View Mode Toggle - Desktop Only */}
             <div className="hidden sm:flex border border-border/50 rounded-lg overflow-hidden">
               <Button
                 variant="ghost"
@@ -608,74 +606,19 @@ export default function Collection() {
                 <List className="w-4 h-4" />
               </Button>
             </div>
+
+            {/* Bearbeiten Dropdown - Hidden on mobile */}
+            <div className="hidden sm:block ml-auto">
+              <EditDropdown
+                isSelectMode={isSelectMode}
+                onSelectModeChange={setIsSelectMode}
+                onVerifyCovers={startBatchVerification}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Filters - Row 2: Quick Filter Bar (Tidal-inspired - only essential filters) */}
-        {/* Hidden on mobile (sm:), visible on tablet and desktop (md:) - maximize album visibility */}
-        <div className="hidden sm:grid grid-cols-4 gap-1.5 md:gap-3 md:max-w-3xl">
-          <Select
-            value={formatFilter}
-            onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
-          >
-            <SelectTrigger className="w-full bg-card border-border/50">
-              <SelectValue placeholder="Format" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              <SelectItem value="all">Alle Formate</SelectItem>
-              <SelectItem value="vinyl">Vinyl</SelectItem>
-              <SelectItem value="cd">CD</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {allGenres.length > 0 && (
-            <Select
-              value={genreFilter}
-              onValueChange={handleGenreChange}
-            >
-              <SelectTrigger className="w-full bg-card border-border/50">
-                <Music className="w-4 h-4 mr-2 flex-shrink-0" />
-                <SelectValue placeholder="Genre" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover max-h-[300px]">
-                <SelectItem value="all">Alle Genres</SelectItem>
-                {allGenres.map((genre) => (
-                  <SelectItem key={genre} value={genre}>
-                    {genre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          {/* Tags and Decades moved to optional "More Filters" (hidden by default - Tidal-inspired simplicity) */}
-
-          {/* Sort with direction */}
-          <div className="flex col-span-2 sm:col-span-1">
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-              <SelectTrigger className="flex-1 bg-card border-border/50 rounded-r-none border-r-0">
-                <SlidersHorizontal className="w-4 h-4 mr-2 flex-shrink-0" />
-                <SelectValue placeholder="Sortieren" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="dateAdded">Zuletzt hinzugefügt</SelectItem>
-                <SelectItem value="artist">Künstler (Nachname)</SelectItem>
-                <SelectItem value="album">Album</SelectItem>
-                <SelectItem value="year">Jahr</SelectItem>
-                <SelectItem value="rating">Bewertung</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={toggleSortDirection}
-              className="rounded-l-none border-border/50"
-              title={sortDirection === "asc" ? "Aufsteigend (A→Z)" : "Absteigend (Z→A)"}
-            >
-              <ArrowUpDown className={cn("w-4 h-4", sortDirection === "desc" && "rotate-180")} />
-            </Button>
-          </div>
-        </div>
+        {/* Filters removed - now in desktop sidebar via FilterSidebar component */}
 
         {/* Mood Filter Buttons - Row 3 */}
         {configuredMoods.filter(m => m.enabled).length > 0 && (
@@ -985,6 +928,7 @@ export default function Collection() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

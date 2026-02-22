@@ -3,6 +3,8 @@ import { useRecords } from "@/context/RecordContext";
 import { RecordCard } from "@/components/RecordCard";
 import { RecordGridSkeleton } from "@/components/RecordCardSkeleton";
 import { StarRating } from "@/components/StarRating";
+import { EditDropdown } from "@/components/EditDropdown";
+import { FilterSidebar } from "@/components/FilterSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -256,9 +258,33 @@ export default function Wishlist() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)]">
-      {/* Sticky Header with shadow */}
-      <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
+    <div className="flex h-[calc(100vh-6rem)]">
+      {/* Desktop Sidebar with Filters - Hidden on mobile/tablet */}
+      <FilterSidebar
+        formatFilter={formatFilter}
+        genreFilter={genreFilter}
+        sortBy={sortBy}
+        sortDirection="asc"
+        allGenres={allGenres}
+        onFormatChange={setFormatFilter}
+        onGenreChange={setGenreFilter}
+        onSortChange={setSortBy}
+        onSortDirectionChange={() => {}}
+        onResetFilters={() => {
+          setSearchQuery("");
+          setFormatFilter("all");
+          setGenreFilter("all");
+          setTagFilter("all");
+          setMoodFilter("all");
+          setShowFavoritesOnly(false);
+        }}
+        hasActiveFilters={formatFilter !== "all" || genreFilter !== "all" || tagFilter !== "all" || moodFilter !== "all" || showFavoritesOnly || searchQuery !== ""}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Sticky Header with shadow */}
+        <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
         <div className="pt-2 md:pt-0">
           <h1 className="text-2xl md:text-4xl font-bold gradient-text flex items-center gap-2 md:gap-3">
             <Heart className="w-6 h-6 md:w-8 md:h-8 text-accent fill-accent" />
@@ -281,38 +307,24 @@ export default function Wishlist() {
             />
           </div>
 
-          <div className="flex gap-1.5 md:gap-2 flex-wrap">
-            {/* Auswählen Button */}
-            <Button
-              variant={isSelectMode ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                if (isSelectMode) {
-                  setSelectedRecords(new Set());
-                }
-                setIsSelectMode(!isSelectMode);
-              }}
-              className="gap-2"
-            >
-              <CheckSquare className="w-4 h-4" />
-              Auswählen
-            </Button>
-
-            {/* Batch Enrich Button */}
+          <div className="flex gap-1.5 md:gap-2 flex-wrap items-center">
+            {/* Batch Enrich Button - Only show when selecting */}
             {isSelectMode && selectedRecords.size > 0 && (
-              <Button
-                size="sm"
-                onClick={handleBatchEnrich}
-                disabled={isBatchEnriching}
-                className="gap-2"
-              >
-                {isBatchEnriching ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
-                KI-Anreicherung ({selectedRecords.size})
-              </Button>
+              <div className="hidden sm:flex gap-2 items-center">
+                <Button
+                  size="sm"
+                  onClick={handleBatchEnrich}
+                  disabled={isBatchEnriching}
+                  className="gap-2"
+                >
+                  {isBatchEnriching ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  KI-Anreicherung ({selectedRecords.size})
+                </Button>
+              </div>
             )}
 
             {/* Favoriten Filter */}
@@ -326,7 +338,7 @@ export default function Wishlist() {
               Favoriten
             </Button>
 
-            {/* View Mode Toggle */}
+            {/* View Mode Toggle - Desktop Only */}
             <div className="hidden sm:flex border border-border/50 rounded-lg overflow-hidden">
               <Button
                 variant="ghost"
@@ -351,11 +363,25 @@ export default function Wishlist() {
                 <List className="w-4 h-4" />
               </Button>
             </div>
+
+            {/* Bearbeiten Dropdown - Hidden on mobile */}
+            <div className="hidden sm:block ml-auto">
+              <EditDropdown
+                isSelectMode={isSelectMode}
+                onSelectModeChange={(enabled) => {
+                  if (!enabled) {
+                    setSelectedRecords(new Set());
+                  }
+                  setIsSelectMode(enabled);
+                }}
+                onVerifyCovers={() => {}}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Filters - Row 2: Filter Dropdowns */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-3">
+        {/* Filters - Row 2: Filter Dropdowns - Hidden on mobile */}
+        <div className="hidden sm:grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-3">
           <Select
             value={formatFilter}
             onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
@@ -695,6 +721,7 @@ export default function Wishlist() {
           </>
         )}
       </AnimatePresence>
+      </div>
       </div>
     </div>
   );
