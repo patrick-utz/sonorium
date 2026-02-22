@@ -260,6 +260,131 @@ export default function Wishlist() {
     }
   };
 
+  const handleBatchAssignMoodsAI = async () => {
+    if (selectedRecords.size === 0) {
+      toast.error("Keine Alben ausgewählt");
+      return;
+    }
+
+    const recordIds = Array.from(selectedRecords);
+
+    try {
+      setIsBatchEnriching(true);
+      toast.loading(`Verarbeite ${recordIds.length} Alben...`);
+
+      const response = await supabase.functions.invoke('bulk-assign-moods-v2', {
+        body: {
+          recordIds,
+          userMoods: configuredMoods.filter(m => m.enabled).map(m => m.name),
+          maxMoodsPerAlbum: 3,
+        },
+      });
+
+      const data = response.data;
+
+      // Directly apply all assignments without review
+      for (const assignment of data.assignments) {
+        await updateRecord(assignment.recordId, { moods: assignment.moods });
+      }
+
+      setIsSelectMode(false);
+      setSelectedRecords(new Set());
+      toast.success(`${data.assignments.length} Alben mit Stimmungen aktualisiert`);
+    } catch (error) {
+      toast.error("Fehler beim Zuweisen von Stimmungen");
+      console.error(error);
+    } finally {
+      setIsBatchEnriching(false);
+    }
+  };
+
+  const handleBatchAssignGenresAI = async () => {
+    if (selectedRecords.size === 0) {
+      toast.error("Keine Alben ausgewählt");
+      return;
+    }
+
+    const recordIds = Array.from(selectedRecords);
+
+    try {
+      setIsBatchEnriching(true);
+      toast.loading(`Verarbeite ${recordIds.length} Alben...`);
+
+      const response = await supabase.functions.invoke('bulk-assign-genres', {
+        body: {
+          recordIds,
+        },
+      });
+
+      const data = response.data;
+
+      // Directly apply all assignments without review
+      for (const assignment of data.assignments) {
+        await updateRecord(assignment.recordId, { genre: assignment.genres });
+      }
+
+      setIsSelectMode(false);
+      setSelectedRecords(new Set());
+      toast.success(`${data.assignments.length} Alben mit Genres aktualisiert`);
+    } catch (error) {
+      toast.error("Fehler beim Standardisieren von Genres");
+      console.error(error);
+    } finally {
+      setIsBatchEnriching(false);
+    }
+  };
+
+  const handleBatchDeleteTags = async () => {
+    if (selectedRecords.size === 0) {
+      toast.error("Keine Alben ausgewählt");
+      return;
+    }
+
+    const recordIds = Array.from(selectedRecords);
+
+    try {
+      setIsBatchEnriching(true);
+      for (const id of recordIds) {
+        await updateRecord(id, { tags: [] });
+      }
+      setIsSelectMode(false);
+      setSelectedRecords(new Set());
+      toast.success(`Tags bei ${recordIds.length} Alben gelöscht`);
+    } catch (error) {
+      toast.error("Fehler beim Löschen von Tags");
+      console.error(error);
+    } finally {
+      setIsBatchEnriching(false);
+    }
+  };
+
+  const handleBatchFixFavorites = async () => {
+    if (selectedRecords.size === 0) {
+      toast.error("Keine Alben ausgewählt");
+      return;
+    }
+
+    const recordIds = Array.from(selectedRecords);
+
+    try {
+      setIsBatchEnriching(true);
+      for (const id of recordIds) {
+        const record = records.find((r) => r.id === id);
+        if (record) {
+          await updateRecord(id, { isFavorite: !record.isFavorite });
+        }
+      }
+      setIsSelectMode(false);
+      setSelectedRecords(new Set());
+      toast.success(`Favoriten bei ${recordIds.length} Alben aktualisiert`);
+    } catch (error) {
+      toast.error("Fehler beim Aktualisieren von Favoriten");
+      console.error(error);
+    } finally {
+      setIsBatchEnriching(false);
+    }
+  };
+
   return (
     <div className="flex h-[calc(100vh-6rem)]">
       {/* Main Content Area - Full Width */}
@@ -368,6 +493,10 @@ export default function Wishlist() {
                   setIsSelectMode(enabled);
                 }}
                 onVerifyCovers={() => {}}
+                onAssignMoods={handleBatchAssignMoodsAI}
+                onStandardizeGenres={handleBatchAssignGenresAI}
+                onDeleteTags={handleBatchDeleteTags}
+                onFixFavorites={handleBatchFixFavorites}
               />
             </div>
           </div>
