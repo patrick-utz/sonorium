@@ -252,15 +252,21 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onRa
           </div>
         )}
 
-        {/* Star Rating Only - Clean Card Footer */}
-        <div className="flex items-center justify-center pt-2" onClick={(e) => e.stopPropagation()}>
-          {/* Star Rating - always show */}
+        {/* Rating Display - Stars LEFT, Critic Score RIGHT */}
+        <div className="flex items-center justify-between pt-2" onClick={(e) => e.stopPropagation()}>
+          {/* Star Rating - LEFT side (user's rating) */}
           <StarRating
             rating={record.myRating}
             size="sm"
             interactive={!!onRatingChange}
             onChange={onRatingChange}
           />
+          {/* Critic Score - RIGHT side (from Discogs/MusicBrainz) */}
+          {record.criticScore !== undefined && (
+            <span className="text-xs font-medium text-muted-foreground">
+              {Math.round(record.criticScore)}/100
+            </span>
+          )}
         </div>
       </div>
     </motion.div>

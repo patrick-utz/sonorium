@@ -612,7 +612,8 @@ export default function Collection() {
         </div>
 
         {/* Filters - Row 2: Quick Filter Bar (Tidal-inspired - only essential filters) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 md:gap-3 md:max-w-3xl">
+        {/* Hidden on mobile (sm:), visible on tablet and desktop (md:) - maximize album visibility */}
+        <div className="hidden sm:grid grid-cols-4 gap-1.5 md:gap-3 md:max-w-3xl">
           <Select
             value={formatFilter}
             onValueChange={(v) => setFormatFilter(v as RecordFormat | "all")}
