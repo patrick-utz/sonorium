@@ -10,7 +10,7 @@ import { X, Music, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-r
 import { cn } from "@/lib/utils";
 import { RecordFormat } from "@/types/record";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { MoodCategory } from "@/types/audiophileProfile";
 
 interface FilterSidebarProps {
@@ -49,14 +49,15 @@ export function FilterSidebar({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <>
-      {/* Collapse/Expand Toggle - Desktop Only */}
+    <motion.div
+      initial={false}
+      animate={{ width: isOpen ? 250 : 70 }}
+      transition={{ duration: 0.3 }}
+      className="hidden md:flex flex-col border-r border-border/50 bg-card/30 overflow-hidden min-h-[calc(100vh-6rem)]"
+    >
       {!isOpen && (
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="hidden md:flex flex-col items-center justify-center py-4 px-2 border-r border-border/50 bg-card/30 min-h-[200px]"
-        >
+        // Collapsed State - Narrow Column with Expand Button
+        <div className="flex flex-col items-center justify-center flex-1 gap-4 py-4 px-2">
           <Button
             variant="ghost"
             size="icon"
@@ -66,19 +67,12 @@ export function FilterSidebar({
           >
             <ChevronRight className="w-5 h-5" />
           </Button>
-        </motion.div>
+        </div>
       )}
 
-      {/* Collapsible Filter Sidebar */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, x: -250, width: 0 }}
-            animate={{ opacity: 1, x: 0, width: "auto" }}
-            exit={{ opacity: 0, x: -250, width: 0 }}
-            transition={{ duration: 0.3 }}
-            className="hidden md:flex flex-col gap-4 p-4 border-r border-border/50 bg-card/30 min-w-[250px] overflow-hidden"
-          >
+      {isOpen && (
+        // Expanded State - Full Sidebar with All Controls
+        <div className="flex flex-col gap-4 p-4 overflow-y-auto" >
             {/* Header with Close Button */}
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-foreground">Filter</h3>
@@ -230,9 +224,8 @@ export function FilterSidebar({
             <p className="text-xs text-muted-foreground">
               Wähle Filter, um deine Sammlung zu durchsuchen
             </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+        </div>
+      )}
+    </motion.div>
   );
 }
