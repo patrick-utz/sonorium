@@ -46,7 +46,7 @@ export function FilterSidebar({
   onResetFilters,
   hasActiveFilters,
 }: FilterSidebarProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
