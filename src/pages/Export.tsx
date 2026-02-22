@@ -245,14 +245,16 @@ export default function Export() {
     });
   };
 
-  // Export top-rated albums (4-5 stars) for quick reference
+  // Export top-rated Vinyl albums (4-5 stars) for quick reference
   const exportTopRatedAlbums = async () => {
-    const topRatedRecords = records.filter((r) => r.myRating && r.myRating >= 4);
+    const topRatedRecords = records.filter(
+      (r) => r.myRating && r.myRating >= 4 && r.format === "vinyl"
+    );
 
     if (topRatedRecords.length === 0) {
       toast({
-        title: "Keine Top-Alben gefunden",
-        description: "Du hast noch keine Alben mit 4 oder 5 Sternen bewertet.",
+        title: "Keine Top-Vinyl gefunden",
+        description: "Du hast noch keine Vinyl-Alben mit 4 oder 5 Sternen bewertet.",
         variant: "destructive",
       });
       return;
@@ -268,13 +270,12 @@ export default function Export() {
         Katalognummer: record.catalogNumber || "—",
         Verlag: record.label || "—",
         Jahr: record.year,
-        Format: record.format,
         Bewertung: "⭐".repeat(record.myRating || 0),
       }));
 
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Top-Alben");
+      XLSX.utils.book_append_sheet(wb, ws, "Top-Vinyl");
 
       // Auto-size columns
       const colWidths = [
@@ -284,22 +285,21 @@ export default function Export() {
         { wch: 18 }, // Katalognummer
         { wch: 20 }, // Verlag
         { wch: 8 },  // Jahr
-        { wch: 12 }, // Format
         { wch: 12 }, // Bewertung
       ];
       ws["!cols"] = colWidths;
 
-      XLSX.writeFile(wb, `SONORIUM_TopAlbums_${new Date().toISOString().split("T")[0]}.xlsx`);
+      XLSX.writeFile(wb, `SONORIUM_TopVinyl_${new Date().toISOString().split("T")[0]}.xlsx`);
 
       toast({
         title: "Export erfolgreich",
-        description: `${topRatedRecords.length} Top-Alben (4-5 Sterne) wurden exportiert.`,
+        description: `${topRatedRecords.length} Top-Vinyl (4-5 Sterne) wurden exportiert.`,
       });
     } catch (error) {
-      console.error("Top albums export error:", error);
+      console.error("Top vinyl export error:", error);
       toast({
         title: "Export-Fehler",
-        description: "Der Export der Top-Alben konnte nicht durchgeführt werden.",
+        description: "Der Export der Top-Vinyl konnte nicht durchgeführt werden.",
         variant: "destructive",
       });
     }
@@ -434,9 +434,9 @@ export default function Export() {
             >
               <CardContent className="p-4 text-center">
                 <FileSpreadsheet className="w-10 h-10 mx-auto mb-2 text-green-500" />
-                <h3 className="font-semibold mb-1">Top-Alben exportieren</h3>
+                <h3 className="font-semibold mb-1">Top-Vinyl exportieren</h3>
                 <p className="text-xs text-muted-foreground">
-                  4-5 Sterne als Excel-Liste
+                  4-5 Sterne Vinyl nur
                 </p>
               </CardContent>
             </Card>
