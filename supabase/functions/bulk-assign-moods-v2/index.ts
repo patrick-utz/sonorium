@@ -167,8 +167,9 @@ Antworte NUR im JSON-Format ohne zusätzlichen Text:
           });
         }
       } catch (error) {
-        console.error(`Batch ${i / batchSize + 1} error:`, error.message);
-        errors.push(`Batch ${i / batchSize + 1}: ${error.message}`);
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(`Batch ${i / batchSize + 1} error:`, msg);
+        errors.push(`Batch ${i / batchSize + 1}: ${msg}`);
       }
     }
 
@@ -205,11 +206,12 @@ Antworte NUR im JSON-Format ohne zusätzlichen Text:
       }
     );
   } catch (error) {
-    console.error("Error:", error.message);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Error:", msg);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: msg
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

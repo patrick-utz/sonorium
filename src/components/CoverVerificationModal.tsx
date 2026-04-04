@@ -45,8 +45,16 @@ export function CoverVerificationModal({
     if (!file) return;
 
     try {
-      const compressed = await compressImage(file);
-      onConfirm(true, compressed);
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const compressed = await compressImage(reader.result as string);
+          onConfirm(true, compressed);
+        } catch (err) {
+          toast.error("Fehler beim Komprimieren des Covers");
+        }
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       toast.error("Fehler beim Hochladen des Covers");
     }
@@ -76,7 +84,7 @@ export function CoverVerificationModal({
                 <div>
                   <span className="text-foreground font-medium">{selectedRelease.artist}</span>
                   <br />
-                  <span className="text-foreground font-medium">{selectedRelease.album}</span>
+                  <span className="text-foreground font-medium">{selectedRelease.title}</span>
                 </div>
                 {selectedRelease.year && (
                   <div>
@@ -107,7 +115,7 @@ export function CoverVerificationModal({
             {autoFetchedCover ? (
               <img
                 src={autoFetchedCover}
-                alt={`${selectedRelease.artist} - ${selectedRelease.album}`}
+                alt={`${selectedRelease.artist} - ${selectedRelease.title}`}
                 className="w-full h-full object-cover rounded max-h-64"
               />
             ) : (

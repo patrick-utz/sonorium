@@ -160,7 +160,7 @@ export function ShareCollectionModal({
                 <Checkbox
                   id="favorites-only"
                   checked={onlyFavorites}
-                  onCheckedChange={setOnlyFavorites}
+                  onCheckedChange={(checked) => setOnlyFavorites(checked === true)}
                 />
                 <Label
                   htmlFor="favorites-only"

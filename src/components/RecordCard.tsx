@@ -278,7 +278,7 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onTo
               coverArtVerified={record.coverArtVerified}
               coverArtVerifiedAt={record.coverArtVerifiedAt}
               aiConfidence={record.aiConfidence}
-              size="xs"
+              size="sm"
               showTooltip={true}
             />
           </div>
