@@ -167,8 +167,9 @@ Antworte NUR im JSON-Format ohne zusätzlichen Text:
           });
         }
       } catch (error) {
-        console.error(`Batch ${i / batchSize + 1} error:`, error.message);
-        errors.push(`Batch ${i / batchSize + 1}: ${error.message}`);
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(`Batch ${i / batchSize + 1} error:`, msg);
+        errors.push(`Batch ${i / batchSize + 1}: ${msg}`);
       }
     }
 
