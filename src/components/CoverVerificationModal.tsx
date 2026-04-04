@@ -45,8 +45,16 @@ export function CoverVerificationModal({
     if (!file) return;
 
     try {
-      const compressed = await compressImage(file);
-      onConfirm(true, compressed);
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const compressed = await compressImage(reader.result as string);
+          onConfirm(true, compressed);
+        } catch (err) {
+          toast.error("Fehler beim Komprimieren des Covers");
+        }
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       toast.error("Fehler beim Hochladen des Covers");
     }
