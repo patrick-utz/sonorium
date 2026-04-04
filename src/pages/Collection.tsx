@@ -1113,7 +1113,7 @@ export default function Collection() {
                   )}
                   <RecordCard
                     record={record}
-                    onClick={(e) => isSelectMode ? toggleRecordSelection(record.id, e as unknown as React.MouseEvent) : navigate(`/sammlung/${record.id}`)}
+                    onClick={() => isSelectMode ? toggleRecordSelection(record.id) : navigate(`/sammlung/${record.id}`)}
                     onReloadCover={() => handleReloadCover(record)}
                     onDelete={() => deleteRecord(record.id)}
                     onToggleFavorite={() => toggleFavorite(record.id)}

@@ -539,7 +539,7 @@ export default function Wishlist() {
               configuredMoods={configuredMoods}
               onFormatChange={setFormatFilter}
               onGenreChange={setGenreFilter}
-              onSortChange={setSortBy}
+              onSortChange={(sort) => setSortBy(sort as any)}
               onSortDirectionChange={() => {}}
               onMoodChange={(mood) => setMoodFilter(mood === "all" ? "all" : mood)}
               onResetFilters={() => {

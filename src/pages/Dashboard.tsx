@@ -245,7 +245,7 @@ export default function Dashboard() {
             <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
               <div className="flex gap-4 pb-4">
                 {records
-                  .sort((a, b) => (b.addedAt ? new Date(b.addedAt).getTime() : 0) - (a.addedAt ? new Date(a.addedAt).getTime() : 0))
+                  .sort((a, b) => (b.dateAdded ? new Date(b.dateAdded).getTime() : 0) - (a.dateAdded ? new Date(a.dateAdded).getTime() : 0))
                   .slice(0, 10)
                   .map((record) => (
                     <div

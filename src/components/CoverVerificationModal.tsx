@@ -115,7 +115,7 @@ export function CoverVerificationModal({
             {autoFetchedCover ? (
               <img
                 src={autoFetchedCover}
-                alt={`${selectedRelease.artist} - ${selectedRelease.album}`}
+                alt={`${selectedRelease.artist} - ${selectedRelease.title}`}
                 className="w-full h-full object-cover rounded max-h-64"
               />
             ) : (
