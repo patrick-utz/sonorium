@@ -887,7 +887,7 @@ export default function Collection() {
               configuredMoods={configuredMoods}
               onFormatChange={setFormatFilter}
               onGenreChange={handleGenreChange}
-              onSortChange={setSortBy}
+              onSortChange={(sort) => setSortBy(sort as any)}
               onSortDirectionChange={toggleSortDirection}
               onMoodChange={handleMoodChange}
               onResetFilters={resetAllFilters}
