@@ -84,7 +84,7 @@ export function CoverVerificationModal({
                 <div>
                   <span className="text-foreground font-medium">{selectedRelease.artist}</span>
                   <br />
-                  <span className="text-foreground font-medium">{selectedRelease.album}</span>
+                  <span className="text-foreground font-medium">{selectedRelease.title}</span>
                 </div>
                 {selectedRelease.year && (
                   <div>
