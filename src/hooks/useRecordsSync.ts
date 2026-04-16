@@ -20,11 +20,6 @@ function dbToRecord(row: any): Record {
     formatDetails: row.format_details,
     pressing: row.pressing,
     coverArt: row.cover_art,
-    labelPhoto: row.label_photo,
-    coverArtSource: row.cover_art_source as Record['coverArtSource'],
-    coverArtVerified: row.cover_art_verified ?? false,
-    coverArtVerifiedAt: row.cover_art_verified_at,
-    aiConfidence: row.ai_confidence as Record['aiConfidence'],
     myRating: row.my_rating || 3,
     recordingQuality: row.recording_quality,
     masteringQuality: row.mastering_quality,
@@ -33,7 +28,6 @@ function dbToRecord(row: any): Record {
     criticReviews: row.critic_reviews,
     status: row.status || "owned",
     dateAdded: row.date_added,
-    purchaseDate: row.purchase_date,
     purchasePrice: row.purchase_price,
     purchaseLocation: row.purchase_location,
     vinylRecommendation: row.vinyl_recommendation,
@@ -42,12 +36,9 @@ function dbToRecord(row: any): Record {
     tags: row.tags || [],
     moods: row.moods || [],
     isFavorite: row.is_favorite || false,
-    isOrdered: row.is_ordered || false,
     audiophileAssessment: row.audiophile_assessment,
     artisticAssessment: row.artistic_assessment,
     recommendations: row.recommendations,
-    discogsReleaseId: row.discogs_release_id,
-    barcode: row.barcode,
   };
 }
 
