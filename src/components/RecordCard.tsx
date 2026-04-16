@@ -176,8 +176,22 @@ function RecordCardComponent({ record, onClick, onDelete, onToggleFavorite, onTo
           </motion.button>
         )}
 
-        {/* Top-right: Format badge */}
-        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+        {/* Top-right: Critic Score Badge (always visible) */}
+        {record.criticScore !== undefined && (
+          <div className="absolute top-3 right-3 z-10">
+            <div className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/20 shadow-lg">
+              <span className="text-xs font-semibold text-white tabular-nums">
+                {Math.round(record.criticScore)}<span className="text-white/60 text-[10px]">/100</span>
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Format badge - shown on hover, below critic score */}
+        <div className={cn(
+          "absolute right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10",
+          record.criticScore !== undefined ? "top-12" : "top-3"
+        )}>
           <FormatBadge format={record.format} />
         </div>
 
