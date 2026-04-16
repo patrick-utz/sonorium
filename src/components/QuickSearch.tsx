@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface SearchResult {
-  type: "artist" | "album" | "genre" | "mood";
+  type: "artist" | "album" | "genre" | "mood" | "label";
   value: string;
   recordId?: string;
   count?: number;
@@ -84,6 +84,17 @@ export function QuickSearch() {
       matches.push({ type: "mood", value: mood, count });
     });
 
+    // Search labels (e.g. "Analogue Productions")
+    const labelCounts = new Map<string, number>();
+    records.forEach((r) => {
+      if (r.label && r.label.toLowerCase().includes(searchTerm)) {
+        labelCounts.set(r.label, (labelCounts.get(r.label) || 0) + 1);
+      }
+    });
+    labelCounts.forEach((count, label) => {
+      matches.push({ type: "label", value: label, count });
+    });
+
     setIsSearching(false);
     return matches.slice(0, 10);
   }, [query, records]);
@@ -124,6 +135,8 @@ export function QuickSearch() {
       navigate(`/sammlung?genre=${encodeURIComponent(result.value)}`);
     } else if (result.type === "mood") {
       navigate(`/sammlung?mood=${encodeURIComponent(result.value)}`);
+    } else if (result.type === "label") {
+      navigate(`/sammlung?search=${encodeURIComponent(result.value)}`);
     }
     setQuery("");
     setIsOpen(false);
@@ -155,6 +168,8 @@ export function QuickSearch() {
         return <Music className="w-4 h-4 text-accent" />;
       case "mood":
         return <Sparkles className="w-4 h-4 text-primary" />;
+      case "label":
+        return <Disc className="w-4 h-4 text-muted-foreground" />;
       default:
         return null;
     }
@@ -170,6 +185,8 @@ export function QuickSearch() {
         return "Genre";
       case "mood":
         return "Stimmung";
+      case "label":
+        return "Label";
       default:
         return "";
     }

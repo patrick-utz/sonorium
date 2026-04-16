@@ -91,6 +91,7 @@ export default function Wishlist() {
       const matchesSearch =
         record.artist.toLowerCase().includes(query) ||
         record.album.toLowerCase().includes(query) ||
+        record.label?.toLowerCase().includes(query) ||
         record.genre.some((g) => g.toLowerCase().includes(query)) ||
         record.tags?.some((t) => t.toLowerCase().includes(query));
       const matchesFormat = formatFilter === "all" || record.format === formatFilter;
@@ -424,7 +425,7 @@ export default function Wishlist() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Suchen nach Künstler, Album, Genre, Stichwort..."
+              placeholder="Suchen nach Künstler, Album, Label, Genre, Stichwort..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 bg-card border-border/50"
