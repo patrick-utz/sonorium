@@ -737,8 +737,9 @@ export default function Collection() {
       {/* Main Content Area - Full Width */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Sticky Header with shadow */}
-        <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
-        <div className="pt-2 md:pt-0">
+        <div className="sticky top-0 z-30 bg-background pb-2 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
+        {/* Title - Desktop only, mobile keeps it minimal Tidal-style */}
+        <div className="hidden md:block pt-2 md:pt-0">
           <h1 className="text-2xl md:text-4xl font-bold gradient-text">
             Deine Sammlung
           </h1>
