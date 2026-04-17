@@ -737,8 +737,9 @@ export default function Collection() {
       {/* Main Content Area - Full Width */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Sticky Header with shadow */}
-        <div className="sticky top-0 z-30 bg-background pb-3 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
-        <div className="pt-2 md:pt-0">
+        <div className="sticky top-0 z-30 bg-background pb-2 md:pb-4 space-y-2 md:space-y-4 shadow-[0_4px_12px_-4px_hsl(var(--foreground)/0.1)] border-b border-border/30">
+        {/* Title - Desktop only, mobile keeps it minimal Tidal-style */}
+        <div className="hidden md:block pt-2 md:pt-0">
           <h1 className="text-2xl md:text-4xl font-bold gradient-text">
             Deine Sammlung
           </h1>
@@ -897,40 +898,7 @@ export default function Collection() {
           </motion.div>
         )}
 
-        {/* Mobile: Show mood buttons as they're important for discovery on small screens */}
-        {configuredMoods.filter(m => m.enabled).length > 0 && (
-          <div className="flex md:hidden flex-wrap gap-2">
-            {configuredMoods
-              .filter(m => m.enabled)
-              .sort((a, b) => a.priority - b.priority)
-              .map((mood) => {
-                const isActive = moodFilter === mood.name;
-                return (
-                  <Button
-                    key={mood.id}
-                    variant={isActive ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleMoodChange(isActive ? "all" : mood.name)}
-                    className={cn(
-                      "border transition-all hover:scale-105",
-                      isActive && "ring-2 ring-offset-1 ring-offset-background"
-                    )}
-                    style={mood.color ? {
-                      borderColor: `hsl(${mood.color})`,
-                      borderLeftWidth: '3px',
-                      ...(isActive && {
-                        backgroundColor: `hsl(${mood.color} / 0.15)`,
-                        ringColor: `hsl(${mood.color})`
-                      })
-                    } : undefined}
-                  >
-                    <span className="mr-1.5">{mood.icon}</span>
-                    <span>{mood.name}</span>
-                  </Button>
-                );
-              })}
-          </div>
-        )}
+        {/* Mood buttons removed on mobile for Tidal-style minimal view — accessible via Dashboard */}
 
         {/* Active Filters as Badges */}
         {hasActiveFilters && (
