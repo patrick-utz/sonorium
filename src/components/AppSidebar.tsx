@@ -15,7 +15,8 @@ import {
   ChevronDown,
   User,
   Sparkles,
-  Settings
+  Settings,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -32,6 +33,7 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/sammlung", label: "Sammlung", icon: Library },
   { to: "/wunschliste", label: "Wunschliste", icon: Heart },
+  { to: "/kuenstler", label: "Künstler", icon: BookOpen },
   { to: "/recherche", label: "Recherche", icon: Search },
 ];
 

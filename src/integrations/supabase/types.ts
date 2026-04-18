@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      artist_biographies: {
+        Row: {
+          active_years: string | null
+          artist_image: string | null
+          artist_name: string
+          artist_name_normalized: string
+          created_at: string
+          genres: string[] | null
+          history: string | null
+          id: string
+          influences: string[] | null
+          key_facts: string[] | null
+          legacy: string | null
+          origin: string | null
+          short_bio: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_years?: string | null
+          artist_image?: string | null
+          artist_name: string
+          artist_name_normalized: string
+          created_at?: string
+          genres?: string[] | null
+          history?: string | null
+          id?: string
+          influences?: string[] | null
+          key_facts?: string[] | null
+          legacy?: string | null
+          origin?: string | null
+          short_bio?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_years?: string | null
+          artist_image?: string | null
+          artist_name?: string
+          artist_name_normalized?: string
+          created_at?: string
+          genres?: string[] | null
+          history?: string | null
+          id?: string
+          influences?: string[] | null
+          key_facts?: string[] | null
+          legacy?: string | null
+          origin?: string | null
+          short_bio?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audiophile_profiles: {
         Row: {
           created_at: string

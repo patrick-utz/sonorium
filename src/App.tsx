@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { RecordProvider } from "@/context/RecordContext";
 import { AudiophileProfileProvider } from "@/context/AudiophileProfileContext";
+import { ArtistBiographyProvider } from "@/context/ArtistBiographyContext";
 import { Layout } from "@/components/Layout";
 import { Loader2 } from "lucide-react";
 import { lazy, Suspense } from "react";
@@ -19,6 +20,8 @@ const AddRecord = lazy(() => import("./pages/AddRecord"));
 const Export = lazy(() => import("./pages/Export"));
 const Research = lazy(() => import("./pages/Research"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Artists = lazy(() => import("./pages/Artists"));
+const ArtistDetail = lazy(() => import("./pages/ArtistDetail"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -190,6 +193,30 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/kuenstler"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Suspense fallback={<PageLoader />}>
+                <Artists />
+              </Suspense>
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/kuenstler/:name"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Suspense fallback={<PageLoader />}>
+                <ArtistDetail />
+              </Suspense>
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -201,11 +228,13 @@ const App = () => (
       <AuthProvider>
         <RecordProvider>
           <AudiophileProfileProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
+            <ArtistBiographyProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </ArtistBiographyProvider>
           </AudiophileProfileProvider>
         </RecordProvider>
       </AuthProvider>
