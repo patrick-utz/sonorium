@@ -521,7 +521,7 @@ export default function RecordDetail() {
               {recConfig.label}
             </Badge>
             {record.recommendationReason && (
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed md:columns-2 md:gap-8">
                 {record.recommendationReason}
               </p>
             )}
@@ -539,7 +539,7 @@ export default function RecordDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line md:columns-2 md:gap-8">
               {record.artisticAssessment}
             </p>
           </CardContent>
@@ -556,7 +556,7 @@ export default function RecordDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line md:columns-2 md:gap-8">
               {record.audiophileAssessment}
             </p>
           </CardContent>
@@ -570,7 +570,7 @@ export default function RecordDetail() {
             <CardTitle className="text-lg">Persönliche Notizen</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed md:columns-2 md:gap-8">
               {record.personalNotes}
             </p>
           </CardContent>
