@@ -37,6 +37,9 @@ export default function Artists() {
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [individualLoading, setIndividualLoading] = useState<string | null>(null);
   const [imageBulkLoading, setImageBulkLoading] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [filterKey, setFilterKey] = useState<FilterKey>("all");
 
   // Aggregate artists from collection (with rating + critic averages)
   const artists = useMemo(() => {
