@@ -131,9 +131,9 @@ export default function Artists() {
       });
     }
 
-    // Genre filter
-    if (genreFilter !== "all") {
-      list = list.filter((a) => a.genres.includes(genreFilter));
+    // Genre filter (multi-select, OR semantics: artist matches any selected genre)
+    if (genreFilter.length > 0) {
+      list = list.filter((a) => genreFilter.some((g) => a.genres.includes(g)));
     }
 
     // Search
