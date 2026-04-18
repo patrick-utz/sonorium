@@ -3,12 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
 import { useArtistBios } from "@/context/ArtistBiographyContext";
 import { isStale } from "@/hooks/useArtistBiographies";
+import { fetchArtistImageFromWikipedia } from "@/lib/artistImage";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { StarRating } from "@/components/StarRating";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle } from "lucide-react";
+import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Artists() {
