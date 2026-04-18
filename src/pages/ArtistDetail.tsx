@@ -99,14 +99,23 @@ export default function ArtistDetail() {
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center gap-3">
-            <BookOpen className="w-8 h-8 text-primary" />
-            {artistName}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {albums.length} {albums.length === 1 ? "Album" : "Alben"} in deiner Sammlung
-          </p>
+        <div className="flex items-start gap-4">
+          {bio?.artist_image && (
+            <img
+              src={bio.artist_image}
+              alt={artistName}
+              className="w-24 h-24 md:w-32 md:h-32 rounded-lg object-cover border border-border/50 shadow-md"
+            />
+          )}
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center gap-3">
+              {!bio?.artist_image && <BookOpen className="w-8 h-8 text-primary" />}
+              {artistName}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {albums.length} {albums.length === 1 ? "Album" : "Alben"} in deiner Sammlung
+            </p>
+          </div>
         </div>
         {bio && (
           <Button onClick={handleRefresh} variant="outline" size="sm" className="gap-2" disabled={loading}>

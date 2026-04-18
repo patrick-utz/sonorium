@@ -3,46 +3,77 @@ import { useNavigate } from "react-router-dom";
 import { useRecords } from "@/context/RecordContext";
 import { useArtistBios } from "@/context/ArtistBiographyContext";
 import { isStale } from "@/hooks/useArtistBiographies";
+import { fetchArtistImageFromWikipedia } from "@/lib/artistImage";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { StarRating } from "@/components/StarRating";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle } from "lucide-react";
+import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Artists() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { records } = useRecords();
-  const { bios, getByArtist, generateBio } = useArtistBios();
+  const { bios, getByArtist, generateBio, fetchAll } = useArtistBios();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [individualLoading, setIndividualLoading] = useState<string | null>(null);
+  const [imageBulkLoading, setImageBulkLoading] = useState(false);
 
-  // Aggregate artists from collection
+  // Aggregate artists from collection (with rating + critic averages)
   const artists = useMemo(() => {
-    const map = new Map<string, { name: string; cover?: string; albumCount: number; firstYear: number }>();
+    type Agg = {
+      name: string;
+      cover?: string;
+      albumCount: number;
+      firstYear: number;
+      ratingSum: number;
+      ratingCount: number;
+      criticSum: number;
+      criticCount: number;
+    };
+    const map = new Map<string, Agg>();
     for (const r of records) {
       const key = r.artist.toLowerCase().trim();
       if (!key) continue;
       const existing = map.get(key);
+      const rating = typeof r.myRating === "number" ? r.myRating : null;
+      const critic = typeof r.criticScore === "number" ? r.criticScore : null;
       if (existing) {
         existing.albumCount += 1;
         if (!existing.cover && r.coverArt) existing.cover = r.coverArt;
         if (r.year && r.year < existing.firstYear) existing.firstYear = r.year;
+        if (rating !== null) { existing.ratingSum += rating; existing.ratingCount += 1; }
+        if (critic !== null) { existing.criticSum += critic; existing.criticCount += 1; }
       } else {
         map.set(key, {
           name: r.artist,
           cover: r.coverArt,
           albumCount: 1,
           firstYear: r.year || 9999,
+          ratingSum: rating ?? 0,
+          ratingCount: rating !== null ? 1 : 0,
+          criticSum: critic ?? 0,
+          criticCount: critic !== null ? 1 : 0,
         });
       }
     }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(map.values())
+      .map((a) => ({
+        ...a,
+        avgRating: a.ratingCount > 0 ? a.ratingSum / a.ratingCount : null,
+        avgCritic: a.criticCount > 0 ? a.criticSum / a.criticCount : null,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [records]);
+
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -115,6 +146,44 @@ export default function Artists() {
     });
   };
 
+  // Count artists whose stored bio is missing an image
+  const missingImagesCount = bios.filter((b) => !b.artist_image).length;
+
+  const handleBulkFetchImages = async () => {
+    if (!user) return;
+    const targets = bios.filter((b) => !b.artist_image);
+    if (targets.length === 0) {
+      toast({ title: "Alle Bilder vorhanden", description: "Keine Künstlerbilder fehlen." });
+      return;
+    }
+    setImageBulkLoading(true);
+    setBulkProgress({ current: 0, total: targets.length });
+    let success = 0;
+    for (let i = 0; i < targets.length; i++) {
+      const b = targets[i];
+      try {
+        const img = await fetchArtistImageFromWikipedia(b.artist_name);
+        if (img) {
+          await supabase
+            .from("artist_biographies")
+            .update({ artist_image: img })
+            .eq("id", b.id);
+          success++;
+        }
+      } catch (e) {
+        console.warn("Image fetch failed for", b.artist_name, e);
+      }
+      setBulkProgress({ current: i + 1, total: targets.length });
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    await fetchAll();
+    setImageBulkLoading(false);
+    toast({
+      title: "Künstlerbilder aktualisiert",
+      description: `${success} von ${targets.length} Bildern gefunden.`,
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -152,12 +221,18 @@ export default function Artists() {
                 {staleCount} veraltet (älter als 90 Tage)
               </Badge>
             )}
+            {missingImagesCount > 0 && (
+              <Badge variant="outline" className="gap-1.5">
+                <ImageIcon className="w-3 h-3" />
+                {missingImagesCount} ohne Bild
+              </Badge>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {missingCount > 0 && (
               <Button
                 onClick={() => handleBulkGenerate("missing")}
-                disabled={bulkLoading}
+                disabled={bulkLoading || imageBulkLoading}
                 variant="default"
                 size="sm"
                 className="gap-2"
@@ -169,7 +244,7 @@ export default function Artists() {
             {staleCount > 0 && (
               <Button
                 onClick={() => handleBulkGenerate("stale")}
-                disabled={bulkLoading}
+                disabled={bulkLoading || imageBulkLoading}
                 variant="outline"
                 size="sm"
                 className="gap-2"
@@ -178,12 +253,24 @@ export default function Artists() {
                 Veraltete aktualisieren
               </Button>
             )}
+            {missingImagesCount > 0 && (
+              <Button
+                onClick={handleBulkFetchImages}
+                disabled={bulkLoading || imageBulkLoading}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                {imageBulkLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                Bilder laden
+              </Button>
+            )}
           </div>
         </CardContent>
-        {bulkLoading && (
+        {(bulkLoading || imageBulkLoading) && (
           <CardContent className="px-4 pb-4 pt-0">
             <div className="text-xs text-muted-foreground mb-1.5">
-              Generiere {bulkProgress.current} / {bulkProgress.total}
+              {imageBulkLoading ? "Lade Bilder" : "Generiere"} {bulkProgress.current} / {bulkProgress.total}
             </div>
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <div
@@ -219,6 +306,8 @@ export default function Artists() {
             const bio = getByArtist(artist.name);
             const stale = bio && isStale(bio.updated_at);
             const isLoadingThis = individualLoading === artist.name;
+            // Prefer Wikipedia artist image, fall back to first album cover
+            const heroImage = bio?.artist_image || artist.cover;
             return (
               <motion.div
                 key={artist.name}
@@ -230,10 +319,11 @@ export default function Artists() {
                   onClick={() => navigate(`/kuenstler/${encodeURIComponent(artist.name)}`)}
                 >
                   <div className="aspect-square bg-muted relative overflow-hidden">
-                    {artist.cover ? (
+                    {heroImage ? (
                       <img
-                        src={artist.cover}
+                        src={heroImage}
                         alt={artist.name}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
@@ -241,7 +331,20 @@ export default function Artists() {
                         <BookOpen className="w-12 h-12 text-primary/50" />
                       </div>
                     )}
-                    {/* Status badge */}
+
+                    {/* Critic score (top-left) */}
+                    {artist.avgCritic !== null && (
+                      <div className="absolute top-2 left-2">
+                        <div className="px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/20">
+                          <span className="text-xs font-semibold text-white tabular-nums">
+                            {Math.round(artist.avgCritic)}
+                            <span className="text-white/60 text-[10px]">/100</span>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status badge (top-right) */}
                     <div className="absolute top-2 right-2">
                       {!bio ? (
                         <Badge variant="outline" className="bg-background/80 backdrop-blur text-xs">
@@ -258,11 +361,16 @@ export default function Artists() {
                       )}
                     </div>
                   </div>
-                  <CardContent className="p-3 space-y-1">
+                  <CardContent className="p-3 space-y-1.5">
                     <h3 className="font-semibold text-foreground truncate">{artist.name}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {artist.albumCount} {artist.albumCount === 1 ? "Album" : "Alben"}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        {artist.albumCount} {artist.albumCount === 1 ? "Album" : "Alben"}
+                      </p>
+                      {artist.avgRating !== null && (
+                        <StarRating rating={Math.round(artist.avgRating)} size="sm" />
+                      )}
+                    </div>
                     {!bio && (
                       <Button
                         size="sm"
