@@ -101,10 +101,21 @@ export function useArtistBiographies() {
       const payload: BioPayload = data;
       const normalized = normalizeArtistName(artistName);
 
+      // Reuse existing image if we already have one, otherwise try Wikipedia.
+      let artistImage = existing?.artist_image || null;
+      if (!artistImage) {
+        try {
+          artistImage = await fetchArtistImageFromWikipedia(payload.artist || artistName);
+        } catch (e) {
+          console.warn("Wikipedia image lookup failed:", e);
+        }
+      }
+
       const row = {
         user_id: user.id,
         artist_name: payload.artist || artistName,
         artist_name_normalized: normalized,
+        artist_image: artistImage,
         origin: payload.origin || null,
         active_years: payload.activeYears || null,
         genres: payload.genres || [],
