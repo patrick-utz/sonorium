@@ -197,7 +197,7 @@ export function ArtistBiographySection({ artist }: Props) {
 
             {/* Geschichte */}
             {bio.history && (
-              <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+              <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line md:columns-2 md:gap-8">
                 {bio.history}
               </div>
             )}
