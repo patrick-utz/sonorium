@@ -578,6 +578,19 @@ export default function Artists() {
                   </div>
                   <CardContent className="p-3 space-y-1.5">
                     <h3 className="font-semibold text-foreground truncate">{artist.name}</h3>
+                    {artist.topGenres.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {artist.topGenres.map((g) => (
+                          <Badge
+                            key={g}
+                            variant="outline"
+                            className="px-1.5 py-0 text-[10px] font-normal h-4 leading-none border-border/60 text-muted-foreground"
+                          >
+                            {g}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs text-muted-foreground">
                         {artist.albumCount} {artist.albumCount === 1 ? "Album" : "Alben"}
