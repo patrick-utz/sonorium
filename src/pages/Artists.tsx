@@ -400,23 +400,109 @@ export default function Artists() {
             </SelectContent>
           </Select>
           {allGenres.length > 0 && (
-            <Select value={genreFilter} onValueChange={setGenreFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Genre" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[320px]">
-                <SelectItem value="all">Alle Genres</SelectItem>
-                {allGenres.map((g) => (
-                  <SelectItem key={g} value={g}>{g}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[200px] justify-between gap-2 font-normal">
+                  <span className="flex items-center gap-2 truncate">
+                    <Tag className="w-4 h-4 shrink-0" />
+                    {genreFilter.length === 0
+                      ? "Alle Genres"
+                      : genreFilter.length === 1
+                        ? genreFilter[0]
+                        : `${genreFilter.length} Genres`}
+                  </span>
+                  {genreFilter.length > 0 && (
+                    <X
+                      className="w-3.5 h-3.5 opacity-60 hover:opacity-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setGenreFilter([]);
+                      }}
+                    />
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[260px] p-0" align="end">
+                <div className="p-2 border-b border-border/50">
+                  <Input
+                    placeholder="Genre suchen..."
+                    value={genreSearch}
+                    onChange={(e) => setGenreSearch(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <ScrollArea className="h-[280px]">
+                  <div className="p-1">
+                    {allGenres
+                      .filter((g) => g.toLowerCase().includes(genreSearch.toLowerCase()))
+                      .map((g) => {
+                        const active = genreFilter.includes(g);
+                        return (
+                          <button
+                            key={g}
+                            type="button"
+                            onClick={() =>
+                              setGenreFilter((prev) =>
+                                prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]
+                              )
+                            }
+                            className={cn(
+                              "w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-sm text-left transition-colors",
+                              "hover:bg-accent hover:text-accent-foreground",
+                              active && "bg-accent/50"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "w-4 h-4 rounded border flex items-center justify-center shrink-0",
+                                active ? "bg-primary border-primary" : "border-muted-foreground/40"
+                              )}
+                            >
+                              {active && <Check className="w-3 h-3 text-primary-foreground" />}
+                            </div>
+                            <span className="truncate">{g}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </ScrollArea>
+                {genreFilter.length > 0 && (
+                  <div className="p-2 border-t border-border/50">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full h-7 text-xs"
+                      onClick={() => setGenreFilter([])}
+                    >
+                      Auswahl zurücksetzen
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
           )}
         </div>
       </div>
 
+      {/* Active genre badges */}
+      {genreFilter.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {genreFilter.map((g) => (
+            <Badge
+              key={g}
+              variant="secondary"
+              className="gap-1 cursor-pointer hover:bg-secondary/70"
+              onClick={() => setGenreFilter((prev) => prev.filter((x) => x !== g))}
+            >
+              {g}
+              <X className="w-3 h-3" />
+            </Badge>
+          ))}
+        </div>
+      )}
+
       {/* Result count */}
-      {(filterKey !== "all" || genreFilter !== "all" || search) && (
+      {(filterKey !== "all" || genreFilter.length > 0 || search) && (
         <div className="text-sm text-muted-foreground">
           {filtered.length} von {artists.length} Künstlern
         </div>
