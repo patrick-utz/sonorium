@@ -120,6 +120,11 @@ export default function Artists() {
       });
     }
 
+    // Genre filter
+    if (genreFilter !== "all") {
+      list = list.filter((a) => a.genres.includes(genreFilter));
+    }
+
     // Search
     if (q) list = list.filter((a) => a.name.toLowerCase().includes(q));
 
