@@ -146,6 +146,44 @@ export default function Artists() {
     });
   };
 
+  // Count artists whose stored bio is missing an image
+  const missingImagesCount = bios.filter((b) => !b.artist_image).length;
+
+  const handleBulkFetchImages = async () => {
+    if (!user) return;
+    const targets = bios.filter((b) => !b.artist_image);
+    if (targets.length === 0) {
+      toast({ title: "Alle Bilder vorhanden", description: "Keine Künstlerbilder fehlen." });
+      return;
+    }
+    setImageBulkLoading(true);
+    setBulkProgress({ current: 0, total: targets.length });
+    let success = 0;
+    for (let i = 0; i < targets.length; i++) {
+      const b = targets[i];
+      try {
+        const img = await fetchArtistImageFromWikipedia(b.artist_name);
+        if (img) {
+          await supabase
+            .from("artist_biographies")
+            .update({ artist_image: img })
+            .eq("id", b.id);
+          success++;
+        }
+      } catch (e) {
+        console.warn("Image fetch failed for", b.artist_name, e);
+      }
+      setBulkProgress({ current: i + 1, total: targets.length });
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    await fetchAll();
+    setImageBulkLoading(false);
+    toast({
+      title: "Künstlerbilder aktualisiert",
+      description: `${success} von ${targets.length} Bildern gefunden.`,
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
