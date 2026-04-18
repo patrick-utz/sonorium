@@ -221,12 +221,18 @@ export default function Artists() {
                 {staleCount} veraltet (älter als 90 Tage)
               </Badge>
             )}
+            {missingImagesCount > 0 && (
+              <Badge variant="outline" className="gap-1.5">
+                <ImageIcon className="w-3 h-3" />
+                {missingImagesCount} ohne Bild
+              </Badge>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {missingCount > 0 && (
               <Button
                 onClick={() => handleBulkGenerate("missing")}
-                disabled={bulkLoading}
+                disabled={bulkLoading || imageBulkLoading}
                 variant="default"
                 size="sm"
                 className="gap-2"
@@ -238,7 +244,7 @@ export default function Artists() {
             {staleCount > 0 && (
               <Button
                 onClick={() => handleBulkGenerate("stale")}
-                disabled={bulkLoading}
+                disabled={bulkLoading || imageBulkLoading}
                 variant="outline"
                 size="sm"
                 className="gap-2"
@@ -247,12 +253,24 @@ export default function Artists() {
                 Veraltete aktualisieren
               </Button>
             )}
+            {missingImagesCount > 0 && (
+              <Button
+                onClick={handleBulkFetchImages}
+                disabled={bulkLoading || imageBulkLoading}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                {imageBulkLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                Bilder laden
+              </Button>
+            )}
           </div>
         </CardContent>
-        {bulkLoading && (
+        {(bulkLoading || imageBulkLoading) && (
           <CardContent className="px-4 pb-4 pt-0">
             <div className="text-xs text-muted-foreground mb-1.5">
-              Generiere {bulkProgress.current} / {bulkProgress.total}
+              {imageBulkLoading ? "Lade Bilder" : "Generiere"} {bulkProgress.current} / {bulkProgress.total}
             </div>
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <div
