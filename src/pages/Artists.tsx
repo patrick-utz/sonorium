@@ -12,8 +12,19 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/StarRating";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle, Image as ImageIcon } from "lucide-react";
+import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle, Image as ImageIcon, ArrowUpDown } from "lucide-react";
 import { motion } from "framer-motion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+type SortKey = "name" | "albums" | "rating" | "critic" | "year";
+type FilterKey = "all" | "missing" | "stale" | "withBio" | "noImage";
 
 export default function Artists() {
   const navigate = useNavigate();
