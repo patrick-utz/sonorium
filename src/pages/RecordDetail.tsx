@@ -70,6 +70,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RelatedByMoodSection } from "@/components/RelatedByMoodSection";
+import { ArtistBiographySection } from "@/components/ArtistBiographySection";
 
 export default function RecordDetail() {
   const { id } = useParams<{ id: string }>();
@@ -720,6 +721,9 @@ export default function RecordDetail() {
           </CardContent>
         </Card>
       )}
+
+      {/* Künstler-Biografie */}
+      <ArtistBiographySection artist={record.artist} />
 
       {/* Ähnliche Alben nach Stimmung */}
       <RelatedByMoodSection 
