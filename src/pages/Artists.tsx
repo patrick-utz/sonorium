@@ -149,7 +149,7 @@ export default function Artists() {
             {staleCount > 0 && (
               <Badge variant="outline" className="gap-1.5 text-amber-600 border-amber-500/30">
                 <AlertTriangle className="w-3 h-3" />
-                {staleCount} veraltet (>90 Tage)
+                {staleCount} veraltet (älter als 90 Tage)
               </Badge>
             )}
           </div>
