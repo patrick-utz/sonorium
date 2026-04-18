@@ -53,6 +53,7 @@ export default function Artists() {
       ratingCount: number;
       criticSum: number;
       criticCount: number;
+      genres: Set<string>;
     };
     const map = new Map<string, Agg>();
     for (const r of records) {
@@ -61,12 +62,14 @@ export default function Artists() {
       const existing = map.get(key);
       const rating = typeof r.myRating === "number" ? r.myRating : null;
       const critic = typeof r.criticScore === "number" ? r.criticScore : null;
+      const recGenres = Array.isArray(r.genre) ? r.genre.filter(Boolean) : [];
       if (existing) {
         existing.albumCount += 1;
         if (!existing.cover && r.coverArt) existing.cover = r.coverArt;
         if (r.year && r.year < existing.firstYear) existing.firstYear = r.year;
         if (rating !== null) { existing.ratingSum += rating; existing.ratingCount += 1; }
         if (critic !== null) { existing.criticSum += critic; existing.criticCount += 1; }
+        recGenres.forEach((g) => existing.genres.add(g));
       } else {
         map.set(key, {
           name: r.artist,
@@ -77,17 +80,26 @@ export default function Artists() {
           ratingCount: rating !== null ? 1 : 0,
           criticSum: critic ?? 0,
           criticCount: critic !== null ? 1 : 0,
+          genres: new Set(recGenres),
         });
       }
     }
     return Array.from(map.values())
       .map((a) => ({
         ...a,
+        genres: Array.from(a.genres).sort(),
         avgRating: a.ratingCount > 0 ? a.ratingSum / a.ratingCount : null,
         avgCritic: a.criticCount > 0 ? a.criticSum / a.criticCount : null,
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [records]);
+
+  // All distinct genres across collection (for the filter dropdown)
+  const allGenres = useMemo(() => {
+    const set = new Set<string>();
+    artists.forEach((a) => a.genres.forEach((g) => set.add(g)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [artists]);
 
 
   const filtered = useMemo(() => {
