@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/StarRating";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle, Image as ImageIcon, ArrowUpDown } from "lucide-react";
+import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle, Image as ImageIcon, ArrowUpDown, Tag, X, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Select,
@@ -21,7 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "albums" | "rating" | "critic" | "year";
 type FilterKey = "all" | "missing" | "stale" | "withBio" | "noImage";
@@ -40,7 +42,8 @@ export default function Artists() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [filterKey, setFilterKey] = useState<FilterKey>("all");
-  const [genreFilter, setGenreFilter] = useState<string>("all");
+  const [genreFilter, setGenreFilter] = useState<string[]>([]);
+  const [genreSearch, setGenreSearch] = useState("");
 
   // Aggregate artists from collection (with rating + critic averages)
   const artists = useMemo(() => {
@@ -53,7 +56,7 @@ export default function Artists() {
       ratingCount: number;
       criticSum: number;
       criticCount: number;
-      genres: Set<string>;
+      genreCounts: Map<string, number>;
     };
     const map = new Map<string, Agg>();
     for (const r of records) {
@@ -69,8 +72,10 @@ export default function Artists() {
         if (r.year && r.year < existing.firstYear) existing.firstYear = r.year;
         if (rating !== null) { existing.ratingSum += rating; existing.ratingCount += 1; }
         if (critic !== null) { existing.criticSum += critic; existing.criticCount += 1; }
-        recGenres.forEach((g) => existing.genres.add(g));
+        recGenres.forEach((g) => existing.genreCounts.set(g, (existing.genreCounts.get(g) || 0) + 1));
       } else {
+        const gc = new Map<string, number>();
+        recGenres.forEach((g) => gc.set(g, (gc.get(g) || 0) + 1));
         map.set(key, {
           name: r.artist,
           cover: r.coverArt,
@@ -80,17 +85,23 @@ export default function Artists() {
           ratingCount: rating !== null ? 1 : 0,
           criticSum: critic ?? 0,
           criticCount: critic !== null ? 1 : 0,
-          genres: new Set(recGenres),
+          genreCounts: gc,
         });
       }
     }
     return Array.from(map.values())
-      .map((a) => ({
-        ...a,
-        genres: Array.from(a.genres).sort(),
-        avgRating: a.ratingCount > 0 ? a.ratingSum / a.ratingCount : null,
-        avgCritic: a.criticCount > 0 ? a.criticSum / a.criticCount : null,
-      }))
+      .map((a) => {
+        const sortedGenres = Array.from(a.genreCounts.entries())
+          .sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))
+          .map(([g]) => g);
+        return {
+          ...a,
+          genres: sortedGenres,
+          topGenres: sortedGenres.slice(0, 2),
+          avgRating: a.ratingCount > 0 ? a.ratingSum / a.ratingCount : null,
+          avgCritic: a.criticCount > 0 ? a.criticSum / a.criticCount : null,
+        };
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [records]);
 
@@ -120,9 +131,9 @@ export default function Artists() {
       });
     }
 
-    // Genre filter
-    if (genreFilter !== "all") {
-      list = list.filter((a) => a.genres.includes(genreFilter));
+    // Genre filter (multi-select, OR semantics: artist matches any selected genre)
+    if (genreFilter.length > 0) {
+      list = list.filter((a) => genreFilter.some((g) => a.genres.includes(g)));
     }
 
     // Search
@@ -389,23 +400,109 @@ export default function Artists() {
             </SelectContent>
           </Select>
           {allGenres.length > 0 && (
-            <Select value={genreFilter} onValueChange={setGenreFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Genre" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[320px]">
-                <SelectItem value="all">Alle Genres</SelectItem>
-                {allGenres.map((g) => (
-                  <SelectItem key={g} value={g}>{g}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[200px] justify-between gap-2 font-normal">
+                  <span className="flex items-center gap-2 truncate">
+                    <Tag className="w-4 h-4 shrink-0" />
+                    {genreFilter.length === 0
+                      ? "Alle Genres"
+                      : genreFilter.length === 1
+                        ? genreFilter[0]
+                        : `${genreFilter.length} Genres`}
+                  </span>
+                  {genreFilter.length > 0 && (
+                    <X
+                      className="w-3.5 h-3.5 opacity-60 hover:opacity-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setGenreFilter([]);
+                      }}
+                    />
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[260px] p-0" align="end">
+                <div className="p-2 border-b border-border/50">
+                  <Input
+                    placeholder="Genre suchen..."
+                    value={genreSearch}
+                    onChange={(e) => setGenreSearch(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <ScrollArea className="h-[280px]">
+                  <div className="p-1">
+                    {allGenres
+                      .filter((g) => g.toLowerCase().includes(genreSearch.toLowerCase()))
+                      .map((g) => {
+                        const active = genreFilter.includes(g);
+                        return (
+                          <button
+                            key={g}
+                            type="button"
+                            onClick={() =>
+                              setGenreFilter((prev) =>
+                                prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]
+                              )
+                            }
+                            className={cn(
+                              "w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-sm text-left transition-colors",
+                              "hover:bg-accent hover:text-accent-foreground",
+                              active && "bg-accent/50"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "w-4 h-4 rounded border flex items-center justify-center shrink-0",
+                                active ? "bg-primary border-primary" : "border-muted-foreground/40"
+                              )}
+                            >
+                              {active && <Check className="w-3 h-3 text-primary-foreground" />}
+                            </div>
+                            <span className="truncate">{g}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </ScrollArea>
+                {genreFilter.length > 0 && (
+                  <div className="p-2 border-t border-border/50">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full h-7 text-xs"
+                      onClick={() => setGenreFilter([])}
+                    >
+                      Auswahl zurücksetzen
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
           )}
         </div>
       </div>
 
+      {/* Active genre badges */}
+      {genreFilter.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {genreFilter.map((g) => (
+            <Badge
+              key={g}
+              variant="secondary"
+              className="gap-1 cursor-pointer hover:bg-secondary/70"
+              onClick={() => setGenreFilter((prev) => prev.filter((x) => x !== g))}
+            >
+              {g}
+              <X className="w-3 h-3" />
+            </Badge>
+          ))}
+        </div>
+      )}
+
       {/* Result count */}
-      {(filterKey !== "all" || genreFilter !== "all" || search) && (
+      {(filterKey !== "all" || genreFilter.length > 0 || search) && (
         <div className="text-sm text-muted-foreground">
           {filtered.length} von {artists.length} Künstlern
         </div>
@@ -481,6 +578,19 @@ export default function Artists() {
                   </div>
                   <CardContent className="p-3 space-y-1.5">
                     <h3 className="font-semibold text-foreground truncate">{artist.name}</h3>
+                    {artist.topGenres.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {artist.topGenres.map((g) => (
+                          <Badge
+                            key={g}
+                            variant="outline"
+                            className="px-1.5 py-0 text-[10px] font-normal h-4 leading-none border-border/60 text-muted-foreground"
+                          >
+                            {g}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs text-muted-foreground">
                         {artist.albumCount} {artist.albumCount === 1 ? "Album" : "Alben"}
