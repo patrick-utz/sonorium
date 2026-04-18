@@ -306,6 +306,8 @@ export default function Artists() {
             const bio = getByArtist(artist.name);
             const stale = bio && isStale(bio.updated_at);
             const isLoadingThis = individualLoading === artist.name;
+            // Prefer Wikipedia artist image, fall back to first album cover
+            const heroImage = bio?.artist_image || artist.cover;
             return (
               <motion.div
                 key={artist.name}
@@ -317,10 +319,11 @@ export default function Artists() {
                   onClick={() => navigate(`/kuenstler/${encodeURIComponent(artist.name)}`)}
                 >
                   <div className="aspect-square bg-muted relative overflow-hidden">
-                    {artist.cover ? (
+                    {heroImage ? (
                       <img
-                        src={artist.cover}
+                        src={heroImage}
                         alt={artist.name}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
@@ -328,7 +331,20 @@ export default function Artists() {
                         <BookOpen className="w-12 h-12 text-primary/50" />
                       </div>
                     )}
-                    {/* Status badge */}
+
+                    {/* Critic score (top-left) */}
+                    {artist.avgCritic !== null && (
+                      <div className="absolute top-2 left-2">
+                        <div className="px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/20">
+                          <span className="text-xs font-semibold text-white tabular-nums">
+                            {Math.round(artist.avgCritic)}
+                            <span className="text-white/60 text-[10px]">/100</span>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status badge (top-right) */}
                     <div className="absolute top-2 right-2">
                       {!bio ? (
                         <Badge variant="outline" className="bg-background/80 backdrop-blur text-xs">
@@ -345,11 +361,16 @@ export default function Artists() {
                       )}
                     </div>
                   </div>
-                  <CardContent className="p-3 space-y-1">
+                  <CardContent className="p-3 space-y-1.5">
                     <h3 className="font-semibold text-foreground truncate">{artist.name}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {artist.albumCount} {artist.albumCount === 1 ? "Album" : "Alben"}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        {artist.albumCount} {artist.albumCount === 1 ? "Album" : "Alben"}
+                      </p>
+                      {artist.avgRating !== null && (
+                        <StarRating rating={Math.round(artist.avgRating)} size="sm" />
+                      )}
+                    </div>
                     {!bio && (
                       <Button
                         size="sm"
