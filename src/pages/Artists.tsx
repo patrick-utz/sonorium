@@ -12,8 +12,19 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/StarRating";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle, Image as ImageIcon } from "lucide-react";
+import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle, Image as ImageIcon, ArrowUpDown } from "lucide-react";
 import { motion } from "framer-motion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+type SortKey = "name" | "albums" | "rating" | "critic" | "year";
+type FilterKey = "all" | "missing" | "stale" | "withBio" | "noImage";
 
 export default function Artists() {
   const navigate = useNavigate();
@@ -26,6 +37,9 @@ export default function Artists() {
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [individualLoading, setIndividualLoading] = useState<string | null>(null);
   const [imageBulkLoading, setImageBulkLoading] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [filterKey, setFilterKey] = useState<FilterKey>("all");
 
   // Aggregate artists from collection (with rating + critic averages)
   const artists = useMemo(() => {
@@ -77,9 +91,39 @@ export default function Artists() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return artists;
-    return artists.filter((a) => a.name.toLowerCase().includes(q));
-  }, [artists, search]);
+    let list = artists;
+
+    // Filter
+    if (filterKey !== "all") {
+      list = list.filter((a) => {
+        const bio = getByArtist(a.name);
+        switch (filterKey) {
+          case "missing": return !bio;
+          case "withBio": return !!bio;
+          case "stale": return !!bio && isStale(bio.updated_at);
+          case "noImage": return !bio?.artist_image;
+          default: return true;
+        }
+      });
+    }
+
+    // Search
+    if (q) list = list.filter((a) => a.name.toLowerCase().includes(q));
+
+    // Sort
+    const dir = sortDir === "asc" ? 1 : -1;
+    const sorted = [...list].sort((a, b) => {
+      switch (sortKey) {
+        case "albums": return (a.albumCount - b.albumCount) * dir;
+        case "rating": return ((a.avgRating ?? -1) - (b.avgRating ?? -1)) * dir;
+        case "critic": return ((a.avgCritic ?? -1) - (b.avgCritic ?? -1)) * dir;
+        case "year": return (a.firstYear - b.firstYear) * dir;
+        case "name":
+        default: return a.name.localeCompare(b.name) * dir;
+      }
+    });
+    return sorted;
+  }, [artists, search, filterKey, sortKey, sortDir, getByArtist]);
 
   const missingCount = artists.filter((a) => !getByArtist(a.name)).length;
   const staleCount = artists.filter((a) => {
@@ -282,16 +326,59 @@ export default function Artists() {
         )}
       </Card>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Künstler suchen..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search + Sort + Filter */}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Künstler suchen..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+            <SelectTrigger className="w-[170px]">
+              <SelectValue placeholder="Sortieren" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Alphabetisch</SelectItem>
+              <SelectItem value="albums">Anzahl Alben</SelectItem>
+              <SelectItem value="rating">Meine Bewertung</SelectItem>
+              <SelectItem value="critic">Kritik-Score</SelectItem>
+              <SelectItem value="year">Erstes Jahr</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            title={sortDir === "asc" ? "Aufsteigend" : "Absteigend"}
+          >
+            <ArrowUpDown className={`w-4 h-4 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+          </Button>
+          <Select value={filterKey} onValueChange={(v) => setFilterKey(v as FilterKey)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle Künstler</SelectItem>
+              <SelectItem value="missing">Ohne Biografie</SelectItem>
+              <SelectItem value="withBio">Mit Biografie</SelectItem>
+              <SelectItem value="stale">Veraltete Bios</SelectItem>
+              <SelectItem value="noImage">Ohne Bild</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {/* Result count */}
+      {(filterKey !== "all" || search) && (
+        <div className="text-sm text-muted-foreground">
+          {filtered.length} von {artists.length} Künstlern
+        </div>
+      )}
 
       {/* Tile Grid */}
       {filtered.length === 0 ? (
