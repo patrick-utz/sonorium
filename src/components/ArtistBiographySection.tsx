@@ -1,59 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { useArtistBios } from "@/context/ArtistBiographyContext";
+import { isStale } from "@/hooks/useArtistBiographies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { BookOpen, Loader2, Sparkles, RefreshCw, MapPin, Calendar, Users, Award } from "lucide-react";
-
-interface ArtistBiography {
-  artist: string;
-  origin?: string;
-  activeYears?: string;
-  genres?: string[];
-  shortBio?: string;
-  history?: string;
-  keyFacts?: string[];
-  influences?: string[];
-  legacy?: string;
-}
-
-interface CacheEntry {
-  data: ArtistBiography;
-  timestamp: number;
-}
-
-const CACHE_KEY = "sonorium_artist_bio_cache";
-const CACHE_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-
-function getCacheKey(artist: string) {
-  return artist.toLowerCase().trim();
-}
-
-function readCache(artist: string): ArtistBiography | null {
-  try {
-    const stored = localStorage.getItem(CACHE_KEY);
-    if (!stored) return null;
-    const cache: Record<string, CacheEntry> = JSON.parse(stored);
-    const entry = cache[getCacheKey(artist)];
-    if (!entry) return null;
-    if (Date.now() - entry.timestamp > CACHE_EXPIRY_MS) return null;
-    return entry.data;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(artist: string, data: ArtistBiography) {
-  try {
-    const stored = localStorage.getItem(CACHE_KEY);
-    const cache: Record<string, CacheEntry> = stored ? JSON.parse(stored) : {};
-    cache[getCacheKey(artist)] = { data, timestamp: Date.now() };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-  } catch (e) {
-    console.warn("Bio cache write error:", e);
-  }
-}
 
 interface Props {
   artist: string;
@@ -61,57 +13,51 @@ interface Props {
 
 export function ArtistBiographySection({ artist }: Props) {
   const { toast } = useToast();
-  const [bio, setBio] = useState<ArtistBiography | null>(null);
+  const { getByArtist, generateBio, ensureBio } = useArtistBios();
   const [loading, setLoading] = useState(false);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [autoTriggered, setAutoTriggered] = useState(false);
 
-  // On mount, check cache
+  const bio = getByArtist(artist);
+
+  // Auto-create on first open if missing, auto-refresh if stale
   useEffect(() => {
-    const cached = readCache(artist);
-    if (cached) {
-      setBio(cached);
-      setHasLoadedOnce(true);
-    }
+    if (!artist || autoTriggered) return;
+    setAutoTriggered(true);
+
+    const run = async () => {
+      try {
+        if (!bio) {
+          setLoading(true);
+          await ensureBio(artist);
+        } else if (isStale(bio.updated_at)) {
+          setLoading(true);
+          await generateBio(artist, true);
+        }
+      } catch (e) {
+        console.warn("Bio auto-load failed:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artist]);
 
-  const fetchBio = useCallback(async (force = false) => {
-    if (loading) return;
-    if (!force) {
-      const cached = readCache(artist);
-      if (cached) {
-        setBio(cached);
-        setHasLoadedOnce(true);
-        return;
-      }
-    }
-
+  const handleRefresh = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('artist-biography', {
-        body: { artist },
-      });
-
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-
-      if (data && data.artist) {
-        setBio(data);
-        writeCache(artist, data);
-        setHasLoadedOnce(true);
-      } else {
-        throw new Error("Keine Biografie erhalten");
-      }
+      await generateBio(artist, true);
+      toast({ title: "Biografie aktualisiert" });
     } catch (err) {
-      console.error("Bio fetch error:", err);
       toast({
         title: "Fehler",
-        description: err instanceof Error ? err.message : "Biografie konnte nicht geladen werden.",
+        description: err instanceof Error ? err.message : "Aktualisierung fehlgeschlagen",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  }, [artist, loading, toast]);
+  };
 
   return (
     <Card className="bg-gradient-card border-border/50">
@@ -125,7 +71,7 @@ export function ArtistBiographySection({ artist }: Props) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => fetchBio(true)}
+              onClick={handleRefresh}
               disabled={loading}
               className="gap-2 h-8"
             >
@@ -143,9 +89,9 @@ export function ArtistBiographySection({ artist }: Props) {
         {!bio && !loading && (
           <div className="flex flex-col items-start gap-3 py-2">
             <p className="text-sm text-muted-foreground">
-              Lade die Geschichte von {artist} mit KI-Unterstützung.
+              Noch keine Biografie verfügbar.
             </p>
-            <Button onClick={() => fetchBio(false)} variant="outline" className="gap-2">
+            <Button onClick={handleRefresh} variant="outline" className="gap-2">
               <Sparkles className="w-4 h-4" />
               Biografie laden
             </Button>
@@ -161,7 +107,6 @@ export function ArtistBiographySection({ artist }: Props) {
 
         {bio && (
           <div className="space-y-5">
-            {/* Meta-Infos */}
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               {bio.origin && (
                 <div className="flex items-center gap-1.5">
@@ -169,15 +114,14 @@ export function ArtistBiographySection({ artist }: Props) {
                   {bio.origin}
                 </div>
               )}
-              {bio.activeYears && (
+              {bio.active_years && (
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" />
-                  {bio.activeYears}
+                  {bio.active_years}
                 </div>
               )}
             </div>
 
-            {/* Genres */}
             {bio.genres && bio.genres.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {bio.genres.map((g) => (
@@ -188,29 +132,26 @@ export function ArtistBiographySection({ artist }: Props) {
               </div>
             )}
 
-            {/* Kurzbio */}
-            {bio.shortBio && (
+            {bio.short_bio && (
               <p className="text-sm text-foreground leading-relaxed font-medium">
-                {bio.shortBio}
+                {bio.short_bio}
               </p>
             )}
 
-            {/* Geschichte */}
             {bio.history && (
               <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line md:columns-2 md:gap-8">
                 {bio.history}
               </div>
             )}
 
-            {/* Key Facts */}
-            {bio.keyFacts && bio.keyFacts.length > 0 && (
+            {bio.key_facts && bio.key_facts.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <Award className="w-4 h-4 text-primary" />
                   Wichtige Fakten
                 </h4>
                 <ul className="space-y-1.5">
-                  {bio.keyFacts.map((fact, i) => (
+                  {bio.key_facts.map((fact, i) => (
                     <li key={i} className="text-sm text-muted-foreground flex gap-2">
                       <span className="text-primary mt-1">•</span>
                       <span>{fact}</span>
@@ -220,7 +161,6 @@ export function ArtistBiographySection({ artist }: Props) {
               </div>
             )}
 
-            {/* Einflüsse */}
             {bio.influences && bio.influences.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -237,7 +177,6 @@ export function ArtistBiographySection({ artist }: Props) {
               </div>
             )}
 
-            {/* Vermächtnis */}
             {bio.legacy && (
               <div className="border-l-2 border-primary/30 pl-3 italic text-sm text-muted-foreground">
                 {bio.legacy}
