@@ -17,13 +17,62 @@ import { motion } from "framer-motion";
 
 export default function Artists() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { records } = useRecords();
-  const { bios, getByArtist, generateBio } = useArtistBios();
+  const { bios, getByArtist, generateBio, fetchAll } = useArtistBios();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [individualLoading, setIndividualLoading] = useState<string | null>(null);
+  const [imageBulkLoading, setImageBulkLoading] = useState(false);
+
+  // Aggregate artists from collection (with rating + critic averages)
+  const artists = useMemo(() => {
+    type Agg = {
+      name: string;
+      cover?: string;
+      albumCount: number;
+      firstYear: number;
+      ratingSum: number;
+      ratingCount: number;
+      criticSum: number;
+      criticCount: number;
+    };
+    const map = new Map<string, Agg>();
+    for (const r of records) {
+      const key = r.artist.toLowerCase().trim();
+      if (!key) continue;
+      const existing = map.get(key);
+      const rating = typeof r.myRating === "number" ? r.myRating : null;
+      const critic = typeof r.criticScore === "number" ? r.criticScore : null;
+      if (existing) {
+        existing.albumCount += 1;
+        if (!existing.cover && r.coverArt) existing.cover = r.coverArt;
+        if (r.year && r.year < existing.firstYear) existing.firstYear = r.year;
+        if (rating !== null) { existing.ratingSum += rating; existing.ratingCount += 1; }
+        if (critic !== null) { existing.criticSum += critic; existing.criticCount += 1; }
+      } else {
+        map.set(key, {
+          name: r.artist,
+          cover: r.coverArt,
+          albumCount: 1,
+          firstYear: r.year || 9999,
+          ratingSum: rating ?? 0,
+          ratingCount: rating !== null ? 1 : 0,
+          criticSum: critic ?? 0,
+          criticCount: critic !== null ? 1 : 0,
+        });
+      }
+    }
+    return Array.from(map.values())
+      .map((a) => ({
+        ...a,
+        avgRating: a.ratingCount > 0 ? a.ratingSum / a.ratingCount : null,
+        avgCritic: a.criticCount > 0 ? a.criticSum / a.criticCount : null,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [records]);
 
   // Aggregate artists from collection
   const artists = useMemo(() => {
