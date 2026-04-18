@@ -34,6 +34,68 @@ async function validateAuth(req: Request): Promise<{ userId: string } | Response
   return { userId: data.user.id };
 }
 
+function parseAiJson(raw: string): any {
+  // Strip code fences
+  let text = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+  // Extract from first { to last }
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) {
+    text = text.substring(start, end + 1);
+  }
+
+  // Try direct parse
+  try { return JSON.parse(text); } catch {}
+
+  // Common cleanups: control chars, trailing commas
+  let cleaned = text
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']');
+
+  try { return JSON.parse(cleaned); } catch {}
+
+  // Repair: escape unescaped newlines/quotes inside string values
+  // Walk char by char, track if we're inside a string.
+  let result = '';
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < cleaned.length; i++) {
+    const ch = cleaned[i];
+    if (escape) { result += ch; escape = false; continue; }
+    if (ch === '\\') { result += ch; escape = true; continue; }
+    if (ch === '"') { inString = !inString; result += ch; continue; }
+    if (inString) {
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+    }
+    result += ch;
+  }
+
+  try { return JSON.parse(result); } catch {}
+
+  // Auto-close unbalanced braces/brackets
+  let braces = 0, brackets = 0;
+  inString = false; escape = false;
+  for (const ch of result) {
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') braces++;
+    else if (ch === '}') braces--;
+    else if (ch === '[') brackets++;
+    else if (ch === ']') brackets--;
+  }
+  let repaired = result;
+  while (brackets-- > 0) repaired += ']';
+  while (braces-- > 0) repaired += '}';
+
+  return JSON.parse(repaired);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -114,18 +176,7 @@ WICHTIG: Bleibe faktisch korrekt. Falls du dir bei einer Information unsicher bi
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error("No content in AI response");
 
-    let result;
-    try {
-      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      result = JSON.parse(cleanedContent);
-    } catch {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("Could not parse AI response as JSON");
-      }
-    }
+    const result = parseAiJson(content);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
