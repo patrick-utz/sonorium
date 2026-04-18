@@ -56,7 +56,7 @@ export default function Artists() {
       ratingCount: number;
       criticSum: number;
       criticCount: number;
-      genres: Set<string>;
+      genreCounts: Map<string, number>;
     };
     const map = new Map<string, Agg>();
     for (const r of records) {
@@ -72,8 +72,10 @@ export default function Artists() {
         if (r.year && r.year < existing.firstYear) existing.firstYear = r.year;
         if (rating !== null) { existing.ratingSum += rating; existing.ratingCount += 1; }
         if (critic !== null) { existing.criticSum += critic; existing.criticCount += 1; }
-        recGenres.forEach((g) => existing.genres.add(g));
+        recGenres.forEach((g) => existing.genreCounts.set(g, (existing.genreCounts.get(g) || 0) + 1));
       } else {
+        const gc = new Map<string, number>();
+        recGenres.forEach((g) => gc.set(g, (gc.get(g) || 0) + 1));
         map.set(key, {
           name: r.artist,
           cover: r.coverArt,
@@ -83,17 +85,23 @@ export default function Artists() {
           ratingCount: rating !== null ? 1 : 0,
           criticSum: critic ?? 0,
           criticCount: critic !== null ? 1 : 0,
-          genres: new Set(recGenres),
+          genreCounts: gc,
         });
       }
     }
     return Array.from(map.values())
-      .map((a) => ({
-        ...a,
-        genres: Array.from(a.genres).sort(),
-        avgRating: a.ratingCount > 0 ? a.ratingSum / a.ratingCount : null,
-        avgCritic: a.criticCount > 0 ? a.criticSum / a.criticCount : null,
-      }))
+      .map((a) => {
+        const sortedGenres = Array.from(a.genreCounts.entries())
+          .sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))
+          .map(([g]) => g);
+        return {
+          ...a,
+          genres: sortedGenres,
+          topGenres: sortedGenres.slice(0, 2),
+          avgRating: a.ratingCount > 0 ? a.ratingSum / a.ratingCount : null,
+          avgCritic: a.criticCount > 0 ? a.criticSum / a.criticCount : null,
+        };
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [records]);
 
