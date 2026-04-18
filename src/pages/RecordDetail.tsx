@@ -413,7 +413,63 @@ export default function RecordDetail() {
         </motion.div>
       </div>
 
-      {/* Qualitätsbewertungen - volle Breite */}
+      {/* 1. Stichworte - volle Breite */}
+      {record.tags && record.tags.length > 0 && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Tag className="w-5 h-5 text-primary" />
+              Stichworte
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {record.tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-sm">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 2. Stimmungen - volle Breite */}
+      {record.moods && record.moods.length > 0 && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Stimmungen
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {record.moods.map((mood) => {
+                const color = getMoodColor(mood);
+                const configuredMood = configuredMoods.find(m => m.name.toLowerCase() === mood.toLowerCase());
+                return (
+                  <Badge 
+                    key={mood} 
+                    variant="secondary" 
+                    className="text-sm bg-muted text-foreground cursor-pointer hover:bg-muted/80 transition-colors border"
+                    style={color ? { 
+                      borderColor: `hsl(${color})`,
+                      borderLeftWidth: '3px'
+                    } : undefined}
+                    onClick={() => navigate(`/sammlung?mood=${encodeURIComponent(mood)}`)}
+                  >
+                    {configuredMood?.icon && <span className="mr-1">{configuredMood.icon}</span>}
+                    {mood}
+                  </Badge>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 3. Qualitätsbewertungen - volle Breite */}
       <Card className="bg-gradient-card border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Qualitätsbewertungen</CardTitle>
@@ -450,8 +506,7 @@ export default function RecordDetail() {
         </CardContent>
       </Card>
 
-
-      {/* Vinyl Recommendation - volle Breite falls vorhanden */}
+      {/* 4. Vinyl-Empfehlung - volle Breite falls vorhanden */}
       {record.format === "vinyl" && recConfig && (
         <Card className="bg-gradient-card border-border/50">
           <CardHeader className="pb-3">
@@ -474,43 +529,41 @@ export default function RecordDetail() {
         </Card>
       )}
 
-      {/* Künstlerische und Audiophile Beurteilung - nebeneinander */}
-      {(record.artisticAssessment || record.audiophileAssessment) && (
-        <div className="grid md:grid-cols-2 gap-4">
-          {record.artisticAssessment && (
-            <Card className="bg-gradient-card border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  Künstlerische Beurteilung
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                  {record.artisticAssessment}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-          {record.audiophileAssessment && (
-            <Card className="bg-gradient-card border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-primary" />
-                  Audiophile Beurteilung
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-                  {record.audiophileAssessment}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+      {/* 5. Künstlerische Beurteilung - volle Breite */}
+      {record.artisticAssessment && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Künstlerische Beurteilung
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+              {record.artisticAssessment}
+            </p>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Persönliche Notizen - volle Breite */}
+      {/* 6. Audiophile Beurteilung - volle Breite */}
+      {record.audiophileAssessment && (
+        <Card className="bg-gradient-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Brain className="w-5 h-5 text-primary" />
+              Audiophile Beurteilung
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+              {record.audiophileAssessment}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 7. Persönliche Notizen - volle Breite */}
       {record.personalNotes && (
         <Card className="bg-gradient-card border-border/50">
           <CardHeader className="pb-3">
@@ -524,68 +577,7 @@ export default function RecordDetail() {
         </Card>
       )}
 
-      {/* Stichworte & Stimmungen - nebeneinander */}
-      {((record.tags && record.tags.length > 0) || (record.moods && record.moods.length > 0)) && (
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* Stichworte */}
-          {record.tags && record.tags.length > 0 && (
-            <Card className="bg-gradient-card border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-primary" />
-                  Stichworte
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {record.tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-sm">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Stimmungen */}
-          {record.moods && record.moods.length > 0 && (
-            <Card className="bg-gradient-card border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  Stimmungen
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {record.moods.map((mood) => {
-                    const color = getMoodColor(mood);
-                    const configuredMood = configuredMoods.find(m => m.name.toLowerCase() === mood.toLowerCase());
-                    return (
-                      <Badge 
-                        key={mood} 
-                        variant="secondary" 
-                        className="text-sm bg-muted text-foreground cursor-pointer hover:bg-muted/80 transition-colors border"
-                        style={color ? { 
-                          borderColor: `hsl(${color})`,
-                          borderLeftWidth: '3px'
-                        } : undefined}
-                        onClick={() => navigate(`/sammlung?mood=${encodeURIComponent(mood)}`)}
-                      >
-                        {configuredMood?.icon && <span className="mr-1">{configuredMood.icon}</span>}
-                        {mood}
-                      </Badge>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Kritiken von Fachmagazinen */}
+      {/* 8. Kritiken von Fachmagazinen - volle Breite */}
       {record.criticReviews && record.criticReviews.length > 0 && (
         <Card className="bg-gradient-card border-border/50">
           <CardHeader className="pb-3">
@@ -622,10 +614,10 @@ export default function RecordDetail() {
         </Card>
       )}
 
-      {/* Kaufinformationen - volle Breite (ganz unten) */}
-      <PurchaseInfoCard record={record} updateRecord={updateRecord} />
+      {/* 9. Über den Künstler - volle Breite */}
+      <ArtistBiographySection artist={record.artist} />
 
-      {/* Recommendations - Full Width */}
+      {/* 10. Ähnliche Alben - volle Breite */}
       {record.recommendations && record.recommendations.length > 0 && (
         <Card className="bg-gradient-card border-border/50">
           <CardHeader className="pb-3">
@@ -722,15 +714,15 @@ export default function RecordDetail() {
         </Card>
       )}
 
-      {/* Künstler-Biografie */}
-      <ArtistBiographySection artist={record.artist} />
-
-      {/* Ähnliche Alben nach Stimmung */}
+      {/* 11. Ähnliche Stimmung - volle Breite */}
       <RelatedByMoodSection 
         currentRecord={record}
         allRecords={records}
         onNavigate={(id) => navigate(`/sammlung/${id}`)}
       />
+
+      {/* 12. Kaufinformationen - volle Breite (ganz unten) */}
+      <PurchaseInfoCard record={record} updateRecord={updateRecord} />
     </motion.div>
   );
 }
