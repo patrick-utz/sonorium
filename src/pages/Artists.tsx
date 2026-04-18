@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/StarRating";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle, Image as ImageIcon, ArrowUpDown } from "lucide-react";
+import { Sparkles, Loader2, Search, BookOpen, RefreshCw, AlertTriangle, Image as ImageIcon, ArrowUpDown, Tag, X, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Select,
@@ -21,7 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "albums" | "rating" | "critic" | "year";
 type FilterKey = "all" | "missing" | "stale" | "withBio" | "noImage";
