@@ -388,11 +388,24 @@ export default function Artists() {
               <SelectItem value="noImage">Ohne Bild</SelectItem>
             </SelectContent>
           </Select>
+          {allGenres.length > 0 && (
+            <Select value={genreFilter} onValueChange={setGenreFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Genre" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[320px]">
+                <SelectItem value="all">Alle Genres</SelectItem>
+                {allGenres.map((g) => (
+                  <SelectItem key={g} value={g}>{g}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
       {/* Result count */}
-      {(filterKey !== "all" || search) && (
+      {(filterKey !== "all" || genreFilter !== "all" || search) && (
         <div className="text-sm text-muted-foreground">
           {filtered.length} von {artists.length} Künstlern
         </div>
