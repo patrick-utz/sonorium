@@ -131,9 +131,9 @@ export default function Artists() {
       });
     }
 
-    // Genre filter (multi-select, OR semantics: artist matches any selected genre)
+    // Genre filter (multi-select, AND semantics: artist must match all selected genres)
     if (genreFilter.length > 0) {
-      list = list.filter((a) => genreFilter.some((g) => a.genres.includes(g)));
+      list = list.filter((a) => genreFilter.every((g) => a.genres.includes(g)));
     }
 
     // Search
@@ -580,15 +580,41 @@ export default function Artists() {
                     <h3 className="font-semibold text-foreground truncate">{artist.name}</h3>
                     {artist.topGenres.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {artist.topGenres.map((g) => (
-                          <Badge
-                            key={g}
-                            variant="outline"
-                            className="px-1.5 py-0 text-[10px] font-normal h-4 leading-none border-border/60 text-muted-foreground"
-                          >
-                            {g}
-                          </Badge>
-                        ))}
+                        {artist.topGenres.map((g) => {
+                          const active = genreFilter.includes(g);
+                          const toggle = () =>
+                            setGenreFilter((prev) =>
+                              prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]
+                            );
+                          return (
+                            <Badge
+                              key={g}
+                              variant="outline"
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggle();
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggle();
+                                }
+                              }}
+                              className={cn(
+                                "px-1.5 py-0 text-[10px] font-normal h-4 leading-none cursor-pointer transition-colors",
+                                active
+                                  ? "border-primary/60 bg-primary/15 text-foreground"
+                                  : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                              )}
+                              title={active ? `Filter "${g}" entfernen` : `Nach "${g}" filtern`}
+                            >
+                              {g}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     )}
                     <div className="flex items-center justify-between gap-2">
