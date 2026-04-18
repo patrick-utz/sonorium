@@ -141,7 +141,7 @@ export default function Artists() {
       }
     });
     return sorted;
-  }, [artists, search, filterKey, sortKey, sortDir, getByArtist]);
+  }, [artists, search, filterKey, genreFilter, sortKey, sortDir, getByArtist]);
 
   const missingCount = artists.filter((a) => !getByArtist(a.name)).length;
   const staleCount = artists.filter((a) => {
