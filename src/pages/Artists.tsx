@@ -74,28 +74,6 @@ export default function Artists() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [records]);
 
-  // Aggregate artists from collection
-  const artists = useMemo(() => {
-    const map = new Map<string, { name: string; cover?: string; albumCount: number; firstYear: number }>();
-    for (const r of records) {
-      const key = r.artist.toLowerCase().trim();
-      if (!key) continue;
-      const existing = map.get(key);
-      if (existing) {
-        existing.albumCount += 1;
-        if (!existing.cover && r.coverArt) existing.cover = r.coverArt;
-        if (r.year && r.year < existing.firstYear) existing.firstYear = r.year;
-      } else {
-        map.set(key, {
-          name: r.artist,
-          cover: r.coverArt,
-          albumCount: 1,
-          firstYear: r.year || 9999,
-        });
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [records]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
