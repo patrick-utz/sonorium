@@ -114,18 +114,7 @@ WICHTIG: Bleibe faktisch korrekt. Falls du dir bei einer Information unsicher bi
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error("No content in AI response");
 
-    let result;
-    try {
-      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      result = JSON.parse(cleanedContent);
-    } catch {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("Could not parse AI response as JSON");
-      }
-    }
+    const result = parseAiJson(content);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
