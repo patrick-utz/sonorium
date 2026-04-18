@@ -91,9 +91,39 @@ export default function Artists() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return artists;
-    return artists.filter((a) => a.name.toLowerCase().includes(q));
-  }, [artists, search]);
+    let list = artists;
+
+    // Filter
+    if (filterKey !== "all") {
+      list = list.filter((a) => {
+        const bio = getByArtist(a.name);
+        switch (filterKey) {
+          case "missing": return !bio;
+          case "withBio": return !!bio;
+          case "stale": return !!bio && isStale(bio.updated_at);
+          case "noImage": return !bio?.artist_image;
+          default: return true;
+        }
+      });
+    }
+
+    // Search
+    if (q) list = list.filter((a) => a.name.toLowerCase().includes(q));
+
+    // Sort
+    const dir = sortDir === "asc" ? 1 : -1;
+    const sorted = [...list].sort((a, b) => {
+      switch (sortKey) {
+        case "albums": return (a.albumCount - b.albumCount) * dir;
+        case "rating": return ((a.avgRating ?? -1) - (b.avgRating ?? -1)) * dir;
+        case "critic": return ((a.avgCritic ?? -1) - (b.avgCritic ?? -1)) * dir;
+        case "year": return (a.firstYear - b.firstYear) * dir;
+        case "name":
+        default: return a.name.localeCompare(b.name) * dir;
+      }
+    });
+    return sorted;
+  }, [artists, search, filterKey, sortKey, sortDir, getByArtist]);
 
   const missingCount = artists.filter((a) => !getByArtist(a.name)).length;
   const staleCount = artists.filter((a) => {
