@@ -326,16 +326,59 @@ export default function Artists() {
         )}
       </Card>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Künstler suchen..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search + Sort + Filter */}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Künstler suchen..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+            <SelectTrigger className="w-[170px]">
+              <SelectValue placeholder="Sortieren" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Alphabetisch</SelectItem>
+              <SelectItem value="albums">Anzahl Alben</SelectItem>
+              <SelectItem value="rating">Meine Bewertung</SelectItem>
+              <SelectItem value="critic">Kritik-Score</SelectItem>
+              <SelectItem value="year">Erstes Jahr</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            title={sortDir === "asc" ? "Aufsteigend" : "Absteigend"}
+          >
+            <ArrowUpDown className={`w-4 h-4 transition-transform ${sortDir === "desc" ? "rotate-180" : ""}`} />
+          </Button>
+          <Select value={filterKey} onValueChange={(v) => setFilterKey(v as FilterKey)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle Künstler</SelectItem>
+              <SelectItem value="missing">Ohne Biografie</SelectItem>
+              <SelectItem value="withBio">Mit Biografie</SelectItem>
+              <SelectItem value="stale">Veraltete Bios</SelectItem>
+              <SelectItem value="noImage">Ohne Bild</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {/* Result count */}
+      {(filterKey !== "all" || search) && (
+        <div className="text-sm text-muted-foreground">
+          {filtered.length} von {artists.length} Künstlern
+        </div>
+      )}
 
       {/* Tile Grid */}
       {filtered.length === 0 ? (
