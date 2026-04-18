@@ -42,7 +42,8 @@ export default function Artists() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [filterKey, setFilterKey] = useState<FilterKey>("all");
-  const [genreFilter, setGenreFilter] = useState<string>("all");
+  const [genreFilter, setGenreFilter] = useState<string[]>([]);
+  const [genreSearch, setGenreSearch] = useState("");
 
   // Aggregate artists from collection (with rating + critic averages)
   const artists = useMemo(() => {
