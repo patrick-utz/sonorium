@@ -150,16 +150,54 @@ export default function ArtistDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artistName]);
 
-  // Filter out albums the user already owns / has on the wishlist
-  const mustHaves = useMemo(() => {
+  // Filter out albums the user already owns / has on the wishlist.
+  // Keep up to 5 candidates so the user can toggle "Mehr anzeigen".
+  const mustHavesAll = useMemo(() => {
     return topRecs
       .filter((r: any) => {
         const title = (r?.album || "").toLowerCase().trim();
         if (!title) return false;
         return !ownedAlbumTitles.has(title);
       })
-      .slice(0, 3);
+      .slice(0, 5);
   }, [topRecs, ownedAlbumTitles]);
+
+  const mustHaves = useMemo(
+    () => (showAllMustHaves ? mustHavesAll : mustHavesAll.slice(0, 3)),
+    [mustHavesAll, showAllMustHaves]
+  );
+
+  // Fetch covers for visible Must-Haves (iTunes → MusicBrainz fallback)
+  useEffect(() => {
+    let cancelled = false;
+    const todo = mustHaves.filter((r: any) => {
+      const key = `${artistName.toLowerCase().trim()}|${(r?.album || "").toLowerCase().trim()}`;
+      return r?.album && !(key in coverMap);
+    });
+    if (todo.length === 0) return;
+
+    (async () => {
+      for (const r of todo) {
+        const album = r.album as string;
+        const key = `${artistName.toLowerCase().trim()}|${album.toLowerCase().trim()}`;
+        try {
+          const url = await lookupAlbumCover(artistName, album);
+          if (cancelled) return;
+          setCoverMap((prev) => ({ ...prev, [key]: url }));
+        } catch (e) {
+          console.warn("Cover lookup failed for", album, e);
+          if (!cancelled) {
+            setCoverMap((prev) => ({ ...prev, [key]: null }));
+          }
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mustHaves, artistName]);
 
   return (
     <motion.div
