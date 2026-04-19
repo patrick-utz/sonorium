@@ -49,6 +49,8 @@ export default function ArtistDetail() {
   const [showAllMustHaves, setShowAllMustHaves] = useState(false);
   // Map of "artist|album" → cover URL (or null when looked up but not found)
   const [coverMap, setCoverMap] = useState<Record<string, string | null>>({});
+  const [addedAlbums, setAddedAlbums] = useState<Set<string>>(new Set());
+  const [addingAlbum, setAddingAlbum] = useState<string | null>(null);
 
   const bio = getByArtist(artistName);
 
