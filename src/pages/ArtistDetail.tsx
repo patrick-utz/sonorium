@@ -202,6 +202,51 @@ export default function ArtistDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mustHaves, artistName]);
 
+  // Add a recommended album directly to the wishlist
+  const handleAddToWishlist = async (rec: any) => {
+    const key = (rec?.album || "").toLowerCase().trim();
+    if (!key || addedAlbums.has(key) || addingAlbum === key) return;
+    setAddingAlbum(key);
+    try {
+      const coverKey = `${artistName.toLowerCase().trim()}|${key}`;
+      const cover = coverMap[coverKey];
+      const bestPressing = Array.isArray(rec.bestPressings) && rec.bestPressings.length > 0
+        ? rec.bestPressings[0]
+        : null;
+      await addRecord({
+        artist: artistName,
+        album: rec.album,
+        year: bestPressing?.year ?? rec.year ?? new Date().getFullYear(),
+        genre: [],
+        label: bestPressing?.label ?? rec.label ?? "",
+        catalogNumber: bestPressing?.catalogNumber,
+        format: "vinyl",
+        pressing: bestPressing
+          ? `${bestPressing.label ?? ""}${bestPressing.catalogNumber ? ` · ${bestPressing.catalogNumber}` : ""}${bestPressing.year ? ` (${bestPressing.year})` : ""}`.trim()
+          : undefined,
+        coverArt: cover || undefined,
+        myRating: 3,
+        criticScore: typeof rec.criticScore === "number" ? rec.criticScore : undefined,
+        status: "wishlist",
+        vinylRecommendation: "must-have",
+        recommendationReason: rec.description || `Top-Empfehlung von ${artistName}`,
+      });
+      setAddedAlbums((prev) => new Set(prev).add(key));
+      toast({
+        title: "Zur Wunschliste hinzugefügt",
+        description: `${rec.album} – ${artistName}`,
+      });
+    } catch (e) {
+      toast({
+        title: "Fehler",
+        description: e instanceof Error ? e.message : "Konnte nicht zur Wunschliste hinzugefügt werden",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingAlbum(null);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
