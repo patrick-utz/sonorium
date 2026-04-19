@@ -524,8 +524,15 @@ export default function ArtistDetail() {
                           <p className="text-xs text-muted-foreground mt-1">{rec.label}</p>
                         )}
                       </div>
-                      {(musical !== null || sound !== null) && (
-                        <div className="flex items-center gap-3 text-xs">
+                      {(musical !== null || sound !== null || typeof rec.criticScore === "number") && (
+                        <div className="flex items-center gap-3 text-xs flex-wrap">
+                          {typeof rec.criticScore === "number" && (
+                            <div className="flex items-center gap-1 text-foreground">
+                              <Award className="w-3.5 h-3.5 text-primary" />
+                              <span className="tabular-nums font-semibold">{rec.criticScore}/100</span>
+                              <span className="text-muted-foreground">Kritik</span>
+                            </div>
+                          )}
                           {musical !== null && (
                             <div className="flex items-center gap-1 text-foreground">
                               <Star className="w-3.5 h-3.5 fill-current text-primary" />
@@ -559,18 +566,37 @@ export default function ArtistDetail() {
                           </p>
                         </div>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full h-8 text-xs gap-1.5 mt-auto"
-                        onClick={() =>
-                          navigate(
-                            `/recherche?artist=${encodeURIComponent(artistName)}&album=${encodeURIComponent(rec.album)}`
-                          )
-                        }
-                      >
-                        In Recherche öffnen
-                      </Button>
+                      {(() => {
+                        const albumKey = (rec.album || "").toLowerCase().trim();
+                        const isAdded = addedAlbums.has(albumKey);
+                        const isAdding = addingAlbum === albumKey;
+                        return (
+                          <Button
+                            variant={isAdded ? "ghost" : "default"}
+                            size="sm"
+                            className="w-full h-8 text-xs gap-1.5 mt-auto"
+                            onClick={() => handleAddToWishlist(rec)}
+                            disabled={isAdded || isAdding}
+                          >
+                            {isAdded ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                Auf Wunschliste
+                              </>
+                            ) : isAdding ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                Wird hinzugefügt…
+                              </>
+                            ) : (
+                              <>
+                                <Heart className="w-3.5 h-3.5" />
+                                Auf Wunschliste
+                              </>
+                            )}
+                          </Button>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
                 );
