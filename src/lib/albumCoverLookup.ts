@@ -1,11 +1,14 @@
 /**
  * Lightweight client-side album cover lookup.
  * Tries iTunes Search API first (fast, CORS-friendly), then falls back
- * to MusicBrainz + Cover Art Archive.
+ * to MusicBrainz + Cover Art Archive, and finally Discogs (via the
+ * existing `discogs-marketplace` edge function).
  *
  * Returns a public image URL or null. Results are cached in-memory and
  * persisted in sessionStorage to avoid hammering APIs on re-renders.
  */
+
+import { supabase } from "@/integrations/supabase/client";
 
 const MEMORY_CACHE = new Map<string, string | null>();
 const SESSION_KEY_PREFIX = "sonorium_album_cover_v1:";
@@ -93,6 +96,40 @@ async function lookupMusicBrainz(artist: string, album: string): Promise<string 
   }
 }
 
+async function lookupDiscogs(artist: string, album: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke("discogs-marketplace", {
+      body: { artist, album, action: "search-alternatives" },
+    });
+    if (error) {
+      console.warn("Discogs cover lookup error:", error.message);
+      return null;
+    }
+    const alternatives = Array.isArray(data?.data?.alternatives)
+      ? data.data.alternatives
+      : [];
+    if (alternatives.length === 0) return null;
+
+    const artistLc = artist.toLowerCase().trim();
+    const albumLc = album.toLowerCase().trim();
+    // Prefer a result that matches both artist + album and has a cover
+    const best =
+      alternatives.find(
+        (r: any) =>
+          (r.cover_image || r.thumb) &&
+          (r.artist || "").toLowerCase().includes(artistLc) &&
+          (r.title || "").toLowerCase().includes(albumLc),
+      ) ||
+      alternatives.find((r: any) => r.cover_image || r.thumb);
+
+    if (!best) return null;
+    return best.cover_image || best.thumb || null;
+  } catch (e) {
+    console.warn("Discogs cover lookup failed:", e);
+    return null;
+  }
+}
+
 export async function lookupAlbumCover(
   artist: string,
   album: string,
@@ -110,10 +147,13 @@ export async function lookupAlbumCover(
     return sessionHit;
   }
 
-  // Try iTunes first, then MusicBrainz
+  // Try iTunes → MusicBrainz → Discogs (in that order)
   let result = await lookupItunes(artist, album);
   if (!result) {
     result = await lookupMusicBrainz(artist, album);
+  }
+  if (!result) {
+    result = await lookupDiscogs(artist, album);
   }
 
   MEMORY_CACHE.set(key, result);

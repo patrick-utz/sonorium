@@ -289,7 +289,8 @@ async function searchAlternativeReleases(query: { artist?: string; album?: strin
         catno: r.catno || undefined,
         country: r.country || undefined,
         format: r.format?.join(', ') || undefined,
-        thumb: r.thumb || undefined
+        thumb: r.thumb || undefined,
+        cover_image: r.cover_image || undefined
       };
     });
   } catch (error) {
