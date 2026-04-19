@@ -317,6 +317,147 @@ export default function ArtistDetail() {
           </div>
         </div>
       )}
+
+      {/* Must-Haves: Top 3 AI recommendations not in collection */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-primary" />
+              Must-Haves
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Die wichtigsten Alben dieses Künstlers, die noch in deiner Sammlung fehlen.
+            </p>
+          </div>
+          <Button
+            onClick={() => loadRecommendations(true)}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={recsLoading}
+          >
+            {recsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Aktualisieren
+          </Button>
+        </div>
+
+        {recsLoading && mustHaves.length === 0 && (
+          <Card className="bg-gradient-card border-border/50">
+            <CardContent className="p-6 flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              KI sucht die Must-Have-Pressungen...
+            </CardContent>
+          </Card>
+        )}
+
+        {!recsLoading && mustHaves.length === 0 && topRecs.length === 0 && (
+          <Card className="bg-gradient-card border-border/50">
+            <CardContent className="p-6 text-sm text-muted-foreground">
+              Noch keine Empfehlungen geladen.{" "}
+              <button
+                type="button"
+                onClick={() => loadRecommendations(true)}
+                className="text-primary hover:underline"
+              >
+                Jetzt laden
+              </button>
+            </CardContent>
+          </Card>
+        )}
+
+        {!recsLoading && mustHaves.length === 0 && topRecs.length > 0 && (
+          <Card className="bg-gradient-card border-border/50">
+            <CardContent className="p-6 text-sm text-muted-foreground">
+              Du besitzt bereits alle Must-Have-Alben dieses Künstlers. 🎉
+            </CardContent>
+          </Card>
+        )}
+
+        {mustHaves.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {mustHaves.map((rec: any, idx: number) => {
+              const musical = typeof rec.musicalRating === "number" ? rec.musicalRating : null;
+              const sound = typeof rec.soundRating === "number" ? rec.soundRating : null;
+              return (
+                <Card
+                  key={`${rec.album}-${idx}`}
+                  className="bg-gradient-card border-border/50 hover:border-primary/40 transition-colors"
+                >
+                  <CardContent className="p-5 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <Badge variant="outline" className="gap-1.5 text-xs">
+                        <Award className="w-3 h-3" />
+                        Rang {rec.rank ?? idx + 1}
+                      </Badge>
+                      {rec.year && (
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {rec.year}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground leading-tight">
+                        {rec.album}
+                      </h3>
+                      {rec.label && (
+                        <p className="text-xs text-muted-foreground mt-1">{rec.label}</p>
+                      )}
+                    </div>
+                    {(musical !== null || sound !== null) && (
+                      <div className="flex items-center gap-3 text-xs">
+                        {musical !== null && (
+                          <div className="flex items-center gap-1 text-foreground">
+                            <Star className="w-3.5 h-3.5 fill-current text-amber-400" />
+                            <span className="tabular-nums">{musical}/5</span>
+                            <span className="text-muted-foreground">Musik</span>
+                          </div>
+                        )}
+                        {sound !== null && (
+                          <div className="flex items-center gap-1 text-foreground">
+                            <Disc3 className="w-3.5 h-3.5 text-primary" />
+                            <span className="tabular-nums">{sound}/5</span>
+                            <span className="text-muted-foreground">Klang</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {rec.description && (
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {rec.description}
+                      </p>
+                    )}
+                    {Array.isArray(rec.bestPressings) && rec.bestPressings.length > 0 && (
+                      <div className="pt-2 border-t border-border/50 space-y-1.5">
+                        <p className="text-xs font-semibold text-foreground">
+                          Empfohlene Pressung:
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {rec.bestPressings[0].label}
+                          {rec.bestPressings[0].catalogNumber && ` · ${rec.bestPressings[0].catalogNumber}`}
+                          {rec.bestPressings[0].year && ` (${rec.bestPressings[0].year})`}
+                        </p>
+                      </div>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full h-8 text-xs gap-1.5"
+                      onClick={() =>
+                        navigate(
+                          `/recherche?artist=${encodeURIComponent(artistName)}&album=${encodeURIComponent(rec.album)}`
+                        )
+                      }
+                    >
+                      In Recherche öffnen
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
