@@ -419,87 +419,140 @@ export default function ArtistDetail() {
         )}
 
         {mustHaves.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {mustHaves.map((rec: any, idx: number) => {
-              const musical = typeof rec.musicalRating === "number" ? rec.musicalRating : null;
-              const sound = typeof rec.soundRating === "number" ? rec.soundRating : null;
-              return (
-                <Card
-                  key={`${rec.album}-${idx}`}
-                  className="bg-gradient-card border-border/50 hover:border-primary/40 transition-colors"
-                >
-                  <CardContent className="p-5 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <Badge variant="outline" className="gap-1.5 text-xs">
-                        <Award className="w-3 h-3" />
-                        Rang {rec.rank ?? idx + 1}
-                      </Badge>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {mustHaves.map((rec: any, idx: number) => {
+                const musical = typeof rec.musicalRating === "number" ? rec.musicalRating : null;
+                const sound = typeof rec.soundRating === "number" ? rec.soundRating : null;
+                const coverKey = `${artistName.toLowerCase().trim()}|${(rec.album || "").toLowerCase().trim()}`;
+                const coverUrl = coverMap[coverKey]; // undefined = pending, null = not found, string = found
+                const coverPending = !(coverKey in coverMap);
+                return (
+                  <Card
+                    key={`${rec.album}-${idx}`}
+                    className="bg-gradient-card border-border/50 hover:border-primary/40 transition-colors overflow-hidden flex flex-col"
+                  >
+                    {/* Cover */}
+                    <div className="aspect-square bg-muted relative overflow-hidden">
+                      {coverUrl ? (
+                        <img
+                          src={coverUrl}
+                          alt={`${rec.album} – ${artistName}`}
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                          onError={() =>
+                            setCoverMap((prev) => ({ ...prev, [coverKey]: null }))
+                          }
+                        />
+                      ) : coverPending ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/60" />
+                        </div>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-vinyl">
+                          <Disc3 className="w-12 h-12 text-primary/40" />
+                        </div>
+                      )}
+                      <div className="absolute top-2 left-2">
+                        <Badge variant="outline" className="gap-1.5 text-xs bg-background/80 backdrop-blur">
+                          <Award className="w-3 h-3" />
+                          Rang {rec.rank ?? idx + 1}
+                        </Badge>
+                      </div>
                       {rec.year && (
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {rec.year}
-                        </span>
+                        <div className="absolute top-2 right-2">
+                          <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur tabular-nums">
+                            {rec.year}
+                          </Badge>
+                        </div>
                       )}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground leading-tight">
-                        {rec.album}
-                      </h3>
-                      {rec.label && (
-                        <p className="text-xs text-muted-foreground mt-1">{rec.label}</p>
+                    <CardContent className="p-4 space-y-3 flex-1 flex flex-col">
+                      <div>
+                        <h3 className="font-semibold text-foreground leading-tight">
+                          {rec.album}
+                        </h3>
+                        {rec.label && (
+                          <p className="text-xs text-muted-foreground mt-1">{rec.label}</p>
+                        )}
+                      </div>
+                      {(musical !== null || sound !== null) && (
+                        <div className="flex items-center gap-3 text-xs">
+                          {musical !== null && (
+                            <div className="flex items-center gap-1 text-foreground">
+                              <Star className="w-3.5 h-3.5 fill-current text-primary" />
+                              <span className="tabular-nums">{musical}/5</span>
+                              <span className="text-muted-foreground">Musik</span>
+                            </div>
+                          )}
+                          {sound !== null && (
+                            <div className="flex items-center gap-1 text-foreground">
+                              <Disc3 className="w-3.5 h-3.5 text-primary" />
+                              <span className="tabular-nums">{sound}/5</span>
+                              <span className="text-muted-foreground">Klang</span>
+                            </div>
+                          )}
+                        </div>
                       )}
-                    </div>
-                    {(musical !== null || sound !== null) && (
-                      <div className="flex items-center gap-3 text-xs">
-                        {musical !== null && (
-                          <div className="flex items-center gap-1 text-foreground">
-                            <Star className="w-3.5 h-3.5 fill-current text-primary" />
-                            <span className="tabular-nums">{musical}/5</span>
-                            <span className="text-muted-foreground">Musik</span>
-                          </div>
-                        )}
-                        {sound !== null && (
-                          <div className="flex items-center gap-1 text-foreground">
-                            <Disc3 className="w-3.5 h-3.5 text-primary" />
-                            <span className="tabular-nums">{sound}/5</span>
-                            <span className="text-muted-foreground">Klang</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {rec.description && (
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {rec.description}
-                      </p>
-                    )}
-                    {Array.isArray(rec.bestPressings) && rec.bestPressings.length > 0 && (
-                      <div className="pt-2 border-t border-border/50 space-y-1.5">
-                        <p className="text-xs font-semibold text-foreground">
-                          Empfohlene Pressung:
+                      {rec.description && (
+                        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                          {rec.description}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {rec.bestPressings[0].label}
-                          {rec.bestPressings[0].catalogNumber && ` · ${rec.bestPressings[0].catalogNumber}`}
-                          {rec.bestPressings[0].year && ` (${rec.bestPressings[0].year})`}
-                        </p>
-                      </div>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full h-8 text-xs gap-1.5"
-                      onClick={() =>
-                        navigate(
-                          `/recherche?artist=${encodeURIComponent(artistName)}&album=${encodeURIComponent(rec.album)}`
-                        )
-                      }
-                    >
-                      In Recherche öffnen
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      )}
+                      {Array.isArray(rec.bestPressings) && rec.bestPressings.length > 0 && (
+                        <div className="pt-2 border-t border-border/50 space-y-1">
+                          <p className="text-xs font-semibold text-foreground">
+                            Empfohlene Pressung:
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {rec.bestPressings[0].label}
+                            {rec.bestPressings[0].catalogNumber && ` · ${rec.bestPressings[0].catalogNumber}`}
+                            {rec.bestPressings[0].year && ` (${rec.bestPressings[0].year})`}
+                          </p>
+                        </div>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full h-8 text-xs gap-1.5 mt-auto"
+                        onClick={() =>
+                          navigate(
+                            `/recherche?artist=${encodeURIComponent(artistName)}&album=${encodeURIComponent(rec.album)}`
+                          )
+                        }
+                      >
+                        In Recherche öffnen
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Mehr / Weniger anzeigen */}
+            {mustHavesAll.length > 3 && (
+              <div className="flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowAllMustHaves((v) => !v)}
+                >
+                  {showAllMustHaves ? (
+                    <>
+                      <ChevronUp className="w-4 h-4" />
+                      Weniger anzeigen
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4" />
+                      Mehr anzeigen ({mustHavesAll.length - 3} weitere)
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </motion.div>
