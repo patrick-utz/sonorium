@@ -507,11 +507,18 @@ export default function ArtistDetail() {
                           Rang {rec.rank ?? idx + 1}
                         </Badge>
                       </div>
-                      {rec.year && (
-                        <div className="absolute top-2 right-2">
-                          <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur tabular-nums">
-                            {rec.year}
-                          </Badge>
+                      {/* Top-right: Critic Score Badge (always visible, like RecordCard) */}
+                      {typeof rec.criticScore === "number" && (
+                        <div
+                          className="absolute top-2 right-2 z-10"
+                          title={rec.criticScoreReason || undefined}
+                        >
+                          <div className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/20 shadow-lg">
+                            <span className="text-xs font-semibold text-white tabular-nums">
+                              {Math.round(rec.criticScore)}
+                              <span className="text-white/60 text-[10px]">/100</span>
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -520,9 +527,10 @@ export default function ArtistDetail() {
                         <h3 className="font-semibold text-foreground leading-tight">
                           {rec.album}
                         </h3>
-                        {rec.label && (
-                          <p className="text-xs text-muted-foreground mt-1">{rec.label}</p>
-                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {[rec.year, rec.label].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
                       </div>
                       {(musical !== null || sound !== null || typeof rec.criticScore === "number") && (
                         <div className="flex items-center gap-3 text-xs flex-wrap">
