@@ -1,11 +1,14 @@
 /**
  * Lightweight client-side album cover lookup.
  * Tries iTunes Search API first (fast, CORS-friendly), then falls back
- * to MusicBrainz + Cover Art Archive.
+ * to MusicBrainz + Cover Art Archive, and finally Discogs (via the
+ * existing `discogs-marketplace` edge function).
  *
  * Returns a public image URL or null. Results are cached in-memory and
  * persisted in sessionStorage to avoid hammering APIs on re-renders.
  */
+
+import { supabase } from "@/integrations/supabase/client";
 
 const MEMORY_CACHE = new Map<string, string | null>();
 const SESSION_KEY_PREFIX = "sonorium_album_cover_v1:";
