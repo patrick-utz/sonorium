@@ -408,7 +408,7 @@ export default function ArtistDetail() {
                       <div className="flex items-center gap-3 text-xs">
                         {musical !== null && (
                           <div className="flex items-center gap-1 text-foreground">
-                            <Star className="w-3.5 h-3.5 fill-current text-amber-400" />
+                            <Star className="w-3.5 h-3.5 fill-current text-primary" />
                             <span className="tabular-nums">{musical}/5</span>
                             <span className="text-muted-foreground">Musik</span>
                           </div>
