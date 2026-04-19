@@ -96,6 +96,40 @@ async function lookupMusicBrainz(artist: string, album: string): Promise<string 
   }
 }
 
+async function lookupDiscogs(artist: string, album: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke("discogs-marketplace", {
+      body: { artist, album, action: "search-alternatives" },
+    });
+    if (error) {
+      console.warn("Discogs cover lookup error:", error.message);
+      return null;
+    }
+    const alternatives = Array.isArray(data?.data?.alternatives)
+      ? data.data.alternatives
+      : [];
+    if (alternatives.length === 0) return null;
+
+    const artistLc = artist.toLowerCase().trim();
+    const albumLc = album.toLowerCase().trim();
+    // Prefer a result that matches both artist + album and has a cover
+    const best =
+      alternatives.find(
+        (r: any) =>
+          (r.cover_image || r.thumb) &&
+          (r.artist || "").toLowerCase().includes(artistLc) &&
+          (r.title || "").toLowerCase().includes(albumLc),
+      ) ||
+      alternatives.find((r: any) => r.cover_image || r.thumb);
+
+    if (!best) return null;
+    return best.cover_image || best.thumb || null;
+  } catch (e) {
+    console.warn("Discogs cover lookup failed:", e);
+    return null;
+  }
+}
+
 export async function lookupAlbumCover(
   artist: string,
   album: string,
@@ -113,10 +147,13 @@ export async function lookupAlbumCover(
     return sessionHit;
   }
 
-  // Try iTunes first, then MusicBrainz
+  // Try iTunes → MusicBrainz → Discogs (in that order)
   let result = await lookupItunes(artist, album);
   if (!result) {
     result = await lookupMusicBrainz(artist, album);
+  }
+  if (!result) {
+    result = await lookupDiscogs(artist, album);
   }
 
   MEMORY_CACHE.set(key, result);
