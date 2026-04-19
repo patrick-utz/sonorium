@@ -547,17 +547,8 @@ export default function Artists() {
                       </div>
                     )}
 
-                    {/* Critic score (top-left) */}
-                    {artist.avgCritic !== null && (
-                      <div className="absolute top-2 left-2">
-                        <div className="px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/20">
-                          <span className="text-xs font-semibold text-white tabular-nums">
-                            {Math.round(artist.avgCritic)}
-                            <span className="text-white/60 text-[10px]">/100</span>
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    {/* (kein Kritik-Score auf der Künstler-Übersicht) */}
+
 
                     {/* Status badge (top-right) */}
                     <div className="absolute top-2 right-2">
