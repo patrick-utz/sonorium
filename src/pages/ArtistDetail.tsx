@@ -28,13 +28,14 @@ import {
 import { motion } from "framer-motion";
 import { RecordCard } from "@/components/RecordCard";
 import { lookupAlbumCover } from "@/lib/albumCoverLookup";
+import { Heart, Check } from "lucide-react";
 
 export default function ArtistDetail() {
   const { name } = useParams<{ name: string }>();
   const artistName = decodeURIComponent(name || "");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { records } = useRecords();
+  const { records, addRecord } = useRecords();
   const { getByArtist, generateBio, ensureBio } = useArtistBios();
   const { profile } = useAudiophileProfile();
   const { getArtistCache, setArtistCache } = useResearchCache();
@@ -48,6 +49,8 @@ export default function ArtistDetail() {
   const [showAllMustHaves, setShowAllMustHaves] = useState(false);
   // Map of "artist|album" → cover URL (or null when looked up but not found)
   const [coverMap, setCoverMap] = useState<Record<string, string | null>>({});
+  const [addedAlbums, setAddedAlbums] = useState<Set<string>>(new Set());
+  const [addingAlbum, setAddingAlbum] = useState<string | null>(null);
 
   const bio = getByArtist(artistName);
 
@@ -198,6 +201,51 @@ export default function ArtistDetail() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mustHaves, artistName]);
+
+  // Add a recommended album directly to the wishlist
+  const handleAddToWishlist = async (rec: any) => {
+    const key = (rec?.album || "").toLowerCase().trim();
+    if (!key || addedAlbums.has(key) || addingAlbum === key) return;
+    setAddingAlbum(key);
+    try {
+      const coverKey = `${artistName.toLowerCase().trim()}|${key}`;
+      const cover = coverMap[coverKey];
+      const bestPressing = Array.isArray(rec.bestPressings) && rec.bestPressings.length > 0
+        ? rec.bestPressings[0]
+        : null;
+      await addRecord({
+        artist: artistName,
+        album: rec.album,
+        year: bestPressing?.year ?? rec.year ?? new Date().getFullYear(),
+        genre: [],
+        label: bestPressing?.label ?? rec.label ?? "",
+        catalogNumber: bestPressing?.catalogNumber,
+        format: "vinyl",
+        pressing: bestPressing
+          ? `${bestPressing.label ?? ""}${bestPressing.catalogNumber ? ` · ${bestPressing.catalogNumber}` : ""}${bestPressing.year ? ` (${bestPressing.year})` : ""}`.trim()
+          : undefined,
+        coverArt: cover || undefined,
+        myRating: 3,
+        criticScore: typeof rec.criticScore === "number" ? rec.criticScore : undefined,
+        status: "wishlist",
+        vinylRecommendation: "must-have",
+        recommendationReason: rec.description || `Top-Empfehlung von ${artistName}`,
+      });
+      setAddedAlbums((prev) => new Set(prev).add(key));
+      toast({
+        title: "Zur Wunschliste hinzugefügt",
+        description: `${rec.album} – ${artistName}`,
+      });
+    } catch (e) {
+      toast({
+        title: "Fehler",
+        description: e instanceof Error ? e.message : "Konnte nicht zur Wunschliste hinzugefügt werden",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingAlbum(null);
+    }
+  };
 
   return (
     <motion.div
@@ -476,8 +524,15 @@ export default function ArtistDetail() {
                           <p className="text-xs text-muted-foreground mt-1">{rec.label}</p>
                         )}
                       </div>
-                      {(musical !== null || sound !== null) && (
-                        <div className="flex items-center gap-3 text-xs">
+                      {(musical !== null || sound !== null || typeof rec.criticScore === "number") && (
+                        <div className="flex items-center gap-3 text-xs flex-wrap">
+                          {typeof rec.criticScore === "number" && (
+                            <div className="flex items-center gap-1 text-foreground">
+                              <Award className="w-3.5 h-3.5 text-primary" />
+                              <span className="tabular-nums font-semibold">{rec.criticScore}/100</span>
+                              <span className="text-muted-foreground">Kritik</span>
+                            </div>
+                          )}
                           {musical !== null && (
                             <div className="flex items-center gap-1 text-foreground">
                               <Star className="w-3.5 h-3.5 fill-current text-primary" />
@@ -511,18 +566,37 @@ export default function ArtistDetail() {
                           </p>
                         </div>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full h-8 text-xs gap-1.5 mt-auto"
-                        onClick={() =>
-                          navigate(
-                            `/recherche?artist=${encodeURIComponent(artistName)}&album=${encodeURIComponent(rec.album)}`
-                          )
-                        }
-                      >
-                        In Recherche öffnen
-                      </Button>
+                      {(() => {
+                        const albumKey = (rec.album || "").toLowerCase().trim();
+                        const isAdded = addedAlbums.has(albumKey);
+                        const isAdding = addingAlbum === albumKey;
+                        return (
+                          <Button
+                            variant={isAdded ? "ghost" : "default"}
+                            size="sm"
+                            className="w-full h-8 text-xs gap-1.5 mt-auto"
+                            onClick={() => handleAddToWishlist(rec)}
+                            disabled={isAdded || isAdding}
+                          >
+                            {isAdded ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                Auf Wunschliste
+                              </>
+                            ) : isAdding ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                Wird hinzugefügt…
+                              </>
+                            ) : (
+                              <>
+                                <Heart className="w-3.5 h-3.5" />
+                                Auf Wunschliste
+                              </>
+                            )}
+                          </Button>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
                 );
