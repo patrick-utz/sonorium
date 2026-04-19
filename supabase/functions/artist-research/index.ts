@@ -132,6 +132,8 @@ Antworte NUR mit validem JSON (ohne Markdown):
       "label": "Label",
       "musicalRating": 5,
       "soundRating": 5,
+      "criticScore": 92,
+      "criticScoreReason": "1 kurzer Satz (max 15 Wörter), warum der Score so hoch/tief ist",
       "description": "1-2 Sätze",
       "phase": "Phase",
       "notes": "Kurzer Hinweis",
@@ -144,7 +146,11 @@ Antworte NUR mit validem JSON (ohne Markdown):
   "avoidLabels": ["Label 1"]
 }
 
-WICHTIG: Maximal 3 Alben, je 2 Pressungen. Halte ALLE Texte SEHR KURZ (max 1-2 Sätze).`;
+WICHTIG:
+- Maximal 3 Alben, je 2 Pressungen.
+- Halte ALLE Texte SEHR KURZ (max 1-2 Sätze).
+- "criticScore" ist PFLICHT für jedes Album: eine ganze Zahl 0-100, die den durchschnittlichen Konsens der Musikkritik (Pitchfork, Rolling Stone, AllMusic, MusicHound, Christgau, etc.) widerspiegelt. Klassiker und hoch gelobte Alben: 85-99. Solide Alben: 70-84. Durchschnittlich: 50-69. Schwach: <50.
+- "criticScoreReason" ist PFLICHT: ein knapper Satz (max 15 Wörter), der den Score begründet (z. B. "Pitchfork 9.2, Rolling Stone 5/5 – Genre-definierender Klassiker.").`;
 
     const userPrompt = `Vinyl-Empfehlung für: ${artist}. Gib die TOP 3 Alben mit je 2 besten Vinyl-Pressungen (mit Katalognummern). Halte dich KURZ.`;
 
