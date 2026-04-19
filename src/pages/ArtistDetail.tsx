@@ -35,7 +35,7 @@ export default function ArtistDetail() {
   const artistName = decodeURIComponent(name || "");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { records } = useRecords();
+  const { records, addRecord } = useRecords();
   const { getByArtist, generateBio, ensureBio } = useArtistBios();
   const { profile } = useAudiophileProfile();
   const { getArtistCache, setArtistCache } = useResearchCache();
