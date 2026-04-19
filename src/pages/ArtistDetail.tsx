@@ -33,8 +33,15 @@ export default function ArtistDetail() {
   const { toast } = useToast();
   const { records } = useRecords();
   const { getByArtist, generateBio, ensureBio } = useArtistBios();
+  const { profile } = useAudiophileProfile();
+  const { getArtistCache, setArtistCache } = useResearchCache();
   const [loading, setLoading] = useState(false);
   const [autoTriggered, setAutoTriggered] = useState(false);
+
+  // Top recommendations (Must-Haves) for this artist
+  const [topRecs, setTopRecs] = useState<any[]>([]);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [recsTriggered, setRecsTriggered] = useState(false);
 
   const bio = getByArtist(artistName);
 
@@ -44,6 +51,12 @@ export default function ArtistDetail() {
         .filter((r) => r.artist.toLowerCase().trim() === artistName.toLowerCase().trim())
         .sort((a, b) => (a.year || 0) - (b.year || 0)),
     [records, artistName]
+  );
+
+  // Album titles already in user's collection/wishlist (lowercased) — to filter out
+  const ownedAlbumTitles = useMemo(
+    () => new Set(albums.map((a) => a.album.toLowerCase().trim())),
+    [albums]
   );
 
   // Auto-load on mount
