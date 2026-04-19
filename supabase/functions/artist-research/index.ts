@@ -225,6 +225,44 @@ WICHTIG:
 
     console.log(`Successfully parsed research for: ${result.artist}`);
 
+    // Server-side fallback: ensure every topRecommendation has a 0-100 criticScore + reason.
+    if (Array.isArray(result?.topRecommendations)) {
+      result.topRecommendations = result.topRecommendations.map((rec: any) => {
+        const hasValidScore =
+          typeof rec?.criticScore === "number" &&
+          Number.isFinite(rec.criticScore) &&
+          rec.criticScore >= 0 &&
+          rec.criticScore <= 100;
+
+        if (!hasValidScore) {
+          // Derive from musical/sound 1-5 ratings (weighted: musical 60%, sound 40%).
+          const musical = typeof rec?.musicalRating === "number" ? rec.musicalRating : null;
+          const sound = typeof rec?.soundRating === "number" ? rec.soundRating : null;
+          let derived: number | null = null;
+          if (musical !== null && sound !== null) {
+            derived = Math.round((musical * 0.6 + sound * 0.4) * 20);
+          } else if (musical !== null) {
+            derived = Math.round(musical * 20);
+          } else if (sound !== null) {
+            derived = Math.round(sound * 20);
+          }
+          rec.criticScore = derived ?? 75;
+          if (!rec.criticScoreReason) {
+            rec.criticScoreReason =
+              derived !== null
+                ? `Geschätzt aus musikalischer (${musical ?? "–"}/5) und klanglicher (${sound ?? "–"}/5) Bewertung.`
+                : "Vorläufiger Schätzwert – kein detaillierter Kritikkonsens verfügbar.";
+          }
+        } else {
+          rec.criticScore = Math.round(rec.criticScore);
+          if (!rec.criticScoreReason || typeof rec.criticScoreReason !== "string") {
+            rec.criticScoreReason = "Kritikkonsens laut KI-Recherche.";
+          }
+        }
+        return rec;
+      });
+    }
+
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
