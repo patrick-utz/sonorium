@@ -22,9 +22,12 @@ import {
   Award,
   Star,
   Disc3,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { RecordCard } from "@/components/RecordCard";
+import { lookupAlbumCover } from "@/lib/albumCoverLookup";
 
 export default function ArtistDetail() {
   const { name } = useParams<{ name: string }>();
