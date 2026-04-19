@@ -57,15 +57,24 @@ export default function ArtistDetail() {
   const albums = useMemo(
     () =>
       records
-        .filter((r) => r.artist.toLowerCase().trim() === artistName.toLowerCase().trim())
+        .filter(
+          (r) =>
+            r.artist.toLowerCase().trim() === artistName.toLowerCase().trim() &&
+            r.status === "owned"
+        )
         .sort((a, b) => (a.year || 0) - (b.year || 0)),
     [records, artistName]
   );
 
-  // Album titles already in user's collection/wishlist (lowercased) — to filter out
+  // Album titles already in user's collection OR wishlist (lowercased) — to filter out from Must-Haves
   const ownedAlbumTitles = useMemo(
-    () => new Set(albums.map((a) => a.album.toLowerCase().trim())),
-    [albums]
+    () =>
+      new Set(
+        records
+          .filter((r) => r.artist.toLowerCase().trim() === artistName.toLowerCase().trim())
+          .map((r) => r.album.toLowerCase().trim())
+      ),
+    [records, artistName]
   );
 
   // Auto-load on mount
