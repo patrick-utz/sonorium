@@ -98,6 +98,63 @@ export default function ArtistDetail() {
     }
   };
 
+  // Load top recommendations (Must-Haves) for this artist
+  const loadRecommendations = async (force = false) => {
+    if (!artistName) return;
+
+    // Try cache first
+    if (!force) {
+      const cached = getArtistCache(artistName);
+      if (cached?.topRecommendations?.length) {
+        setTopRecs(cached.topRecommendations);
+        return;
+      }
+    }
+
+    setRecsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("artist-research", {
+        body: { artist: artistName, profile: profile || null },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      const recs = Array.isArray(data?.topRecommendations) ? data.topRecommendations : [];
+      setTopRecs(recs);
+      setArtistCache(artistName, data);
+    } catch (e) {
+      console.warn("Top recs load failed:", e);
+      if (force) {
+        toast({
+          title: "Empfehlungen konnten nicht geladen werden",
+          description: e instanceof Error ? e.message : "Unbekannter Fehler",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setRecsLoading(false);
+    }
+  };
+
+  // Auto-load recommendations once on mount
+  useEffect(() => {
+    if (recsTriggered) return;
+    setRecsTriggered(true);
+    loadRecommendations(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artistName]);
+
+  // Filter out albums the user already owns / has on the wishlist
+  const mustHaves = useMemo(() => {
+    return topRecs
+      .filter((r: any) => {
+        const title = (r?.album || "").toLowerCase().trim();
+        if (!title) return false;
+        return !ownedAlbumTitles.has(title);
+      })
+      .slice(0, 3);
+  }, [topRecs, ownedAlbumTitles]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
