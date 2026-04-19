@@ -521,8 +521,8 @@ export default function Artists() {
             const bio = getByArtist(artist.name);
             const stale = bio && isStale(bio.updated_at);
             const isLoadingThis = individualLoading === artist.name;
-            // Prefer Wikipedia artist image, fall back to first album cover
-            const heroImage = bio?.artist_image || artist.cover;
+            // Only use the actual artist photo — never fall back to an album cover
+            const heroImage = bio?.artist_image || null;
             return (
               <motion.div
                 key={artist.name}
