@@ -28,6 +28,7 @@ import {
 import { motion } from "framer-motion";
 import { RecordCard } from "@/components/RecordCard";
 import { lookupAlbumCover } from "@/lib/albumCoverLookup";
+import { Heart, Check } from "lucide-react";
 
 export default function ArtistDetail() {
   const { name } = useParams<{ name: string }>();
