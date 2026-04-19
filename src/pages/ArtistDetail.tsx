@@ -531,19 +531,8 @@ export default function ArtistDetail() {
                           {[rec.year, rec.label].filter(Boolean).join(" · ")}
                         </p>
                       </div>
-                      </div>
-                      {(musical !== null || sound !== null || typeof rec.criticScore === "number") && (
+                      {(musical !== null || sound !== null) && (
                         <div className="flex items-center gap-3 text-xs flex-wrap">
-                          {typeof rec.criticScore === "number" && (
-                            <div
-                              className="flex items-center gap-1 text-foreground"
-                              title={rec.criticScoreReason || undefined}
-                            >
-                              <Award className="w-3.5 h-3.5 text-primary" />
-                              <span className="tabular-nums font-semibold">{rec.criticScore}/100</span>
-                              <span className="text-muted-foreground">Kritik</span>
-                            </div>
-                          )}
                           {musical !== null && (
                             <div className="flex items-center gap-1 text-foreground">
                               <Star className="w-3.5 h-3.5 fill-current text-primary" />
