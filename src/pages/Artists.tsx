@@ -612,9 +612,6 @@ export default function Artists() {
                       <p className="text-xs text-muted-foreground">
                         {artist.albumCount} {artist.albumCount === 1 ? "Album" : "Alben"}
                       </p>
-                      {artist.avgRating !== null && (
-                        <StarRating rating={Math.round(artist.avgRating)} size="sm" />
-                      )}
                     </div>
                     {!bio && (
                       <Button
