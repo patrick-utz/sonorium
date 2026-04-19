@@ -132,6 +132,8 @@ Antworte NUR mit validem JSON (ohne Markdown):
       "label": "Label",
       "musicalRating": 5,
       "soundRating": 5,
+      "criticScore": 92,
+      "criticScoreReason": "1 kurzer Satz (max 15 Wörter), warum der Score so hoch/tief ist",
       "description": "1-2 Sätze",
       "phase": "Phase",
       "notes": "Kurzer Hinweis",
@@ -144,7 +146,11 @@ Antworte NUR mit validem JSON (ohne Markdown):
   "avoidLabels": ["Label 1"]
 }
 
-WICHTIG: Maximal 3 Alben, je 2 Pressungen. Halte ALLE Texte SEHR KURZ (max 1-2 Sätze).`;
+WICHTIG:
+- Maximal 3 Alben, je 2 Pressungen.
+- Halte ALLE Texte SEHR KURZ (max 1-2 Sätze).
+- "criticScore" ist PFLICHT für jedes Album: eine ganze Zahl 0-100, die den durchschnittlichen Konsens der Musikkritik (Pitchfork, Rolling Stone, AllMusic, MusicHound, Christgau, etc.) widerspiegelt. Klassiker und hoch gelobte Alben: 85-99. Solide Alben: 70-84. Durchschnittlich: 50-69. Schwach: <50.
+- "criticScoreReason" ist PFLICHT: ein knapper Satz (max 15 Wörter), der den Score begründet (z. B. "Pitchfork 9.2, Rolling Stone 5/5 – Genre-definierender Klassiker.").`;
 
     const userPrompt = `Vinyl-Empfehlung für: ${artist}. Gib die TOP 3 Alben mit je 2 besten Vinyl-Pressungen (mit Katalognummern). Halte dich KURZ.`;
 
@@ -218,6 +224,44 @@ WICHTIG: Maximal 3 Alben, je 2 Pressungen. Halte ALLE Texte SEHR KURZ (max 1-2 S
     }
 
     console.log(`Successfully parsed research for: ${result.artist}`);
+
+    // Server-side fallback: ensure every topRecommendation has a 0-100 criticScore + reason.
+    if (Array.isArray(result?.topRecommendations)) {
+      result.topRecommendations = result.topRecommendations.map((rec: any) => {
+        const hasValidScore =
+          typeof rec?.criticScore === "number" &&
+          Number.isFinite(rec.criticScore) &&
+          rec.criticScore >= 0 &&
+          rec.criticScore <= 100;
+
+        if (!hasValidScore) {
+          // Derive from musical/sound 1-5 ratings (weighted: musical 60%, sound 40%).
+          const musical = typeof rec?.musicalRating === "number" ? rec.musicalRating : null;
+          const sound = typeof rec?.soundRating === "number" ? rec.soundRating : null;
+          let derived: number | null = null;
+          if (musical !== null && sound !== null) {
+            derived = Math.round((musical * 0.6 + sound * 0.4) * 20);
+          } else if (musical !== null) {
+            derived = Math.round(musical * 20);
+          } else if (sound !== null) {
+            derived = Math.round(sound * 20);
+          }
+          rec.criticScore = derived ?? 75;
+          if (!rec.criticScoreReason) {
+            rec.criticScoreReason =
+              derived !== null
+                ? `Geschätzt aus musikalischer (${musical ?? "–"}/5) und klanglicher (${sound ?? "–"}/5) Bewertung.`
+                : "Vorläufiger Schätzwert – kein detaillierter Kritikkonsens verfügbar.";
+          }
+        } else {
+          rec.criticScore = Math.round(rec.criticScore);
+          if (!rec.criticScoreReason || typeof rec.criticScoreReason !== "string") {
+            rec.criticScoreReason = "Kritikkonsens laut KI-Recherche.";
+          }
+        }
+        return rec;
+      });
+    }
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
